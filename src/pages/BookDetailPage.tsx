@@ -175,8 +175,8 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
       <TopBar user={activeUser} onOpenShare={onOpenAddBook} onLogout={onLogout} />
 
       <div className="book-detail">
-        <button type="button" className="btn book-back" onClick={() => navigate("/home")}>
-          <Icon name="arrowLeft" /> {pick(language, "Estantería", "Shelf", "Estantería")}
+        <button type="button" className="book-back" onClick={() => navigate("/home")}>
+          <Icon name="arrowLeft" size={14} /> {pick(language, "Estantería del club", "Club shelf", "Estantería do club")}
         </button>
 
         <section className="page-section book-detail-head">

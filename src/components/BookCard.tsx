@@ -8,17 +8,6 @@ interface BookCardProps {
   onOpen?: (book: ClubBook) => void;
 }
 
-const statusLabel = (status: ClubBook["status"], language: "es" | "en" | "gl"): string => {
-  switch (status) {
-    case "reading":
-      return pick(language, "En lectura", "Reading", "En lectura");
-    case "finished":
-      return pick(language, "Leído", "Read", "Lido");
-    default:
-      return pick(language, "Propuesto", "Proposed", "Proposto");
-  }
-};
-
 export const BookCard = ({ book, member, onOpen }: BookCardProps) => {
   const { language } = useI18n();
   const onShelf = member ? pick(language, "En tu estante", "On your shelf", "No teu estante") : null;
@@ -44,9 +33,6 @@ export const BookCard = ({ book, member, onOpen }: BookCardProps) => {
         </span>
       )}
       <span className="book-card-body">
-        <span className={`book-card-status book-card-status-${book.status}`}>
-          {statusLabel(book.status, language)}
-        </span>
         <strong className="book-card-title">{book.title}</strong>
         <span className="book-card-author">
           {book.author ?? pick(language, "Autor desconocido", "Unknown author", "Autor descoñecido")}

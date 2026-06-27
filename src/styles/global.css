@@ -3884,3 +3884,23 @@ textarea:focus-visible {
   position: absolute;
   inset: -6px;            /* ≈ 48px de zona de toque */
 }
+
+/* A2: separación del hero respecto al header */
+.books-hero { margin-top: 16px; }
+
+/* A6: "volver" como breadcrumb compacto integrado (no botón solitario) */
+.book-back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 0;
+  padding: 2px 0;
+  margin: 4px 0 -4px;
+  color: var(--ink-1);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-standard);
+}
+.book-back:hover { color: var(--ink-0); }
