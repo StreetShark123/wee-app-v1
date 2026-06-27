@@ -345,7 +345,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               {book.publishedYear ? ` · ${book.publishedYear}` : ""}
             </p>
             {book.description ? <p className="book-detail-synopsis">{book.description}</p> : null}
-            {facilitatorAlias ? (
+            {facilitatorAlias && book.status !== "proposed" ? (
               <p className="book-facilitator"><Icon name="spark" size={12} /> {pick(language, `Facilita: ${facilitatorAlias}`, `Facilitator: ${facilitatorAlias}`, `Facilita: ${facilitatorAlias}`)}</p>
             ) : null}
             {hasCadence ? (
