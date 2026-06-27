@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { BookChapter, ChapterNote, NoteKind } from "../lib/communityApi";
 import { pick, useI18n } from "../lib/i18n";
 import type { AppLanguage } from "../lib/types";
@@ -35,7 +36,7 @@ const ImageLightbox = ({ url, onClose, language }: { url: string; onClose: () =>
     document.body.style.overflow = "hidden";
     return () => { document.removeEventListener("keydown", onEsc); document.body.style.overflow = prev; };
   }, [onClose]);
-  return (
+  return createPortal(
     <div className="image-lightbox" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="image-lightbox-inner" onClick={(e) => e.stopPropagation()}>
         <img className="image-lightbox-img" src={url} alt="" />
@@ -48,7 +49,8 @@ const ImageLightbox = ({ url, onClose, language }: { url: string; onClose: () =>
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
