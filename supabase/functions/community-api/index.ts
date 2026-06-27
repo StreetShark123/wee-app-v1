@@ -1332,6 +1332,7 @@ const handlers = {
     const cursorCreatedAt = String(body.cursor_created_at ?? "").trim();
     const includeUsers = body.include_users !== false;
     const includePreferences = body.include_preferences !== false;
+    const includePosts = body.include_posts !== false; // el club de lectura no usa posts
 
     const usersPromise = includeUsers
       ? db
@@ -1361,7 +1362,8 @@ const handlers = {
           .maybeSingle()
       : Promise.resolve({ data: null, error: null } as const);
 
-    const [usersRes, postsRes, prefsRes] = await Promise.all([usersPromise, postsQuery, prefsPromise]);
+    const postsPromise = includePosts ? postsQuery : Promise.resolve({ data: [], error: null } as const);
+    const [usersRes, postsRes, prefsRes] = await Promise.all([usersPromise, postsPromise, prefsPromise]);
 
     if (usersRes.error) return json(500, { message: usersRes.error.message });
     if (postsRes.error) return json(500, { message: postsRes.error.message });

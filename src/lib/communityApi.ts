@@ -306,12 +306,14 @@ export const bootstrapCommunityData = async (options?: {
   cursorCreatedAt?: string;
   includeUsers?: boolean;
   includePreferences?: boolean;
+  includePosts?: boolean;
 }): Promise<CommunityBootstrapResponse> =>
   request<CommunityBootstrapResponse>("/data/bootstrap", {
     ...(typeof options?.limit === "number" ? { limit: options.limit } : {}),
     ...(options?.cursorCreatedAt ? { cursor_created_at: options.cursorCreatedAt } : {}),
     ...(typeof options?.includeUsers === "boolean" ? { include_users: options.includeUsers } : {}),
-    ...(typeof options?.includePreferences === "boolean" ? { include_preferences: options.includePreferences } : {})
+    ...(typeof options?.includePreferences === "boolean" ? { include_preferences: options.includePreferences } : {}),
+    ...(typeof options?.includePosts === "boolean" ? { include_posts: options.includePosts } : {})
   });
 
 export const createCommunityPost = async (post: Post): Promise<Post> =>

@@ -45,19 +45,23 @@ const ensureSession = () => {
 
 const refresh = async (): Promise<void> => {
   ensureSession();
-  const data = await bootstrapCommunityData({ limit: 80 });
+  // El club de lectura no renderiza posts: cargamos solo usuarios + preferencias.
+  const data = await bootstrapCommunityData({ limit: 20, includePosts: false });
   cache = {
     users: data.users,
-    posts: data.posts,
+    posts: data.posts ?? [],
     preferences: data.preferences
   };
   postsNextCursor = data.next_cursor ?? null;
-  postsHasMore = Boolean(data.has_more);
+  postsHasMore = false;
 };
 
+let inflightRefresh: Promise<void> | null = null;
 const maybeRefresh = async (): Promise<void> => {
-  if (cache.users.length > 0 || cache.posts.length > 0) return;
-  await refresh();
+  if (cache.users.length > 0) return;
+  // Dedup: si getUsers() y listPosts() coinciden en frío, un solo bootstrap.
+  if (!inflightRefresh) inflightRefresh = refresh().finally(() => { inflightRefresh = null; });
+  return inflightRefresh;
 };
 
 export const setActiveUserId = (userId: string | null): void => {

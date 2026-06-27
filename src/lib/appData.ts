@@ -10,8 +10,6 @@ import {
   getUserById,
   getUsers,
   importAllData,
-  listPosts,
-  loadMorePosts,
   listPostsByTopic,
   listPostsByUser,
   setActiveUserId,
@@ -138,7 +136,6 @@ export const useAppData = () => {
   const [loading, setLoading] = useState(true);
   const [backendError, setBackendError] = useState<string | null>(null);
   const hasBootstrapped = useRef(false);
-  const pagingInBackground = useRef(false);
 
   const reload = useCallback(async (options?: { showSkeleton?: boolean; includePreferences?: boolean }) => {
     const showSkeleton = options?.showSkeleton ?? false;
@@ -157,9 +154,9 @@ export const useAppData = () => {
         setLoading(false);
         return;
       }
-      const [fetchedUsers, fetchedPosts] = await Promise.all([getUsers(), listPosts()]);
+      const fetchedUsers = await getUsers();
       setUsers(fetchedUsers);
-      setPosts(fetchedPosts);
+      setPosts([]); // el club de lectura no usa posts
       setSelectedCommunityState(session.community);
       setSelectedCommunity(session.community);
 
@@ -190,30 +187,7 @@ export const useAppData = () => {
     void reload({ showSkeleton: showFullLoading });
   }, [reload]);
 
-  useEffect(() => {
-    if (!activeUserId || posts.length === 0 || pagingInBackground.current) return;
-    pagingInBackground.current = true;
-    let cancelled = false;
-    void (async () => {
-      try {
-        for (let page = 0; page < 6; page += 1) {
-          if (cancelled) break;
-          const added = await loadMorePosts(120);
-          if (added <= 0) break;
-          if (cancelled) break;
-          const nextPosts = await listPosts();
-          if (!cancelled) setPosts(nextPosts);
-          if (added < 120) break;
-          await new Promise((resolve) => setTimeout(resolve, 0));
-        }
-      } finally {
-        pagingInBackground.current = false;
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [activeUserId, posts.length]);
+  // (El paginado en background de posts se retiró: el club de lectura no usa posts.)
 
   useEffect(() => {
     const session = getCommunitySession();
