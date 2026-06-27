@@ -592,8 +592,6 @@ const AppRoutes = () => {
                 <ProfilePage
                   activeUser={activeUser as NonNullable<typeof activeUser>}
                   users={users}
-                  posts={postsForViewer}
-                  userCommunityStatsById={userCommunityStatsById}
                   onLogout={logoutGlobal}
                   onUpdateAvatar={updateUserAvatar}
                   onUpdateAlias={updateUserAlias}

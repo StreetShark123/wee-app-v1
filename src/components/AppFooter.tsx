@@ -69,7 +69,7 @@ export const AppFooter = () => {
               <header className="modal-head">
                 <div>
                   <h2 id="about-wee-title">{pick(language, "Sobre Wee", "About Wee", "Sobre Wee")}</h2>
-                  <p>{pick(language, "Wee está pensada para clubs de lectura pequeños: libros en común, hilos por tema y señal clara de Aura.", "Wee is made for small groups: shared interests, topic threads and clear Aura signals.", "Wee está pensada para grupos pequenos: intereses en común, fíos por tema e sinal clara de Aura.")}</p>
+                  <p>{pick(language, "Un club de lectura para grupos pequeños: proponéis libros, votáis, leéis por capítulos y debatís sin spoilers.", "A reading club for small groups: propose books, vote, read by chapters and discuss without spoilers.", "Un club de lectura para grupos pequenos: propoñedes libros, votades, ledes por capítulos e debatides sen spoilers.")}</p>
                 </div>
                 <button type="button" className="btn" onClick={() => setOpen(false)}>
                   {pick(language, "Cerrar", "Close", "Pechar")}
@@ -80,21 +80,21 @@ export const AppFooter = () => {
                 <article className="about-card">
                   <h3><Icon name="users" /> {pick(language, "Qué es Wee", "What Wee is", "Que é Wee")}</h3>
                   <p>
-                    {pick(language, "Somos gente que lee y quería un sitio cálido para compartir libros y debatirlos en pequeño. Wee es eso: un club de lectura para grupos reducidos, con contexto y criterio compartido. Aquí los libros no se pierden: quedan agrupados por tema y listos para seguir el hilo del debate.", "We are people who share links every day and wanted a clearer way to organize small-group conversations. Wee is built for that: micro-communities, context, and shared judgment. pom Ave Gabe. Links do not get lost here: they stay grouped by topic and ready to follow in-thread.", "Somos xente que comparte ligazóns a diario e quería unha forma máis clara de ordenar conversas en pequeno. Wee nace para iso: microcomunidades, contexto e criterio compartido. pom Ave Gabe. Aquí as ligazóns non se perden: quedan agrupadas por tema e listas para seguir o fío.")}
+                    {pick(language, "Somos gente que lee y quería un sitio cálido para leer en grupo y debatir los libros sin prisa. Wee es eso: un club de lectura para grupos reducidos, con ritmo compartido y debate ordenado.", "We're people who read and wanted a warm place to read together and discuss books unhurried. Wee is that: a reading club for small groups, with shared pace and tidy discussion.", "Somos xente que le e quería un sitio cálido para ler en grupo e debater os libros sen présa. Wee é iso: un club de lectura para grupos reducidos, con ritmo compartido.")}
                   </p>
                 </article>
 
                 <article className="about-card">
                   <h3><Icon name="target" /> {pick(language, "Cómo funciona", "How it works", "Como funciona")}</h3>
                   <p>
-                    {pick(language, "Recomiendas un libro o una lectura, Wee lo coloca por tema y subtema, evita duplicados y suma comentarios con Aura. Resultado: hilos claros y contexto siempre a mano.", "You share a link, Wee places it by topic and subtopic, avoids duplicates and adds Aura comments. Result: clear threads and context always in reach.", "Compartes unha ligazón, Wee colócaa por tema e subtema, evita duplicados e suma comentarios con Aura. Resultado: fíos claros e contexto sempre a man.")}
+                    {pick(language, "Proponéis libros y el club vota. El aprobado pasa a lectura: seguís los capítulos, dejáis notas y debatís en hilos. Cuando todos terminan, queda en 'leídos'.", "You propose books and the club votes. The approved one starts reading: track chapters, leave notes and discuss in threads. When everyone finishes, it moves to 'read'.", "Propoñedes libros e o club vota. O aprobado pasa a lectura: seguides os capítulos, deixades notas e debatides en fíos. Cando todos rematan, queda en 'lidos'.")}
                   </p>
                 </article>
 
                 <article className="about-card">
-                  <h3><Icon name="heart" /> {pick(language, "Cómo va Aura", "How Aura works", "Como vai Aura")}</h3>
+                  <h3><Icon name="heart" /> {pick(language, "Comunidad, sin ruido", "Community, no noise", "Comunidade, sen ruído")}</h3>
                   <p>
-                    {pick(language, "Aura usa reglas claras: señales de fuente, contexto, novedad y valoración del club. Así sube lo que merece la pena leer y baja el ruido.", "Aura uses clear rules: source signals, context, recency and group ratings. Useful content goes up, noise goes down.", "Aura usa regras claras: sinais de fonte, contexto, actualidade e valoración do grupo. Así sobe o útil e baixa o ruído.")}
+                    {pick(language, "Sin monetización, sin rankings de velocidad ni rachas. Notas anti-spoiler, ritmo sano y debate cuidado. La lectura es un placer compartido, no una competición.", "No monetization, no speed rankings or streaks. Anti-spoiler notes, healthy pace and tidy debate. Reading is a shared pleasure, not a competition.", "Sen monetización, sen rankings de velocidade nin rachas. Notas anti-spoiler, ritmo san e debate coidado.")}
                   </p>
                 </article>
               </div>
