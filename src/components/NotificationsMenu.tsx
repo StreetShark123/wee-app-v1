@@ -6,7 +6,7 @@ import { Icon } from "./Icon";
 
 export const NotificationsMenu = () => {
   const { language } = useI18n();
-  const { notifications, unreadCount, lastReadAt, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, markAllAsRead } = useNotifications();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
@@ -53,26 +53,21 @@ export const NotificationsMenu = () => {
             {notifications.length === 0 ? (
               <p className="hint">{pick(language, "Todo tranquilo por ahora.", "All quiet for now.", "Todo tranquilo por agora.")}</p>
             ) : (
-              notifications.slice(0, 14).map((notification) => {
-                const isUnread = notification.createdAt > lastReadAt;
-                return (
-                  <Link
-                    key={notification.id}
-                    to={`/post/${notification.postId}`}
-                    className={isUnread ? "notification-item unread" : "notification-item"}
-                    onClick={() => setOpen(false)}
-                  >
-                    <span className="notification-item-title">
-                      {notification.type === "post_comment"
-                        ? pick(language, `${notification.actorAlias} comentó tu libro`, `${notification.actorAlias} commented on your post`, `${notification.actorAlias} comentou a túa nova`)
-                        : notification.vote === -1
-                          ? pick(language, `${notification.actorAlias} bajó el Aura`, `${notification.actorAlias} lowered Aura`, `${notification.actorAlias} baixou a Aura`)
-                          : pick(language, `${notification.actorAlias} subió el Aura`, `${notification.actorAlias} raised Aura`, `${notification.actorAlias} subiu a Aura`)}
-                    </span>
-                    <span className="notification-item-post">{notification.postTitle}</span>
-                  </Link>
-                );
-              })
+              notifications.slice(0, 14).map((notification) => (
+                <Link
+                  key={notification.id}
+                  to={notification.bookId ? `/book/${notification.bookId}` : "/home"}
+                  className={notification.readAt ? "notification-item" : "notification-item unread"}
+                  onClick={() => setOpen(false)}
+                >
+                  <span className="notification-item-title">
+                    {notification.kind === "mention"
+                      ? pick(language, `${notification.actorAlias} te mencionó`, `${notification.actorAlias} mentioned you`, `${notification.actorAlias} mencionoute`)
+                      : pick(language, `${notification.actorAlias} respondió a tu comentario`, `${notification.actorAlias} replied to your comment`, `${notification.actorAlias} respondeu ao teu comentario`)}
+                  </span>
+                  {notification.bookTitle ? <span className="notification-item-post">{notification.bookTitle}</span> : null}
+                </Link>
+              ))
             )}
           </div>
         </div>

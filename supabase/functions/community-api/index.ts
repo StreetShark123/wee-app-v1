@@ -1840,23 +1840,25 @@ const handlers = {
 
     const bookRes = await db
       .from("books")
-      .select("id")
+      .select("id,title")
       .eq("community_id", auth.community.id)
       .eq("id", bookId)
       .maybeSingle();
     if (bookRes.error || !bookRes.data) return json(404, { message: "Book not found" });
 
     // Validar que el padre pertenece al mismo libro/club (y no anidar más de 1 nivel).
+    let parentAuthorId: string | null = null;
     if (parentId) {
       const parentRes = await db
         .from("book_comments")
-        .select("id,book_id,parent_id")
+        .select("id,book_id,user_id")
         .eq("community_id", auth.community.id)
         .eq("id", parentId)
         .maybeSingle();
       if (parentRes.error || !parentRes.data || parentRes.data.book_id !== bookId) {
         return json(404, { message: "Parent comment not found" });
       }
+      parentAuthorId = parentRes.data.user_id ?? null;
     }
 
     const ins = await db
@@ -1865,6 +1867,56 @@ const handlers = {
       .select("id,user_id,text,parent_id,created_at")
       .single();
     if (ins.error) return json(400, { message: ins.error.message });
+
+    // ── Notificaciones (sanas: solo dirigidas a ti): @menciones + respuesta ──
+    try {
+      const notified = new Set<string>([auth.user.id]); // nunca te notificas a ti mismo
+      const recipients: { user_id: string; kind: string }[] = [];
+
+      const tokens = [...text.matchAll(/@([\p{L}\p{N}_.\-]+)/gu)].map((m) =>
+        m[1].normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+      );
+      if (tokens.length > 0) {
+        const usersRes = await db
+          .from("community_users")
+          .select("id,normalized_alias")
+          .eq("community_id", auth.community.id)
+          .eq("status", "active");
+        const keyToId = new Map<string, string>();
+        (usersRes.data ?? []).forEach((u: Record<string, any>) => {
+          const norm = String(u.normalized_alias ?? "");
+          keyToId.set(norm, u.id);
+          keyToId.set(norm.replace(/\s+/g, ""), u.id);
+        });
+        tokens.forEach((tok) => {
+          const id = keyToId.get(tok);
+          if (id && !notified.has(id)) {
+            notified.add(id);
+            recipients.push({ user_id: id, kind: "mention" });
+          }
+        });
+      }
+      if (parentAuthorId && !notified.has(parentAuthorId)) {
+        notified.add(parentAuthorId);
+        recipients.push({ user_id: parentAuthorId, kind: "reply" });
+      }
+      if (recipients.length > 0) {
+        await db.from("notifications").insert(
+          recipients.map((r) => ({
+            community_id: auth.community.id,
+            user_id: r.user_id,
+            actor_id: auth.user.id,
+            kind: r.kind,
+            book_id: bookId,
+            comment_id: ins.data.id,
+            text: text.slice(0, 140)
+          }))
+        );
+      }
+    } catch (_e) {
+      // las notificaciones son best-effort; no romper el comentario
+    }
+
     return json(200, {
       comment: {
         id: ins.data.id,
@@ -2386,6 +2438,55 @@ const handlers = {
     const member = await recomputeMemberFromChapters(auth.community.id, bookId, auth.user.id);
     const status = await recomputeBookStatus(auth.community.id, bookId);
     return json(200, { myMember: rowToMemberBook(member), bookStatus: status });
+  },
+
+  "/notifications/list": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const res = await db
+      .from("notifications")
+      .select("id,actor_id,kind,book_id,comment_id,text,read_at,created_at")
+      .eq("community_id", auth.community.id)
+      .eq("user_id", auth.user.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (res.error) return json(500, { message: res.error.message });
+    const rows = res.data ?? [];
+    const bookIds = unique(rows.map((r: Record<string, any>) => r.book_id).filter(Boolean));
+    const actorIds = unique(rows.map((r: Record<string, any>) => r.actor_id).filter(Boolean));
+    const [booksRes, aliasMap] = await Promise.all([
+      bookIds.length > 0
+        ? db.from("books").select("id,title").eq("community_id", auth.community.id).in("id", bookIds)
+        : Promise.resolve({ data: [], error: null } as const),
+      clubUserAliasMap(auth.community.id)
+    ]);
+    const titleById = new Map((booksRes.data ?? []).map((b: Record<string, any>) => [b.id, b.title]));
+    const notifications = rows.map((r: Record<string, any>) => ({
+      id: r.id,
+      kind: r.kind,
+      bookId: r.book_id ?? undefined,
+      bookTitle: r.book_id ? titleById.get(r.book_id) ?? undefined : undefined,
+      actorAlias: r.actor_id ? aliasMap.get(r.actor_id) ?? "—" : "—",
+      text: r.text ?? undefined,
+      readAt: r.read_at ? toMillis(r.read_at) : undefined,
+      createdAt: toMillis(r.created_at)
+    }));
+    return json(200, {
+      notifications,
+      unreadCount: notifications.filter((n: Record<string, any>) => !n.readAt).length
+    });
+  },
+
+  "/notifications/read": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    await db
+      .from("notifications")
+      .update({ read_at: nowIso() })
+      .eq("community_id", auth.community.id)
+      .eq("user_id", auth.user.id)
+      .is("read_at", null);
+    return json(200, { ok: true });
   }
 } as const;
 

@@ -7,12 +7,11 @@ import { Icon } from "./components/Icon";
 import { PageTransition } from "./components/PageTransition";
 import { AddBookModal } from "./components/AddBookModal";
 import type { BookDraft } from "./lib/bookSearch";
-import { createClubBook, listClubBooks, type ClubBook, type MemberBook } from "./lib/communityApi";
+import { createClubBook, listClubBooks, listNotifications, markNotificationsRead, type ClubBook, type MemberBook } from "./lib/communityApi";
 import { clearBooksCache, getCachedList, setCachedList } from "./lib/booksCache";
 import { Toast } from "./components/Toast";
 import { useAppData } from "./lib/appData";
 import { I18nContext, pick } from "./lib/i18n";
-import { displayTitle } from "./lib/presentation";
 import { NotificationsContext, type AppNotification } from "./lib/notifications";
 import { trackPageView } from "./lib/usageAnalytics";
 import type { AppLanguage, ExportBundle } from "./lib/types";
@@ -81,7 +80,8 @@ const AppRoutes = () => {
   const [books, setBooks] = useState<ClubBook[]>([]);
   const [memberBooks, setMemberBooks] = useState<MemberBook[]>([]);
   const [booksLoading, setBooksLoading] = useState(false);
-  const [notificationsReadAt, setNotificationsReadAt] = useState(0);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [myCommunities, setMyCommunities] = useState<Array<{ community_id: string; name: string; description?: string; role: "admin" | "member" }>>([]);
   const [communitiesLoading, setCommunitiesLoading] = useState(false);
   const [autoEnteringDefaultCommunity, setAutoEnteringDefaultCommunity] = useState(false);
@@ -232,76 +232,33 @@ const AppRoutes = () => {
         return post;
       });
   }, [posts, activeUser, memberRemovedMode, language]);
-  const notificationsStorageKey = activeUser ? `wee:notifications:last-read:${activeUser.id}` : "";
-  useEffect(() => {
+  const reloadNotifications = useCallback(async () => {
     if (!activeUser) {
-      setNotificationsReadAt(0);
+      setNotifications([]);
+      setUnreadNotifications(0);
       return;
     }
     try {
-      const stored = Number(localStorage.getItem(notificationsStorageKey) ?? "0");
-      setNotificationsReadAt(Number.isFinite(stored) ? stored : 0);
+      const data = await listNotifications();
+      setNotifications(data.notifications);
+      setUnreadNotifications(data.unreadCount);
     } catch {
-      setNotificationsReadAt(0);
+      // notificaciones best-effort
     }
-  }, [activeUser, notificationsStorageKey]);
+  }, [activeUser]);
 
-  const notifications = useMemo((): AppNotification[] => {
-    if (!activeUser) return [];
-    const usersById = new Map(users.map((user) => [user.id, user]));
-    const rows: AppNotification[] = [];
-
-    posts.forEach((post) => {
-      if (post.userId !== activeUser.id) return;
-      const postTitle = displayTitle(post);
-
-      (post.feedbacks ?? []).forEach((feedback) => {
-        if (feedback.userId === activeUser.id) return;
-        const actor = usersById.get(feedback.userId);
-        rows.push({
-          id: `${post.id}:vote:${feedback.userId}:${feedback.votedAt}`,
-          type: "post_aura",
-          postId: post.id,
-          postTitle,
-          actorId: feedback.userId,
-          actorAlias: actor?.alias ?? pick(language, "Usuario", "User", "Usuario"),
-          createdAt: feedback.votedAt ?? post.createdAt,
-          vote: feedback.vote
-        });
-      });
-
-      (post.comments ?? []).forEach((comment) => {
-        if (comment.userId === activeUser.id) return;
-        const actor = usersById.get(comment.userId);
-        rows.push({
-          id: `${post.id}:comment:${comment.id}`,
-          type: "post_comment",
-          postId: post.id,
-          postTitle,
-          actorId: comment.userId,
-          actorAlias: actor?.alias ?? pick(language, "Usuario", "User", "Usuario"),
-          createdAt: comment.createdAt
-        });
-      });
-    });
-
-    return rows.sort((a, b) => b.createdAt - a.createdAt).slice(0, 60);
-  }, [activeUser, posts, users, language]);
-
-  const unreadNotifications = useMemo(
-    () => notifications.filter((notification) => notification.createdAt > notificationsReadAt).length,
-    [notifications, notificationsReadAt]
-  );
+  useEffect(() => {
+    void reloadNotifications();
+    const onFocus = () => void reloadNotifications();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [reloadNotifications]);
 
   const markAllNotificationsAsRead = (): void => {
     if (!activeUser) return;
-    const markAt = Date.now();
-    setNotificationsReadAt(markAt);
-    try {
-      localStorage.setItem(notificationsStorageKey, String(markAt));
-    } catch {
-      // ignore storage restrictions
-    }
+    setUnreadNotifications(0);
+    setNotifications((prev) => prev.map((n) => ({ ...n, readAt: n.readAt ?? Date.now() })));
+    void markNotificationsRead().catch(() => undefined);
   };
 
   const onExport = async (): Promise<void> => {
@@ -396,7 +353,6 @@ const AppRoutes = () => {
           value={{
             notifications: [],
             unreadCount: 0,
-            lastReadAt: 0,
             markAllAsRead: () => {}
           }}
         >
@@ -446,7 +402,6 @@ const AppRoutes = () => {
           value={{
             notifications: [],
             unreadCount: 0,
-            lastReadAt: 0,
             markAllAsRead: () => {}
           }}
         >
@@ -465,7 +420,6 @@ const AppRoutes = () => {
         value={{
           notifications,
           unreadCount: unreadNotifications,
-          lastReadAt: notificationsReadAt,
           markAllAsRead: markAllNotificationsAsRead
         }}
       >

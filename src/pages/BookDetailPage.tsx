@@ -510,7 +510,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               rows={2}
               value={commentText}
               onChange={(event) => setCommentText(event.target.value)}
-              placeholder={pick(language, "Escribe un comentario (sin spoilers 👀)", "Write a comment (no spoilers 👀)", "Escribe un comentario (sen spoilers 👀)")}
+              placeholder={pick(language, "Comenta. Usa @nombre para mencionar. Sin spoilers 👀", "Comment. Use @name to mention. No spoilers 👀", "Comenta. Usa @nome para mencionar. Sen spoilers 👀")}
             />
             <button type="submit" className="btn btn-primary" disabled={busy || !commentText.trim()}>
               {pick(language, "Enviar", "Send", "Enviar")}

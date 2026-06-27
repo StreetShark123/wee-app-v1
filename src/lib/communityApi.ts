@@ -13,6 +13,7 @@ import {
   type GlobalAuthSession
 } from "./communitySession";
 import type { Post, User, UserPreferences } from "./types";
+import type { AppNotification } from "./notifications";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabasePublishableKey = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ?? "";
@@ -480,6 +481,13 @@ export const reactComment = async (
   emoji: string
 ): Promise<{ commentId: string; reactions: CommentReaction[] }> =>
   request<{ commentId: string; reactions: CommentReaction[] }>("/comments/react", { comment_id: commentId, emoji });
+
+export const listNotifications = async (): Promise<{ notifications: AppNotification[]; unreadCount: number }> =>
+  request<{ notifications: AppNotification[]; unreadCount: number }>("/notifications/list", {});
+
+export const markNotificationsRead = async (): Promise<void> => {
+  await request<{ ok: true }>("/notifications/read", {});
+};
 
 export const setBookProgress = async (
   bookId: string,
