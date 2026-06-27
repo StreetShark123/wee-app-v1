@@ -4309,3 +4309,32 @@ textarea:focus-visible {
   .alias-row { grid-template-columns: 1fr auto; }
   .alias-row .btn[type="submit"], .alias-row .btn-primary { grid-column: 1 / -1; }
 }
+
+/* Notas colapsables + botón comentar en nota + preview de cadencia */
+.chapter-notes-block { margin-top: 4px; }
+.chapter-notes-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: transparent; border: 0; padding: 4px 0; cursor: pointer;
+  color: var(--ink-1); font-size: 0.78rem; font-weight: 600; min-height: 32px;
+}
+.chapter-notes-toggle:hover { color: var(--brand-strong); }
+.chapter-notes-caret { transition: transform var(--motion-fast) var(--ease-standard); display: inline-block; }
+.chapter-notes-caret.is-collapsed { transform: rotate(-90deg); }
+
+.chapter-note-comment {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 6px; padding: 3px 9px; min-height: 30px;
+  background: transparent; border: 1px solid var(--line); border-radius: 999px;
+  color: var(--ink-1); font-size: 0.74rem; cursor: pointer;
+}
+.chapter-note-comment:hover { border-color: var(--brand); color: var(--brand-strong); }
+
+.cadence-preview {
+  margin-top: 8px; padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--brand) 40%, var(--line));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--brand) 8%, transparent);
+}
+.cadence-preview-date { font-weight: 600; display: flex; align-items: center; gap: 6px; margin: 0 0 2px; }
+.cadence-manual { margin-top: 10px; }
+.cadence-manual summary { cursor: pointer; font-size: 0.82rem; color: var(--ink-1); padding: 4px 0; }

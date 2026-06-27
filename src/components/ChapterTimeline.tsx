@@ -11,6 +11,7 @@ interface ChapterTimelineProps {
   activeUserId: string;
   onToggle: (chapterId: string, done: boolean) => void;
   onAddNote: (chapterId: string, text: string, kind: NoteKind, imageUrl?: string) => Promise<void>;
+  onCommentNote?: (chapterId: string, note: ChapterNote) => void;
 }
 
 const YT_RE = /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/i;
@@ -66,7 +67,7 @@ const kindLabel = (kind: NoteKind, language: AppLanguage): string =>
       ? pick(language, "Pregunta de debate", "Discussion prompt", "Pregunta de debate")
       : pick(language, "Nota", "Note", "Nota");
 
-const NoteCard = ({ note, language }: { note: ChapterNote; language: AppLanguage }) => {
+const NoteCard = ({ note, language, onComment }: { note: ChapterNote; language: AppLanguage; onComment?: () => void }) => {
   const media = mediaUrlsOf(note);
   return (
     <li className={`chapter-note chapter-note-${note.kind}`}>
@@ -80,17 +81,31 @@ const NoteCard = ({ note, language }: { note: ChapterNote; language: AppLanguage
           {media.map((url) => <NoteMedia key={url} url={url} />)}
         </div>
       ) : null}
+      {onComment ? (
+        <button type="button" className="chapter-note-comment" onClick={onComment}>
+          <Icon name="comment" size={12} /> {pick(language, "Comentar", "Comment", "Comentar")}
+        </button>
+      ) : null}
     </li>
   );
 };
 
-export const ChapterTimeline = ({ chapters, busy, activeUserId, onToggle, onAddNote }: ChapterTimelineProps) => {
+export const ChapterTimeline = ({ chapters, busy, activeUserId, onToggle, onAddNote, onCommentNote }: ChapterTimelineProps) => {
   const { language } = useI18n();
   const [openFor, setOpenFor] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
   const [noteImage, setNoteImage] = useState("");
   const [noteKind, setNoteKind] = useState<NoteKind>("note");
   const [saving, setSaving] = useState(false);
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  const toggleCollapsed = (chapterId: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(chapterId)) next.delete(chapterId);
+      else next.add(chapterId);
+      return next;
+    });
 
   const resetForm = () => {
     setNoteText("");
@@ -117,6 +132,9 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, onToggle, onAddN
       {chapters.map((chapter) => {
         const myNotes = chapter.notes.filter((n) => n.userId === activeUserId);
         const otherNotes = chapter.notes.filter((n) => n.userId !== activeUserId);
+        const visibleNotes = chapter.doneByMe ? [...myNotes, ...otherNotes] : myNotes;
+        const lockedCount = chapter.doneByMe ? 0 : otherNotes.length;
+        const isCollapsed = collapsed.has(chapter.id);
         return (
           <li key={chapter.id} className={`chapter-node${chapter.doneByMe ? " is-done" : ""}`}>
             <button
@@ -148,23 +166,32 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, onToggle, onAddN
                 </span>
               </button>
 
-              {/* Tus propias notas SIEMPRE visibles (puedes anotar mientras lees). */}
-              {myNotes.length > 0 ? (
-                <ul className="chapter-notes">
-                  {myNotes.map((note) => <NoteCard key={note.id} note={note} language={language} />)}
-                </ul>
+              {/* Anotaciones colapsables (tus notas siempre; las de otros tras leer). */}
+              {visibleNotes.length > 0 ? (
+                <div className="chapter-notes-block">
+                  <button type="button" className="chapter-notes-toggle" onClick={() => toggleCollapsed(chapter.id)} aria-expanded={!isCollapsed}>
+                    <span className={`chapter-notes-caret${isCollapsed ? " is-collapsed" : ""}`} aria-hidden="true">▾</span>
+                    {pick(language, `Anotaciones (${visibleNotes.length})`, `Notes (${visibleNotes.length})`, `Anotacións (${visibleNotes.length})`)}
+                  </button>
+                  {!isCollapsed ? (
+                    <ul className="chapter-notes">
+                      {visibleNotes.map((note) => (
+                        <NoteCard
+                          key={note.id}
+                          note={note}
+                          language={language}
+                          onComment={onCommentNote ? () => onCommentNote(chapter.id, note) : undefined}
+                        />
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
               ) : null}
 
               {/* Las notas de OTROS solo tras leer el capítulo (anti-spoiler). */}
-              {chapter.doneByMe ? (
-                otherNotes.length > 0 ? (
-                  <ul className="chapter-notes">
-                    {otherNotes.map((note) => <NoteCard key={note.id} note={note} language={language} />)}
-                  </ul>
-                ) : null
-              ) : otherNotes.length > 0 ? (
+              {lockedCount > 0 ? (
                 <p className="chapter-notes-locked">
-                  <Icon name="eyeOff" size={12} /> {pick(language, `${otherNotes.length} nota(s) de otros — léelo para verlas`, `${otherNotes.length} note(s) from others — read it to see them`, `${otherNotes.length} nota(s) doutros — leo para velas`)}
+                  <Icon name="eyeOff" size={12} /> {pick(language, `${lockedCount} nota(s) de otros — léelo para verlas`, `${lockedCount} note(s) from others — read it to see them`, `${lockedCount} nota(s) doutros — leo para velas`)}
                 </p>
               ) : null}
 

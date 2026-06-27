@@ -30,6 +30,7 @@ import {
   type BookMemberProgress,
   type BookStatus,
   type BookVote,
+  type ChapterNote,
   type CommentReaction,
   type MemberBook,
   type NoteKind
@@ -79,6 +80,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const [targetCh, setTargetCh] = useState("");
   const [targetDate, setTargetDate] = useState("");
   const [minutesPerDay, setMinutesPerDay] = useState(30);
+  const [calcPreview, setCalcPreview] = useState<{ date: string; days: number } | null>(null);
 
   const load = useCallback(async () => {
     if (!bookId) return;
@@ -263,6 +265,29 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const paceLabel = (m: number): string =>
     m <= 0 ? "" : m < 20 ? pick(language, "relajado", "relaxed", "relaxado") : m <= 45 ? pick(language, "cómodo", "comfy", "cómodo") : m <= 90 ? pick(language, "exigente", "demanding", "esixente") : pick(language, "muy intenso", "very intense", "moi intenso");
 
+  // #5: meta para TERMINAR el libro a X min/día (ritmo de lector medio ~2 min/pág),
+  // desde hoy, redondeando hacia arriba y con un pequeño margen.
+  const totalPagesBook = book.pageCount && book.pageCount > 0 ? book.pageCount : Math.round(pagesPerChapter * totalChapters);
+  const wholeBookDays = totalPagesBook > 0 ? Math.ceil(totalPagesBook / pagesPerDay) : 0;
+  const wholeBookDaysMargin = wholeBookDays > 0 ? wholeBookDays + Math.max(1, Math.ceil(wholeBookDays * 0.15)) : 0;
+  const wholeBookDate = wholeBookDaysMargin > 0 ? isoDate(Date.now() + wholeBookDaysMargin * 86400000) : "";
+  const humanDate = (iso: string): string => {
+    if (!iso) return "";
+    const d = new Date(`${iso}T12:00:00`);
+    return d.toLocaleDateString(language === "en" ? "en-GB" : "es-ES", { day: "numeric", month: "long", year: "numeric" });
+  };
+  const acceptWholeBookCadence = () => {
+    if (!calcPreview) return;
+    const ch = totalChapters || null;
+    setTargetCh(totalChapters ? String(totalChapters) : "");
+    setTargetDate(calcPreview.date);
+    void run(async () => {
+      const r = await setBookTarget(book.id, { targetChapter: ch, targetDate: calcPreview.date });
+      patch((d) => ({ ...d, book: r.book }));
+    });
+    setCalcPreview(null);
+  };
+
   // Marcar capítulo: optimista e instantáneo (no bloquea ni recarga).
   const handleToggle = (chapterId: string, done: boolean) => {
     patch((d) => ({
@@ -291,6 +316,15 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
       const { comment } = await addBookComment(book.id, text, chapterId ? { chapterId } : undefined);
       patch((d) => ({ ...d, comments: [...d.comments, comment] }));
     });
+  // #4: "Comentar" sobre una nota → abre un hilo en comentarios, anclado a ese capítulo.
+  const handleCommentNote = (chapterId: string, note: ChapterNote) => {
+    const snippet = note.text ? `«${note.text.slice(0, 80)}${note.text.length > 80 ? "…" : ""}»` : pick(language, "su nota", "their note", "a súa nota");
+    setCommentChapter(chapterId);
+    setCommentText(pick(language, `Sobre la nota de ${note.alias} (${snippet}): `, `On ${note.alias}'s note (${snippet}): `, `Sobre a nota de ${note.alias} (${snippet}): `));
+    window.requestAnimationFrame(() => {
+      document.getElementById("comments-composer")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  };
   const handleEditComment = async (commentId: string, text: string) => {
     await updateComment(commentId, text);
     patch((d) => ({ ...d, comments: d.comments.map((c) => (c.id === commentId ? { ...c, text } : c)) }));
@@ -462,61 +496,89 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               </button>
             </div>
 
-            {/* C1: cadencia inteligente (meta de lectura) */}
+            {/* C1/#5: cadencia inteligente — calcular meta para terminar el libro, luego aceptar */}
             <div className="book-manage book-cadence-edit">
-              <span className="hint"><Icon name="target" size={13} /> {pick(language, "Cadencia (meta de lectura)", "Cadence (reading goal)", "Cadencia (meta de lectura)")}</span>
-
-              <label className="book-chapter-set">
-                {pick(language, "Leer hasta", "Read through", "Ler ata")}
-                {chapters.length > 0 ? (
-                  <select value={targetCh} onChange={(event) => setTargetCh(event.target.value)} className="settings-select">
-                    <option value="">{pick(language, "elige capítulo", "pick a chapter", "escolle capítulo")}</option>
-                    {chapters.map((c, i) => (
-                      <option key={c.id} value={i + 1}>{pick(language, `Capítulo ${i + 1}`, `Chapter ${i + 1}`, `Capítulo ${i + 1}`)}{c.title && !/^cap[íi]tulo/i.test(c.title) ? ` · ${c.title}` : ""}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <input type="number" min={0} value={targetCh} onChange={(event) => setTargetCh(event.target.value)} placeholder={pick(language, "nº capítulo", "chapter #", "nº capítulo")} />
-                )}
-              </label>
-              {targetChNum > 0 && knownPages ? (
-                <p className="hint cadence-pages">{pick(language, `≈ ${pagesToTarget} páginas hasta ahí`, `≈ ${pagesToTarget} pages to there`, `≈ ${pagesToTarget} páxinas ata aí`)}</p>
-              ) : null}
+              <span className="hint"><Icon name="target" size={13} /> {pick(language, "Meta de lectura del club", "Club reading goal", "Meta de lectura do club")}</span>
 
               <div className="cadence-pace">
                 <label className="book-chapter-set">
                   {pick(language, "Quiero leer", "I want to read", "Quero ler")}
-                  <input type="number" min={5} step={5} value={minutesPerDay} onChange={(event) => setMinutesPerDay(Math.max(5, Number(event.target.value) || 0))} />
+                  <input
+                    type="number"
+                    min={5}
+                    step={5}
+                    value={minutesPerDay}
+                    onChange={(event) => { setMinutesPerDay(Math.max(5, Number(event.target.value) || 0)); setCalcPreview(null); }}
+                  />
                   {pick(language, "min/día", "min/day", "min/día")}
                 </label>
-                {targetChNum > 0 ? (
-                  <p className="hint cadence-estimate">
-                    {pick(language, `A ese ritmo (~${Math.round(pagesPerDay)} pág/día) llegarías en ~${daysFromPace} días`, `At that pace (~${Math.round(pagesPerDay)} pg/day) you'd arrive in ~${daysFromPace} days`, `A ese ritmo chegarías en ~${daysFromPace} días`)}
-                    {suggestedDate ? (
-                      <>
-                        {" "}({suggestedDate}){" "}
-                        <button type="button" className="link-btn" onClick={() => setTargetDate(suggestedDate)}>{pick(language, "usar esa fecha", "use that date", "usar esa data")}</button>
-                      </>
-                    ) : null}
-                  </p>
-                ) : (
-                  <p className="hint">{pick(language, "Elige un capítulo objetivo para estimar.", "Pick a target chapter to estimate.", "Escolle un capítulo obxectivo para estimar.")}</p>
-                )}
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy || totalPagesBook <= 0}
+                  onClick={() => wholeBookDate && setCalcPreview({ date: wholeBookDate, days: wholeBookDaysMargin })}
+                >
+                  <Icon name="target" size={13} /> {pick(language, "Calcular meta", "Calculate goal", "Calcular meta")}
+                </button>
               </div>
 
-              <label className="book-chapter-set">
-                {pick(language, "Para la fecha", "By date", "Para a data")}
-                <input type="date" value={targetDate} onChange={(event) => setTargetDate(event.target.value)} />
-              </label>
-              {targetDate && impliedMinPerDay > 0 ? (
-                <p className={`hint cadence-check${impliedMinPerDay > 90 ? " is-intense" : ""}`}>
-                  {pick(language, `Para esa fecha: ~${impliedMinPerDay} min/día (${paceLabel(impliedMinPerDay)})`, `By that date: ~${impliedMinPerDay} min/day (${paceLabel(impliedMinPerDay)})`, `Para esa data: ~${impliedMinPerDay} min/día (${paceLabel(impliedMinPerDay)})`)}
-                </p>
-              ) : null}
+              {calcPreview ? (
+                <div className="cadence-preview">
+                  <p className="cadence-preview-date">
+                    <Icon name="check" size={13} /> {pick(language, `Terminaríais el libro el ${humanDate(calcPreview.date)}`, `You'd finish the book by ${humanDate(calcPreview.date)}`, `Remataríades o libro o ${humanDate(calcPreview.date)}`)}
+                  </p>
+                  <p className="hint">
+                    {pick(
+                      language,
+                      `~${calcPreview.days} días a ${minutesPerDay} min/día (ritmo de lector medio, con algo de margen).`,
+                      `~${calcPreview.days} days at ${minutesPerDay} min/day (average reader pace, with some margin).`,
+                      `~${calcPreview.days} días a ${minutesPerDay} min/día (ritmo de lector medio, con algo de marxe).`
+                    )}
+                  </p>
+                  <div className="auth-entry-actions">
+                    <button type="button" className="btn" onClick={() => setCalcPreview(null)} disabled={busy}>
+                      {pick(language, "Cancelar", "Cancel", "Cancelar")}
+                    </button>
+                    <button type="button" className="btn btn-primary" onClick={acceptWholeBookCadence} disabled={busy}>
+                      <Icon name="check" size={13} /> {pick(language, "Aceptar meta", "Accept goal", "Aceptar meta")}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="hint">{pick(language, "Pon tus minutos al día y pulsa Calcular: te propondremos una fecha para terminarlo juntos.", "Set your minutes per day and tap Calculate: we'll suggest a date to finish it together.", "Pon os teus minutos ao día e preme Calcular: proporémosche unha data para rematalo xuntos.")}</p>
+              )}
 
-              <button type="button" className="btn btn-primary" disabled={busy || targetChNum < 1} onClick={handleSetTarget}>
-                {pick(language, "Fijar cadencia", "Set cadence", "Fixar cadencia")}
-              </button>
+              <details className="cadence-manual">
+                <summary>{pick(language, "Meta manual (capítulo / fecha)", "Manual goal (chapter / date)", "Meta manual (capítulo / data)")}</summary>
+                <label className="book-chapter-set">
+                  {pick(language, "Leer hasta", "Read through", "Ler ata")}
+                  {chapters.length > 0 ? (
+                    <select value={targetCh} onChange={(event) => setTargetCh(event.target.value)} className="settings-select">
+                      <option value="">{pick(language, "elige capítulo", "pick a chapter", "escolle capítulo")}</option>
+                      {chapters.map((c, i) => (
+                        <option key={c.id} value={i + 1}>{pick(language, `Capítulo ${i + 1}`, `Chapter ${i + 1}`, `Capítulo ${i + 1}`)}{c.title && !/^cap[íi]tulo/i.test(c.title) ? ` · ${c.title}` : ""}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input type="number" min={0} value={targetCh} onChange={(event) => setTargetCh(event.target.value)} placeholder={pick(language, "nº capítulo", "chapter #", "nº capítulo")} />
+                  )}
+                </label>
+                {targetChNum > 0 && knownPages ? (
+                  <p className="hint cadence-pages">{pick(language, `≈ ${pagesToTarget} páginas hasta ahí`, `≈ ${pagesToTarget} pages to there`, `≈ ${pagesToTarget} páxinas ata aí`)}</p>
+                ) : null}
+                <label className="book-chapter-set">
+                  {pick(language, "Para la fecha", "By date", "Para a data")}
+                  <input type="date" value={targetDate} onChange={(event) => setTargetDate(event.target.value)} />
+                </label>
+                {targetDate && impliedMinPerDay > 0 ? (
+                  <p className={`hint cadence-check${impliedMinPerDay > 90 ? " is-intense" : ""}`}>
+                    {pick(language, `Para esa fecha: ~${impliedMinPerDay} min/día (${paceLabel(impliedMinPerDay)})`, `By that date: ~${impliedMinPerDay} min/day (${paceLabel(impliedMinPerDay)})`, `Para esa data: ~${impliedMinPerDay} min/día (${paceLabel(impliedMinPerDay)})`)}
+                  </p>
+                ) : null}
+                <button type="button" className="btn btn-primary" disabled={busy || targetChNum < 1} onClick={handleSetTarget}>
+                  {pick(language, "Fijar meta manual", "Set manual goal", "Fixar meta manual")}
+                </button>
+              </details>
             </div>
 
             {canDelete ? (
@@ -591,12 +653,12 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                   <p className="chapter-alldone"><Icon name="check" /> {pick(language, "Has leído todos los capítulos.", "You've read every chapter.", "Liches todos os capítulos.")}</p>
                   <details className="chapter-collapsed">
                     <summary>{pick(language, `Ver los ${total} capítulos`, `Show the ${total} chapters`, `Ver os ${total} capítulos`)}</summary>
-                    <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} />
+                    <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} onCommentNote={handleCommentNote} />
                   </details>
                 </>
               ) : (
                 <>
-                  <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} />
+                  <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} onCommentNote={handleCommentNote} />
                   <button type="button" className="btn chapter-mark-all" disabled={busy} onClick={() => handleCompleteAll(true)}>
                     <Icon name="check" /> {pick(language, "Marcar todo como leído", "Mark all as read", "Marcar todo como lido")}
                   </button>
@@ -744,6 +806,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
             <h2><Icon name="comment" /> {pick(language, "Comentarios", "Comments", "Comentarios")}</h2>
           </div>
           <form
+            id="comments-composer"
             className="book-comment-form"
             onSubmit={(event) => {
               event.preventDefault();
