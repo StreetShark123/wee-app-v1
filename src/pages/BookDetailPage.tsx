@@ -550,30 +550,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               <h2><Icon name="pencil" /> {pick(language, "Editar libro", "Edit book", "Editar libro")}</h2>
             </div>
 
-            {isAdmin ? (
-              <div className="book-manage">
-                <div className="book-feature-controls">
-                  <span className="hint">{pick(language, "Estado del libro:", "Book status:", "Estado do libro:")}</span>
-                  {(["proposed", "reading", "finished"] as BookStatus[]).map((status) => (
-                    <button
-                      key={status}
-                      type="button"
-                      className={`btn book-status-btn${book.status === status ? " is-on" : ""}`}
-                      disabled={busy}
-                      onClick={() => handleStatus(status)}
-                    >
-                      {statusLabel(status, language)}
-                    </button>
-                  ))}
-                </div>
-                {book.status === "reading" ? (
-                  <button type="button" className={`btn book-feature-btn gold${book.featured === "gold" ? " is-on" : ""}`} disabled={busy} onClick={() => handleFeature(book.featured === "gold" ? null : "gold")}>
-                    <Icon name="spark" size={13} /> {book.featured === "gold" ? pick(language, "Quitar principal", "Unset main", "Quitar principal") : pick(language, "Marcar como principal", "Set as main", "Marcar como principal")}
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-
+            <h3 className="edit-subhead">{pick(language, "Datos del libro", "Book details", "Datos do libro")}</h3>
             <p className="hint">{pick(language, "Si Google no trae la portada correcta, pega aquí la URL de una imagen.", "If Google's cover is wrong, paste an image URL here.", "Se Google non trae a portada correcta, pega aquí o URL dunha imaxe.")}</p>
             <label className="form-field">
               {pick(language, "Título", "Title", "Título")}
@@ -600,6 +577,31 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                 <Icon name="check" /> {pick(language, "Guardar cambios", "Save changes", "Gardar cambios")}
               </button>
             </div>
+
+            <h3 className="edit-subhead edit-subhead-spaced">{pick(language, "Gestión de la lectura", "Reading management", "Xestión da lectura")}</h3>
+            {isAdmin ? (
+              <div className="book-manage">
+                <div className="book-feature-controls">
+                  <span className="hint">{pick(language, "Estado del libro:", "Book status:", "Estado do libro:")}</span>
+                  {(["proposed", "reading", "finished"] as BookStatus[]).map((status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      className={`btn book-status-btn${book.status === status ? " is-on" : ""}`}
+                      disabled={busy}
+                      onClick={() => handleStatus(status)}
+                    >
+                      {statusLabel(status, language)}
+                    </button>
+                  ))}
+                </div>
+                {book.status === "reading" ? (
+                  <button type="button" className={`btn book-feature-btn gold${book.featured === "gold" ? " is-on" : ""}`} disabled={busy} onClick={() => handleFeature(book.featured === "gold" ? null : "gold")}>
+                    <Icon name="spark" size={13} /> {book.featured === "gold" ? pick(language, "Quitar principal", "Unset main", "Quitar principal") : pick(language, "Marcar como principal", "Set as main", "Marcar como principal")}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
 
             {/* C1/#5: cadencia inteligente — calcular meta para terminar el libro, luego aceptar */}
             <div className="book-manage book-cadence-edit">

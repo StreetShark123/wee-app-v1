@@ -4499,3 +4499,7 @@ textarea:focus-visible {
 /* Modal de confirmación propio (sustituye window.confirm) */
 .confirm-modal h2 { margin: 0 0 6px; font-size: 1.05rem; }
 .confirm-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+
+/* Subtítulos del panel de gestión (Datos del libro / Gestión de la lectura) */
+.edit-subhead { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-1); margin: 4px 0 8px; font-weight: 700; }
+.edit-subhead-spaced { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
