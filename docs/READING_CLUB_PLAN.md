@@ -316,3 +316,76 @@ Cada fase termina verde en `npm run check` (typecheck + test + design:lint).
 - Schema libros (referencia): `supabase/migrations/0001_book_clubs.sql`.
 - SQL vivo: `supabase/sql/community_v5.sql`, `community_v6_*.sql`, `moderation_v4.sql`, `admin_v3.sql`.
 </content>
+
+## 8. Roadmap acordado (2026-06-27) — backlog priorizado
+
+Consolida: feedback directo de Axel + revisión UX/UI (2 agentes) + buenas prácticas de
+clubs de lectura. **Principio rector (no negociable): UX centrado en usuario y comunidad;
+CERO monetización, embudos, rankings de velocidad, rachas ni patrones oscuros.**
+
+### A. Feedback directo de Axel (prioridad alta — son ajustes concretos pedidos)
+- **A1 · Datos por estantería en las cards.** En *Leídos*: mostrar la **nota media de la
+  comunidad**. En *En lectura*: **nº de lectores activos** + **última actualización**.
+  (Backend: exponer en `/books/list` por libro: avgRating, readersActivos, lastActivityAt.)
+- **A2 · Espacio hero↔header.** El bloque buscar+"Añadir libro" está pegado al header sin
+  margen → añadir separación (`.books-hero` margin-top / el contenedor home).
+- **A3 · Skeletons + datos ágiles.** Skeletons para la rejilla de libros y la ficha
+  (`/book/:id`) para que cargar sea *smooth* sin saltos (evitar CLS). Diseño de skeleton
+  acorde a cada página. + **Caché de datos en cliente** (libros del club, ficha) para que
+  navegar sea fluido y no re-pegue al backend cada vez. (Reusar/ampliar `store.ts` cache;
+  `react-query`-lite a mano o cache en memoria + revalidar.)
+- **A4 · Quitar el tag de estado de las cards.** El badge "En lectura/Propuesto/Leído" es
+  **redundante** ahora que hay estanterías separadas → retirarlo de `BookCard`.
+- **A5 · Ficha: separar edición (admin) del contenido (usuarios).** Estado, "quitar
+  principal", etc. → ocultos tras un botón **"Editar" (solo admin)**; el espacio principal
+  queda para **sinopsis/título/autor** y la **lista de lectura** accesible a todos.
+  (Coincide con UX P1-6.)
+- **A6 · Botón "volver a estantería" mejor integrado.** Ahora está solo en su propia fila;
+  integrarlo (p.ej. en la cabecera de la ficha junto al título, o como flecha compacta).
+
+### B. Revisión UX/UI — pendientes (de la auditoría con agentes)
+- **B1 (P0) · Votación transparente.** Mostrar **quórum** ("3/5 a favor para empezar"),
+  toast al votar, y aclarar las dos vías de aprobación (todos-sí **o** admin).
+- **B2 (P1) · "Reemplazar capítulos" es destructivo y escondido** → confirmación explícita
+  + estilo de peligro (`--danger`).
+- **B3 (P1) · Unificar términos de estado** entre card, ficha y copy (un único set i18n).
+- **B4 (P2) · Accesibilidad varia:** `aria-live` en estados de carga; picker de comunidades
+  operable por teclado (hoy `article onClick`); botón limpiar en la búsqueda.
+- **B5** · Aplicado ya: contraste `--ink-1`, áreas táctiles ≥44px, aria de valoración,
+  3 estanterías siempre visibles.
+
+### C. Buenas prácticas de club (features nuevas, alto valor comunitario)
+- **C1 · Cadencia/meta por libro** ("esta semana hasta el cap. 7 · faltan 3 días") sobre el
+  timeline existente. Atada al libro principal. Rótulo visible, sin pings agresivos.
+- **C2 · Preguntas de debate sembradas** (`chapter_notes.kind = 'prompt'`) que aparecen al
+  marcar el capítulo leído. Matan la página vacía. Reusa el modelo de notas.
+- **C3 · "Por qué lo propongo"** (frase corta en la propuesta) — se vota un argumento, no
+  una portada. `books.proposal_note`.
+- **C4 · Galería de "leídos"** del club con notas medias y reseñas (memoria/identidad).
+  NO convertir en ranking competitivo entre miembros.
+- **C5 · Quórum por mayoría (no unanimidad)** configurable + congelar lista de lectores al
+  pasar a 'reading' (un miembro tardío no resetea a todos). Resuelve § "Preguntas abiertas".
+- **C6 · Estante "Para más adelante"** para libros votados "ahora no" (no se borran).
+- **C7 · Rol "facilitador del libro"** (quien lo propone) distinto del admin del club.
+
+### D. Feature de comentarios (petición explícita — debate ordenado)
+- **D1 · Reacciones emoji** a comentarios/notas — para *agradecer/resonar*, NO como likes
+  con leaderboard. Sin contadores que generen ansiedad.
+- **D2 · @menciones** que notifican solo al mencionado + **responder a un comentario →
+  hilos**. Reusa el shell de notificaciones (se dejó vivo a propósito).
+- **D3 · Notificaciones sanas:** mención y respuesta a lo tuyo = sí; "alguien comentó en el
+  club" = resumen agregado y opcional. Default conservador, control granular (silenciar libro/club).
+- **D4 · Comentarios anclables a capítulo** (`book_comments.chapter_id` opcional) con el
+  mismo muro anti-spoiler que las notas (ocultos hasta leer ese capítulo).
+
+### Anti-patrones a NO implementar (confirmados con la filosofía de Axel)
+Rankings de velocidad de lectura · rachas/streaks · notificación por cada evento ·
+spoilers visibles por defecto · poder concentrado solo en admin · borrado duro de
+propuestas · métricas de vanidad como objetivo · onboarding que exige cuenta antes de ver
+el club al que te invitan.
+
+### Orden sugerido de ejecución
+1. **A2 + A4 + A6** (ajustes rápidos de UI) · 2. **A3** (skeletons + caché — hace todo
+   más fluido) · 3. **A1** (datos por estantería) · 4. **A5 + B2 + B1** (ficha: edición
+   admin separada, destructivo seguro, votación transparente) · 5. **D (comentarios)** ·
+   6. **C (buenas prácticas)** empezando por C4 galería, C2 prompts, C1 cadencia.
