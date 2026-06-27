@@ -1,4 +1,8 @@
-import { supabase } from "./backend/supabase";
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const apikey =
+  (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ??
+  (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ??
+  "";
 
 export type BookSource = "google_books" | "open_library";
 
@@ -39,11 +43,17 @@ export const searchBooks = async (params: {
   isbn?: string;
   maxResults?: number;
 }): Promise<BookSearchResult[]> => {
-  if (!supabase) throw new Error("Supabase no configurado");
-  const { data, error } = await supabase.functions.invoke<BookSearchResponse>("book-search", {
-    body: params
+  if (!supabaseUrl) throw new Error("Supabase no configurado");
+  const res = await fetch(`${supabaseUrl}/functions/v1/book-search`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(apikey ? { apikey, Authorization: `Bearer ${apikey}` } : {})
+    },
+    body: JSON.stringify(params)
   });
-  if (error) throw error;
+  if (!res.ok) throw new Error(`book-search ${res.status}`);
+  const data = (await res.json()) as BookSearchResponse;
   return data?.results ?? [];
 };
 

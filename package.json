@@ -14,7 +14,6 @@
     "check": "npm run typecheck && npm run test && npm run design:lint"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.98.0",
     "@vercel/analytics": "^1.6.1",
     "framer-motion": "^12.34.5",
     "react": "^18.3.1",

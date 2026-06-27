@@ -1,5 +1,3 @@
-import { supabase } from "./backend/supabase";
-
 export type RateLimitAction = "create_post" | "create_comment" | "vote_post";
 
 export interface RateLimitRule {
@@ -13,9 +11,6 @@ export interface RateLimitDecision {
   retryAfterSec: number;
   source: "remote" | "local";
 }
-
-let remoteAuthCheckCacheAt = 0;
-let remoteAuthAvailable = false;
 
 const toNumber = (value: string | undefined, fallback: number): number => {
   const parsed = Number(value);
@@ -99,50 +94,3 @@ export const consumeLocalRateLimit = (
   };
 };
 
-export const consumeRateLimit = async (
-  action: RateLimitAction,
-  userId: string,
-  now = Date.now()
-): Promise<RateLimitDecision> => {
-  const rule = RATE_LIMIT_RULES[action];
-  if (supabase) {
-    // Community auth no longer uses Supabase Auth JWT sessions.
-    // Remote RPC limit relies on auth.uid(), so we only call it when a JWT session exists.
-    const cacheTtlMs = 30_000;
-    if (now - remoteAuthCheckCacheAt > cacheTtlMs) {
-      remoteAuthCheckCacheAt = now;
-      try {
-        const { data, error } = await supabase.auth.getSession();
-        remoteAuthAvailable = !error && Boolean(data.session?.access_token);
-      } catch {
-        remoteAuthAvailable = false;
-      }
-    }
-
-    if (!remoteAuthAvailable) {
-      return consumeLocalRateLimit(action, userId, now);
-    }
-
-    const { data, error } = await supabase.rpc("consume_rate_limit", {
-      p_action: action,
-      p_limit: rule.limit,
-      p_window_seconds: rule.windowSec
-    });
-
-    if (!error && Array.isArray(data) && data.length > 0) {
-      const row = data[0] as { allowed: boolean; remaining: number; retry_after_seconds: number };
-      const decision: RateLimitDecision = {
-        allowed: Boolean(row.allowed),
-        remaining: Math.max(0, Number(row.remaining ?? 0)),
-        retryAfterSec: Math.max(0, Number(row.retry_after_seconds ?? 0)),
-        source: "remote"
-      };
-      if (!decision.allowed) {
-        console.warn("rate_limit_block", { action, userId, retryAfterSec: decision.retryAfterSec, source: "remote" });
-      }
-      return decision;
-    }
-  }
-
-  return consumeLocalRateLimit(action, userId, now);
-};
