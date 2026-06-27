@@ -74,23 +74,25 @@ export const HomePage = ({
   const later = visibleBooks.filter(isLater);
   const finished = visibleBooks.filter((book) => book.status === "finished");
 
-  const renderShelf = (title: string, list: typeof books, emptyHint: string) => (
-    <section className="page-section shelf-section">
-      <div className="shelf-head">
-        <h3 className="shelf-title">{title}</h3>
-        <span className="shelf-count">{list.length}</span>
+  const renderShelf = (title: string, list: typeof books, emptyHint: string) =>
+    list.length === 0 ? (
+      <div className="shelf-empty-row">
+        <span className="shelf-empty-title">{title}</span>
+        <span className="shelf-empty-hint">{emptyHint}</span>
       </div>
-      {list.length > 0 ? (
+    ) : (
+      <section className="page-section shelf-section">
+        <div className="shelf-head">
+          <h3 className="shelf-title">{title}</h3>
+          <span className="shelf-count">{list.length}</span>
+        </div>
         <div className="book-grid">
           {list.map((book) => (
             <BookCard key={book.id} book={book} member={memberByBookId.get(book.id)} onOpen={(entry) => navigate(`/book/${entry.id}`)} />
           ))}
         </div>
-      ) : (
-        <p className="hint shelf-empty">{emptyHint}</p>
-      )}
-    </section>
-  );
+      </section>
+    );
 
   return (
     <main>

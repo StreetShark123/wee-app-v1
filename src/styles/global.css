@@ -4172,3 +4172,21 @@ textarea:focus-visible {
 .cadence-check { margin: 0; }
 .cadence-check.is-intense { color: var(--danger); }
 .book-cadence-edit .link-btn { color: var(--brand-strong); }
+
+/* Revisión redundancias: indicador sutil "tú lo lees" + fila de estado + estante vacío compacto */
+.book-card-mine .book-card-title::before { content: "● "; color: var(--brand); font-size: 0.7em; vertical-align: middle; }
+
+.book-status-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.shelf-empty-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+  opacity: 0.7;
+}
+.shelf-empty-title { font-weight: 600; font-size: 0.92rem; color: var(--ink-1); }
+.shelf-empty-hint { font-size: 0.82rem; color: var(--ink-1); }

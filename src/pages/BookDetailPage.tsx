@@ -355,7 +355,10 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
             </span>
           )}
           <div className="book-detail-meta">
-            <span className={`book-card-status book-card-status-${book.status}`}>{statusLabel(book.status, language)}</span>
+            <div className="book-status-row">
+              <span className={`book-card-status book-card-status-${book.status}`}>{statusLabel(book.status, language)}</span>
+              {book.featured === "gold" ? <span className="book-flag book-flag-gold">{pick(language, "Principal", "Main", "Principal")}</span> : null}
+            </div>
             <h1>{book.title}</h1>
             <p className="book-detail-author">
               {book.author ?? pick(language, "Autor desconocido", "Unknown author", "Autor descoñecido")}
@@ -376,11 +379,6 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                   </span>
                 ) : null}
               </p>
-            ) : null}
-            {book.featured === "gold" ? (
-              <span className="book-flag book-flag-gold book-flag-inline">
-                {pick(language, "Lectura principal del club", "Club's main read", "Lectura principal do club")}
-              </span>
             ) : null}
             {canSetChapters && !editOpen ? (
               <button type="button" className="btn book-edit-toggle" onClick={openEdit}>
@@ -710,7 +708,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
         {/* Comentarios */}
         <section className="page-section">
           <div className="section-head">
-            <h2><Icon name="news" /> {pick(language, "Comentarios", "Comments", "Comentarios")}</h2>
+            <h2><Icon name="comment" /> {pick(language, "Comentarios", "Comments", "Comentarios")}</h2>
           </div>
           <form
             className="book-comment-form"

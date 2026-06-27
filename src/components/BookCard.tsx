@@ -23,7 +23,8 @@ const timeAgo = (ms: number, language: "es" | "en" | "gl"): string => {
 
 export const BookCard = ({ book, member, onOpen }: BookCardProps) => {
   const { language } = useI18n();
-  const onShelf = member ? pick(language, "En tu estante", "On your shelf", "No teu estante") : null;
+  // Indicador sutil de "tú lo estás leyendo" (sin texto redundante).
+  const mine = !!member && (member.shelf === "reading" || member.shelf === "finished" || member.chaptersDone > 0);
 
   const flagLabel = book.featured === "gold" ? pick(language, "Principal", "Main read", "Principal") : null;
 
@@ -49,9 +50,9 @@ export const BookCard = ({ book, member, onOpen }: BookCardProps) => {
   return (
     <button
       type="button"
-      className={`book-card${book.featured === "gold" ? " book-card-featured-gold" : ""}`}
+      className={`book-card${book.featured === "gold" ? " book-card-featured-gold" : ""}${mine ? " book-card-mine" : ""}`}
       onClick={() => onOpen?.(book)}
-      aria-label={book.title}
+      aria-label={mine ? pick(language, `${book.title} (lo estás leyendo)`, `${book.title} (you're reading it)`, `${book.title} (estalo a ler)`) : book.title}
     >
       {flagLabel ? <span className="book-flag book-flag-gold">{flagLabel}</span> : null}
       {book.status === "proposed" && book.votes && book.votes.yes > 0 ? (
@@ -70,7 +71,6 @@ export const BookCard = ({ book, member, onOpen }: BookCardProps) => {
           {book.author ?? pick(language, "Autor desconocido", "Unknown author", "Autor descoñecido")}
         </span>
         {statLine}
-        {onShelf ? <span className="book-card-shelf">{onShelf}</span> : null}
       </span>
     </button>
   );
