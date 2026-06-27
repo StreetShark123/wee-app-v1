@@ -5720,3 +5720,68 @@ textarea:focus-visible {
   color: var(--ink-1);
   font-style: italic;
 }
+
+/* ─────────── Home: hero con buscador compacto + estanterías como bloques ─────── */
+.books-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.books-hero-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.books-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.books-hero-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  max-width: 200px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel-0);
+  color: var(--ink-1);
+}
+
+.books-hero-search input {
+  border: 0;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  min-width: 0;
+  color: var(--ink-0);
+  font-size: 0.86rem;
+}
+
+.books-hero-search:focus-within { border-color: var(--brand); }
+
+.shelf-section + .shelf-section { margin-top: 14px; }
+
+.shelf-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.shelf-head .shelf-title { margin: 0; }
+
+@media (max-width: 560px) {
+  .books-hero-actions { width: 100%; }
+  .books-hero-search { max-width: none; flex: 1; }
+}
