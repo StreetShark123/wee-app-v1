@@ -4348,3 +4348,14 @@ textarea:focus-visible {
   0%, 25% { background: color-mix(in srgb, var(--brand) 22%, transparent); }
   100% { background: transparent; }
 }
+
+/* Reconocimiento cálido al terminar un libro (sin contadores ni rachas) */
+.book-finish-cheer {
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--success, #4caf86) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--success, #4caf86) 35%, var(--line));
+  font-weight: 600;
+  line-height: 1.4;
+}

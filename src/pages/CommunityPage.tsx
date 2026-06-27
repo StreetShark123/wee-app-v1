@@ -298,6 +298,16 @@ export const CommunityPage = ({
           </article>
 
           <article className="settings-card">
+            <h3><Icon name="shield" /> {pick(language, "Roles y moderación", "Roles & moderation", "Roles e moderación")}</h3>
+            <p className="hint">{pick(language, "Para que el poder sea transparente, lo veas como admin o como miembro:", "So power stays transparent, whether you're an admin or a member:", "Para que o poder sexa transparente, sexas admin ou membro:")}</p>
+            <ul className="rules-list">
+              <li>{pick(language, "Un admin puede: aprobar libros, editar el club (nombre, descripción, normas), quitar un libro y nombrar o quitar admins.", "An admin can: approve books, edit the club (name, description, rules), remove a book, and promote or remove admins.", "Un admin pode: aprobar libros, editar o club, quitar un libro e nomear ou quitar admins.")}</li>
+              <li>{pick(language, "Quitar a un miembro es una decisión visible para el club, no un borrado en silencio.", "Removing a member is a decision visible to the club, not a silent deletion.", "Quitar a un membro é unha decisión visible para o club, non un borrado en silencio.")}</li>
+              <li>{pick(language, "Lo que un admin NO puede: no hay mensajes privados ni datos ocultos. Ve de ti lo mismo que cualquier miembro — tu perfil público y lo que escribes en el club. Nadie lee nada en secreto.", "What an admin can't do: there are no private messages or hidden data. They see the same about you as any member — your public profile and what you write in the club. No one reads anything in secret.", "O que un admin NON pode: non hai mensaxes privadas nin datos ocultos. Ve de ti o mesmo que calquera membro.")}</li>
+            </ul>
+          </article>
+
+          <article className="settings-card">
             <h3><Icon name="link" /> {pick(language, "Invitar gente", "Invite people", "Convidar xente")}</h3>
             <p className="hint">{pick(language, "Comparte el código y trae a tu gente al club.", "Share the code and bring your people into the thread.", "Comparte o código e trae á túa xente ao fío.")}</p>
             <div className="stack community-settings-form">

@@ -752,7 +752,10 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
           {/* Valoración: solo cuando has marcado TODOS los capítulos */}
           {allDone ? (
             <div className="book-rating-block">
-              <p className="chapter-finish-title">{pick(language, "¡Terminado! Valora el libro", "Done! Rate the book", "Rematado! Valora o libro")}</p>
+              <p className="book-finish-cheer">
+                🎉 {pick(language, `Terminaste «${book.title}» con el club. Gracias por llegar hasta el final.`, `You finished "${book.title}" with the club. Thanks for reaching the end.`, `Remataches «${book.title}» co club. Grazas por chegar ata o final.`)}
+              </p>
+              <p className="chapter-finish-title">{pick(language, "Si te apetece, déjale una valoración", "If you feel like it, leave a rating", "Se che apetece, déixalle unha valoración")}</p>
               <div className="book-rating" role="radiogroup" aria-label={pick(language, "Tu valoración, de 1 a 5 estrellas", "Your rating, 1 to 5 stars", "A túa valoración, de 1 a 5 estrelas")}>
                 {[1, 2, 3, 4, 5].map((value) => (
                   <button
