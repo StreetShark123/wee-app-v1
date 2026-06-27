@@ -1811,6 +1811,7 @@ const handlers = {
     });
     return json(200, {
       activeMemberCount,
+      clubMembers: Array.from(aliasMap, ([id, alias]) => ({ id, alias })),
       book: rowToBook(bookRes.data as Record<string, any>),
       comments: (commentsRes.data ?? []).map((row: Record<string, any>) => ({
         id: row.id,
@@ -1972,6 +1973,56 @@ const handlers = {
       if (r.user_id === auth.user.id) e.mine = true;
     });
     return json(200, { commentId, reactions: Object.values(byEmoji) });
+  },
+
+  // Editar tu propio comentario.
+  "/comments/update": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const commentId = String(body.comment_id ?? "").trim();
+    const text = String(body.text ?? "").trim().slice(0, 2000);
+    if (!commentId) return bad("comment_id required");
+    if (!text) return bad("text required");
+    const cur = await db
+      .from("book_comments")
+      .select("id,user_id")
+      .eq("community_id", auth.community.id)
+      .eq("id", commentId)
+      .maybeSingle();
+    if (cur.error || !cur.data) return json(404, { message: "Comment not found" });
+    if (cur.data.user_id !== auth.user.id) return json(403, { message: "Not your comment" });
+    const upd = await db
+      .from("book_comments")
+      .update({ text })
+      .eq("community_id", auth.community.id)
+      .eq("id", commentId)
+      .select("id,text")
+      .single();
+    if (upd.error) return json(400, { message: upd.error.message });
+    return json(200, { id: upd.data.id, text: upd.data.text });
+  },
+
+  // Borrar un comentario (propio o admin). Borra en cascada respuestas y reacciones.
+  "/comments/delete": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const commentId = String(body.comment_id ?? "").trim();
+    if (!commentId) return bad("comment_id required");
+    const cur = await db
+      .from("book_comments")
+      .select("id,user_id")
+      .eq("community_id", auth.community.id)
+      .eq("id", commentId)
+      .maybeSingle();
+    if (cur.error || !cur.data) return json(404, { message: "Comment not found" });
+    if (cur.data.user_id !== auth.user.id && auth.role !== "admin") {
+      return json(403, { message: "Not allowed to delete this comment" });
+    }
+    const del = await db.from("book_comments").delete().eq("community_id", auth.community.id).eq("id", commentId);
+    if (del.error) return json(400, { message: del.error.message });
+    return json(200, { ok: true });
   },
 
   "/books/progress": async (req: Request) => {

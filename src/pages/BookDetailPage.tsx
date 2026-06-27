@@ -8,11 +8,14 @@ import { parseChapterList } from "../lib/parseChapters";
 import { getCachedBook, setCachedBook } from "../lib/booksCache";
 import { BookDetailSkeleton } from "../components/Skeletons";
 import { CommentThread } from "../components/CommentThread";
+import { MentionTextarea } from "../components/MentionTextarea";
 import {
   addBookComment,
   addChapterNote,
   completeAllChapters,
   reactComment,
+  updateComment,
+  deleteComment,
   finishBook,
   getClubBook,
   setBookChaptersList,
@@ -22,9 +25,11 @@ import {
   updateBook,
   voteBook,
   type BookDetail,
+  type BookMemberProgress,
   type BookStatus,
   type BookVote,
   type CommentReaction,
+  type MemberBook,
   type NoteKind
 } from "../lib/communityApi";
 import type { User } from "../lib/types";
@@ -98,19 +103,17 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     void load();
   }, [load]);
 
-  const afterMutation = async () => {
-    await load();
-    onBooksChanged();
-  };
+  // Actualiza SOLO lo que cambia en la ficha (nunca recarga toda la página).
+  const patch = (fn: (d: BookDetail) => BookDetail) => setDetail((prev) => (prev ? fn(prev) : prev));
 
   const run = async (fn: () => Promise<unknown>) => {
     if (busy) return;
     setBusy(true);
     try {
       await fn();
-      await afterMutation();
+      onBooksChanged(); // refresca la estantería de fondo (no la ficha)
     } catch {
-      // el reload reflejará el estado real
+      void load(); // si algo falla, recupera el estado real
     } finally {
       setBusy(false);
     }
@@ -140,48 +143,114 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     );
   }
 
-  const { book, comments, members, myMember, chapters, votes, activeMemberCount } = detail;
+  const { book, comments, members, myMember, chapters, votes, activeMemberCount, clubMembers } = detail;
   const named = chapters.length > 0;
   const total = chapters.length;
   const doneCount = chapters.filter((chapter) => chapter.doneByMe).length;
   const allDone = total > 0 && doneCount === total;
-  const handleVote = (vote: BookVote) => run(() => voteBook(book.id, vote));
-  const handleStatus = (status: BookStatus) => run(() => setBookStatus(book.id, status));
-  const handleCompleteAll = (done: boolean) => run(() => completeAllChapters(book.id, done));
+  const mergeMyMember = (d: BookDetail, m: MemberBook): BookMemberProgress => ({ ...m, alias: d.myMember?.alias ?? activeUser.alias });
+
+  const handleVote = (vote: BookVote) =>
+    run(async () => {
+      const r = await voteBook(book.id, vote);
+      patch((d) => ({ ...d, votes: r.votes, book: { ...d.book, status: r.bookStatus } }));
+    });
+  const handleStatus = (status: BookStatus) =>
+    run(async () => {
+      const r = await setBookStatus(book.id, status);
+      patch((d) => ({ ...d, book: r.book }));
+    });
+  const handleCompleteAll = (done: boolean) =>
+    run(async () => {
+      const r = await completeAllChapters(book.id, done);
+      patch((d) => ({
+        ...d,
+        chapters: d.chapters.map((c) => ({
+          ...c,
+          doneByMe: done,
+          completedCount: c.doneByMe === done ? c.completedCount : Math.max(0, c.completedCount + (done ? 1 : -1))
+        })),
+        myMember: mergeMyMember(d, r.myMember),
+        book: { ...d.book, status: r.bookStatus }
+      }));
+    });
   const saveRating = (value: number) => {
     setRatingInput(value);
-    void run(() => finishBook(book.id, value, reviewInput.trim() || undefined));
+    void run(async () => {
+      const r = await finishBook(book.id, value, reviewInput.trim() || undefined);
+      patch((d) => ({ ...d, myMember: mergeMyMember(d, r.myMember), book: { ...d.book, status: r.bookStatus } }));
+    });
   };
   const canSetChapters = book.addedBy === activeUser.id || activeUser.role === "admin";
   const isAdmin = activeUser.role === "admin";
-  const handleFeature = (featured: "gold" | "silver" | null) => run(() => setBookFeatured(book.id, featured));
+  const handleFeature = (featured: "gold" | "silver" | null) =>
+    run(async () => {
+      const r = await setBookFeatured(book.id, featured);
+      patch((d) => ({ ...d, book: r.book }));
+    });
   const openEdit = () => {
     setEdit({ title: book.title, author: book.author ?? "", coverUrl: book.coverUrl ?? "", description: book.description ?? "" });
     setEditOpen(true);
   };
   const handleSaveEdit = () => {
     void run(async () => {
-      await updateBook(book.id, {
+      const r = await updateBook(book.id, {
         title: edit.title.trim() || book.title,
         author: edit.author.trim() || null,
         coverUrl: edit.coverUrl.trim() || null,
         description: edit.description.trim() || null
       });
+      patch((d) => ({ ...d, book: r.book }));
       setEditOpen(false);
     });
   };
   const progressPct = total > 0 ? Math.min(100, Math.round((doneCount / total) * 100)) : 0;
   const parsedPreview = parseChapterList(chaptersRaw);
 
-  const handleToggle = (chapterId: string, done: boolean) => run(() => toggleChapter(chapterId, done));
+  // Marcar capítulo: optimista e instantáneo (no bloquea ni recarga).
+  const handleToggle = (chapterId: string, done: boolean) => {
+    patch((d) => ({
+      ...d,
+      chapters: d.chapters.map((c) =>
+        c.id === chapterId ? { ...c, doneByMe: done, completedCount: Math.max(0, c.completedCount + (done ? 1 : -1)) } : c
+      )
+    }));
+    void toggleChapter(chapterId, done)
+      .then((r) => {
+        patch((d) => ({ ...d, myMember: mergeMyMember(d, r.myMember), book: { ...d.book, status: r.bookStatus } }));
+        onBooksChanged();
+      })
+      .catch(() => void load());
+  };
   const handleAddNote = async (chapterId: string, text: string, kind: NoteKind, imageUrl?: string) => {
-    await addChapterNote(chapterId, text, kind, imageUrl);
-    await afterMutation();
+    const { note } = await addChapterNote(chapterId, text, kind, imageUrl);
+    patch((d) => ({ ...d, chapters: d.chapters.map((c) => (c.id === chapterId ? { ...c, notes: [...c.notes, note] } : c)) }));
+    onBooksChanged();
   };
   const handleReply = async (parentId: string, text: string) => {
-    await addBookComment(book.id, text, parentId);
-    await afterMutation();
+    const { comment } = await addBookComment(book.id, text, parentId);
+    patch((d) => ({ ...d, comments: [...d.comments, comment] }));
+    onBooksChanged();
   };
+  const handleAddComment = (text: string) =>
+    run(async () => {
+      const { comment } = await addBookComment(book.id, text);
+      patch((d) => ({ ...d, comments: [...d.comments, comment] }));
+    });
+  const handleEditComment = async (commentId: string, text: string) => {
+    await updateComment(commentId, text);
+    patch((d) => ({ ...d, comments: d.comments.map((c) => (c.id === commentId ? { ...c, text } : c)) }));
+    onBooksChanged();
+  };
+  const handleDeleteComment = (commentId: string) => {
+    patch((d) => ({ ...d, comments: d.comments.filter((c) => c.id !== commentId && c.parentId !== commentId) }));
+    void deleteComment(commentId).then(onBooksChanged).catch(() => void load());
+  };
+  const handleFinish = () =>
+    run(async () => {
+      const r = await finishBook(book.id, ratingInput || undefined, reviewInput.trim() || undefined);
+      patch((d) => ({ ...d, myMember: mergeMyMember(d, r.myMember), book: { ...d.book, status: r.bookStatus } }));
+    });
   // Reacción optimista: actualiza solo ese comentario al instante (sin recargar la ficha).
   const handleReact = (commentId: string, emoji: string) => {
     setDetail((prev) =>
@@ -209,20 +278,27 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
         "Isto substitúe a lista e REINICIA o progreso de todo o club. Seguro?"
       )
     );
+  const applyChapters = (titles: string[]) =>
+    run(async () => {
+      const r = await setBookChaptersList(book.id, titles);
+      patch((d) => ({
+        ...d,
+        chapters: r.chapters,
+        book: { ...d.book, status: r.bookStatus },
+        myMember: d.myMember ? { ...d.myMember, chaptersDone: 0, shelf: "want" } : null
+      }));
+      setChaptersRaw("");
+    });
   const handleCreateChapters = () => {
     const titles = parseChapterList(chaptersRaw);
     if (titles.length === 0 || !confirmReset()) return;
-    void run(async () => {
-      await setBookChaptersList(book.id, titles);
-      setChaptersRaw("");
-    });
+    void applyChapters(titles);
   };
   const handleCreateNumbered = (count: number) => {
     if (count < 1 || !confirmReset()) return;
-    const titles = Array.from({ length: Math.min(400, count) }, (_, i) =>
-      pick(language, `Capítulo ${i + 1}`, `Chapter ${i + 1}`, `Capítulo ${i + 1}`)
+    void applyChapters(
+      Array.from({ length: Math.min(400, count) }, (_, i) => pick(language, `Capítulo ${i + 1}`, `Chapter ${i + 1}`, `Capítulo ${i + 1}`))
     );
-    void run(() => setBookChaptersList(book.id, titles));
   };
 
   return (
@@ -473,7 +549,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                 onChange={(event) => setReviewInput(event.target.value)}
                 placeholder={pick(language, "Reseña (opcional). Se verá cuando todos terminen.", "Review (optional). Shown when everyone finishes.", "Reseña (opcional).")}
               />
-              <button type="button" className="btn" disabled={busy} onClick={() => run(() => finishBook(book.id, ratingInput || undefined, reviewInput.trim() || undefined))}>
+              <button type="button" className="btn" disabled={busy} onClick={handleFinish}>
                 {pick(language, "Guardar reseña", "Save review", "Gardar reseña")}
               </button>
             </div>
@@ -529,16 +605,15 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               event.preventDefault();
               const clean = commentText.trim();
               if (!clean) return;
-              void run(async () => {
-                await addBookComment(book.id, clean);
-                setCommentText("");
-              });
+              setCommentText("");
+              void handleAddComment(clean);
             }}
           >
-            <textarea
-              rows={2}
+            <MentionTextarea
               value={commentText}
-              onChange={(event) => setCommentText(event.target.value)}
+              onChange={setCommentText}
+              members={clubMembers}
+              rows={2}
               placeholder={pick(language, "Comenta. Usa @nombre para mencionar. Sin spoilers 👀", "Comment. Use @name to mention. No spoilers 👀", "Comenta. Usa @nome para mencionar. Sen spoilers 👀")}
             />
             <button type="submit" className="btn btn-primary" disabled={busy || !commentText.trim()}>
@@ -548,7 +623,15 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
           {comments.length === 0 ? (
             <p className="hint">{pick(language, "Sé quien abre el debate. ¿Qué esperas de este libro?", "Be the one to open the debate. What do you expect from this book?", "Sé quen abre o debate. Que esperas deste libro?")}</p>
           ) : (
-            <CommentThread comments={comments} busy={busy} onReply={handleReply} onReact={handleReact} />
+            <CommentThread
+              comments={comments}
+              members={clubMembers}
+              activeUserId={activeUser.id}
+              onReply={handleReply}
+              onReact={handleReact}
+              onEdit={handleEditComment}
+              onDelete={handleDeleteComment}
+            />
           )}
         </section>
       </div>

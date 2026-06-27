@@ -458,6 +458,11 @@ export interface BookChapter {
   notes: ChapterNote[];
 }
 
+export interface ClubMemberLite {
+  id: string;
+  alias: string;
+}
+
 export interface BookDetail {
   book: ClubBook;
   comments: BookComment[];
@@ -466,6 +471,7 @@ export interface BookDetail {
   chapters: BookChapter[];
   votes: BookVotes;
   activeMemberCount: number;
+  clubMembers: ClubMemberLite[];
 }
 
 export const getClubBook = async (bookId: string): Promise<BookDetail> =>
@@ -483,6 +489,13 @@ export const reactComment = async (
   emoji: string
 ): Promise<{ commentId: string; reactions: CommentReaction[] }> =>
   request<{ commentId: string; reactions: CommentReaction[] }>("/comments/react", { comment_id: commentId, emoji });
+
+export const updateComment = async (commentId: string, text: string): Promise<{ id: string; text: string }> =>
+  request<{ id: string; text: string }>("/comments/update", { comment_id: commentId, text });
+
+export const deleteComment = async (commentId: string): Promise<void> => {
+  await request<{ ok: true }>("/comments/delete", { comment_id: commentId });
+};
 
 export const listNotifications = async (): Promise<{ notifications: AppNotification[]; unreadCount: number }> =>
   request<{ notifications: AppNotification[]; unreadCount: number }>("/notifications/list", {});

@@ -1,29 +1,39 @@
 import { useState } from "react";
-import type { BookComment } from "../lib/communityApi";
+import type { BookComment, ClubMemberLite } from "../lib/communityApi";
 import { pick, useI18n } from "../lib/i18n";
 import { Icon } from "./Icon";
 import { Linkify } from "./Linkify";
+import { MentionTextarea } from "./MentionTextarea";
 
 const PRESET_EMOJIS = ["👍", "❤️", "🔥", "😍", "🤔", "💡", "😂", "😮", "😢", "👏", "🙌", "💯", "📖", "🤯", "✨", "🥲"];
 
 interface CommentThreadProps {
   comments: BookComment[];
-  busy: boolean;
+  members: ClubMemberLite[];
+  activeUserId: string;
   onReply: (parentId: string, text: string) => Promise<void>;
   onReact: (commentId: string, emoji: string) => void;
+  onEdit: (commentId: string, text: string) => Promise<void>;
+  onDelete: (commentId: string) => void;
 }
 
 const CommentItem = ({
   comment,
-  busy,
+  members,
+  activeUserId,
   onReply,
   onReact,
+  onEdit,
+  onDelete,
   isReply
 }: {
   comment: BookComment;
-  busy: boolean;
+  members: ClubMemberLite[];
+  activeUserId: string;
   onReply: (parentId: string, text: string) => Promise<void>;
   onReact: (commentId: string, emoji: string) => void;
+  onEdit: (commentId: string, text: string) => Promise<void>;
+  onDelete: (commentId: string) => void;
   isReply: boolean;
 }) => {
   const { language } = useI18n();
@@ -31,6 +41,9 @@ const CommentItem = ({
   const [replyText, setReplyText] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [sending, setSending] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editText, setEditText] = useState(comment.text);
+  const isMine = comment.userId === activeUserId;
   const replyTarget = comment.parentId ?? comment.id; // hilos de 1 nivel
 
   const submitReply = async () => {
@@ -46,12 +59,39 @@ const CommentItem = ({
     }
   };
 
+  const submitEdit = async () => {
+    const clean = editText.trim();
+    if (!clean || sending) return;
+    setSending(true);
+    try {
+      await onEdit(comment.id, clean);
+      setEditOpen(false);
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <li className={`comment-item${isReply ? " comment-item-reply" : ""}`}>
       <div className="comment-head">
         <strong>{comment.alias}</strong>
       </div>
-      <p className="comment-text"><Linkify text={comment.text} /></p>
+
+      {editOpen ? (
+        <div className="comment-reply-form">
+          <MentionTextarea value={editText} onChange={setEditText} members={members} rows={2} autoFocus />
+          <div className="comment-reply-actions">
+            <button type="button" className="btn" onClick={() => setEditOpen(false)} disabled={sending}>
+              {pick(language, "Cancelar", "Cancel", "Cancelar")}
+            </button>
+            <button type="button" className="btn btn-primary" onClick={submitEdit} disabled={sending || !editText.trim()}>
+              {pick(language, "Guardar", "Save", "Gardar")}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="comment-text"><Linkify text={comment.text} /></p>
+      )}
 
       <div className="comment-actions">
         {comment.reactions.map((r) => (
@@ -92,15 +132,33 @@ const CommentItem = ({
         <button type="button" className="comment-reply-btn" onClick={() => setReplyOpen((v) => !v)}>
           {pick(language, "Responder", "Reply", "Responder")}
         </button>
+        {isMine ? (
+          <>
+            <button type="button" className="comment-reply-btn" onClick={() => { setEditText(comment.text); setEditOpen(true); }}>
+              {pick(language, "Editar", "Edit", "Editar")}
+            </button>
+            <button
+              type="button"
+              className="comment-reply-btn comment-del-btn"
+              onClick={() => {
+                if (window.confirm(pick(language, "¿Borrar este comentario?", "Delete this comment?", "Borrar este comentario?"))) onDelete(comment.id);
+              }}
+            >
+              {pick(language, "Borrar", "Delete", "Borrar")}
+            </button>
+          </>
+        ) : null}
       </div>
 
       {replyOpen ? (
         <div className="comment-reply-form">
-          <textarea
-            rows={2}
+          <MentionTextarea
             value={replyText}
-            onChange={(event) => setReplyText(event.target.value)}
-            placeholder={pick(language, "Tu respuesta...", "Your reply...", "A túa resposta...")}
+            onChange={setReplyText}
+            members={members}
+            rows={2}
+            autoFocus
+            placeholder={pick(language, "Tu respuesta... (@ para mencionar)", "Your reply... (@ to mention)", "A túa resposta... (@ para mencionar)")}
           />
           <div className="comment-reply-actions">
             <button type="button" className="btn" onClick={() => setReplyOpen(false)} disabled={sending}>
@@ -116,7 +174,7 @@ const CommentItem = ({
   );
 };
 
-export const CommentThread = ({ comments, busy, onReply, onReact }: CommentThreadProps) => {
+export const CommentThread = ({ comments, members, activeUserId, onReply, onReact, onEdit, onDelete }: CommentThreadProps) => {
   const roots = comments.filter((c) => !c.parentId);
   const repliesByParent = new Map<string, BookComment[]>();
   comments.forEach((c) => {
@@ -127,14 +185,16 @@ export const CommentThread = ({ comments, busy, onReply, onReact }: CommentThrea
     }
   });
 
+  const itemProps = { members, activeUserId, onReply, onReact, onEdit, onDelete };
+
   return (
     <ul className="comment-thread">
       {roots.map((root) => (
         <li key={root.id} className="comment-root">
           <ul className="comment-thread-inner">
-            <CommentItem comment={root} busy={busy} onReply={onReply} onReact={onReact} isReply={false} />
+            <CommentItem comment={root} {...itemProps} isReply={false} />
             {(repliesByParent.get(root.id) ?? []).map((reply) => (
-              <CommentItem key={reply.id} comment={reply} busy={busy} onReply={onReply} onReact={onReact} isReply />
+              <CommentItem key={reply.id} comment={reply} {...itemProps} isReply />
             ))}
           </ul>
         </li>
