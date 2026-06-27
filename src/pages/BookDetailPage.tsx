@@ -125,7 +125,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     );
   }
 
-  const { book, comments, members, myMember, chapters, votes } = detail;
+  const { book, comments, members, myMember, chapters, votes, activeMemberCount } = detail;
   const named = chapters.length > 0;
   const total = chapters.length;
   const doneCount = chapters.filter((chapter) => chapter.doneByMe).length;
@@ -163,16 +163,26 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     await addChapterNote(chapterId, text, kind, imageUrl);
     await afterMutation();
   };
+  const confirmReset = (): boolean =>
+    chapters.length === 0 ||
+    window.confirm(
+      pick(
+        language,
+        "Esto reemplaza la lista de capítulos y REINICIA el progreso de todo el club. ¿Seguro?",
+        "This replaces the chapter list and RESETS the whole club's progress. Are you sure?",
+        "Isto substitúe a lista e REINICIA o progreso de todo o club. Seguro?"
+      )
+    );
   const handleCreateChapters = () => {
     const titles = parseChapterList(chaptersRaw);
-    if (titles.length === 0) return;
+    if (titles.length === 0 || !confirmReset()) return;
     void run(async () => {
       await setBookChaptersList(book.id, titles);
       setChaptersRaw("");
     });
   };
   const handleCreateNumbered = (count: number) => {
-    if (count < 1) return;
+    if (count < 1 || !confirmReset()) return;
     const titles = Array.from({ length: Math.min(400, count) }, (_, i) =>
       pick(language, `Capítulo ${i + 1}`, `Chapter ${i + 1}`, `Capítulo ${i + 1}`)
     );
@@ -209,10 +219,24 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                 {pick(language, "Lectura principal del club", "Club's main read", "Lectura principal do club")}
               </span>
             ) : null}
+            {canSetChapters && !editOpen ? (
+              <button type="button" className="btn book-edit-toggle" onClick={openEdit}>
+                <Icon name="pencil" size={13} /> {isAdmin ? pick(language, "Editar / gestionar", "Edit / manage", "Editar / xestionar") : pick(language, "Editar libro", "Edit book", "Editar libro")}
+              </button>
+            ) : null}
+          </div>
+        </section>
+
+        {editOpen ? (
+          <section className="page-section book-edit-form">
+            <div className="section-head">
+              <h2><Icon name="pencil" /> {pick(language, "Editar libro", "Edit book", "Editar libro")}</h2>
+            </div>
+
             {isAdmin ? (
-              <div className="book-admin-controls">
+              <div className="book-manage">
                 <div className="book-feature-controls">
-                  <span className="hint">{pick(language, "Estado:", "Status:", "Estado:")}</span>
+                  <span className="hint">{pick(language, "Estado del libro:", "Book status:", "Estado do libro:")}</span>
                   {(["proposed", "reading", "finished"] as BookStatus[]).map((status) => (
                     <button
                       key={status}
@@ -227,24 +251,12 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                 </div>
                 {book.status === "reading" ? (
                   <button type="button" className={`btn book-feature-btn gold${book.featured === "gold" ? " is-on" : ""}`} disabled={busy} onClick={() => handleFeature(book.featured === "gold" ? null : "gold")}>
-                    <Icon name="spark" size={13} /> {book.featured === "gold" ? pick(language, "Quitar principal", "Unset main", "Quitar principal") : pick(language, "Marcar principal", "Set as main", "Marcar principal")}
+                    <Icon name="spark" size={13} /> {book.featured === "gold" ? pick(language, "Quitar principal", "Unset main", "Quitar principal") : pick(language, "Marcar como principal", "Set as main", "Marcar como principal")}
                   </button>
                 ) : null}
               </div>
             ) : null}
-            {canSetChapters && !editOpen ? (
-              <button type="button" className="btn book-edit-toggle" onClick={openEdit}>
-                <Icon name="pencil" size={13} /> {pick(language, "Editar libro / portada", "Edit book / cover", "Editar libro / portada")}
-              </button>
-            ) : null}
-          </div>
-        </section>
 
-        {editOpen ? (
-          <section className="page-section book-edit-form">
-            <div className="section-head">
-              <h2><Icon name="pencil" /> {pick(language, "Editar libro", "Edit book", "Editar libro")}</h2>
-            </div>
             <p className="hint">{pick(language, "Si Google no trae la portada correcta, pega aquí la URL de una imagen.", "If Google's cover is wrong, paste an image URL here.", "Se Google non trae a portada correcta, pega aquí o URL dunha imaxe.")}</p>
             <label className="form-field">
               {pick(language, "Título", "Title", "Título")}
@@ -280,7 +292,13 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
             <div className="section-head">
               <h2><Icon name="check" /> {pick(language, "¿Lo leemos?", "Shall we read it?", "Lémolo?")}</h2>
             </div>
-            <p className="hint">{pick(language, "Vota si el club lee este libro. Cuando todos digan \"sí\", pasa a 'en lectura'.", "Vote whether the club reads this. When everyone says \"yes\", it moves to 'reading'.", "Vota se o club le este libro. Cando todos digan \"si\", pasa a 'en lectura'.")}</p>
+            <p className="hint">{pick(language, "Se aprueba cuando TODOS votan \"sí\", o cuando un admin lo aprueba.", "Approved when EVERYONE votes \"yes\", or when an admin approves it.", "Apróbase cando TODOS votan \"si\", ou cando un admin o aproba.")}</p>
+            {activeMemberCount > 0 ? (
+              <div className="vote-quorum">
+                <span className="vote-quorum-bar"><span className="vote-quorum-fill" style={{ width: `${Math.min(100, Math.round((votes.yes / activeMemberCount) * 100))}%` }} /></span>
+                <span className="vote-quorum-label">{votes.yes}/{activeMemberCount} {pick(language, "a favor para empezar", "in favor to start", "a favor para empezar")}</span>
+              </div>
+            ) : null}
             <div className="vote-buttons">
               <button type="button" className={`btn vote-btn yes${votes.myVote === "yes" ? " is-on" : ""}`} disabled={busy} onClick={() => handleVote("yes")}>
                 {pick(language, "Sí", "Yes", "Si")} · {votes.yes}
@@ -340,7 +358,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                     onChange={(event) => setChaptersRaw(event.target.value)}
                     placeholder={pick(language, "Pega aquí el índice...", "Paste the table of contents here...", "Pega aquí o índice...")}
                   />
-                  <button type="button" className="btn" disabled={busy || parsedPreview.length === 0} onClick={handleCreateChapters}>
+                  <button type="button" className="btn btn-danger" disabled={busy || parsedPreview.length === 0} onClick={handleCreateChapters}>
                     {pick(language, `Reemplazar (${parsedPreview.length})`, `Replace (${parsedPreview.length})`, `Substituír (${parsedPreview.length})`)}
                   </button>
                 </details>

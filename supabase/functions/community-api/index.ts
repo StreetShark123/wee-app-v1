@@ -1790,7 +1790,14 @@ const handlers = {
     }));
 
     const votes = await voteSummary(auth.community.id, bookId, auth.user.id);
+    const memberCountRes = await db
+      .from("community_users")
+      .select("id", { count: "exact", head: true })
+      .eq("community_id", auth.community.id)
+      .eq("status", "active");
+    const activeMemberCount = memberCountRes.count ?? 0;
     return json(200, {
+      activeMemberCount,
       book: rowToBook(bookRes.data as Record<string, any>),
       comments: (commentsRes.data ?? []).map((row: Record<string, any>) => ({
         id: row.id,

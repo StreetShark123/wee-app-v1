@@ -3949,3 +3949,25 @@ textarea:focus-visible {
 }
 .book-card-rating { color: var(--accent-amber); font-weight: 700; }
 .book-card-stat-sub { color: var(--ink-1); }
+
+/* B1: quórum de votación */
+.vote-quorum { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+.vote-quorum-bar { flex: 1; height: 8px; border-radius: 999px; background: var(--panel-1); overflow: hidden; }
+.vote-quorum-fill { display: block; height: 100%; background: var(--success); border-radius: 999px; transition: width var(--motion-base) var(--ease-standard); }
+.vote-quorum-label { font-size: 0.8rem; color: var(--ink-1); white-space: nowrap; }
+
+/* A5: panel de gestión (admin) dentro de Editar */
+.book-manage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--panel-1) 50%, transparent);
+}
+
+/* B2: botón de acción destructiva */
+.btn-danger { border-color: var(--danger); color: var(--danger); }
+.btn-danger:hover { background: color-mix(in srgb, var(--danger) 16%, transparent); }

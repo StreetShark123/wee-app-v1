@@ -454,6 +454,7 @@ export interface BookDetail {
   myMember: BookMemberProgress | null;
   chapters: BookChapter[];
   votes: BookVotes;
+  activeMemberCount: number;
 }
 
 export const getClubBook = async (bookId: string): Promise<BookDetail> =>
