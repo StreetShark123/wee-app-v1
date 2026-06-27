@@ -21,12 +21,12 @@ export const AuthPage = ({ mode, onLogin, onRegister }: AuthPageProps) => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [claimIndex, setClaimIndex] = useState(0);
-  const appVersion = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? "alpha v1";
-  const lastUpdated = (import.meta.env.VITE_LAST_UPDATED as string | undefined) ?? "05 Mar 2026";
+  const appVersion = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? "v0.4.0-alpha";
+  const lastUpdated = (import.meta.env.VITE_LAST_UPDATED as string | undefined) ?? "27 jun 2026";
   const heroClaims = [
-    pick(language, "Tu club, tus libros, todo en orden", "Your people, your topics, all in one flow", "A túa xente, os teus temas, todo en orde"),
-    pick(language, "Comparte lo que lees y el hilo no se pierde", "Share here first and the thread stays clear", "Comparte aquí primeiro e o fío non se perde"),
-    pick(language, "Menos ruido, más contexto para debatir mejor", "Less noise, more context to decide better", "Menos ruído, máis contexto para decidir mellor")
+    pick(language, "Tu club, tus libros, todo en orden", "Your club, your books, all in one place", "O teu club, os teus libros, todo en orde"),
+    pick(language, "Comparte lo que lees y el hilo no se pierde", "Share what you read and the thread stays clear", "Comparte o que les e o fío non se perde"),
+    pick(language, "Menos ruido, más contexto para debatir mejor", "Less noise, more context to discuss better", "Menos ruído, máis contexto para debater mellor")
   ];
 
   useEffect(() => {

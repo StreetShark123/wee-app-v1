@@ -187,6 +187,8 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   }
 
   const { book, comments, members, myMember, chapters, votes, activeMemberCount, clubMembers } = detail;
+  // Síes que faltan para mayoría (modo por defecto). Solo informativo.
+  const votesNeeded = Math.max(0, Math.floor(activeMemberCount / 2) + 1 - votes.yes);
   const named = chapters.length > 0;
   const total = chapters.length;
   const doneCount = chapters.filter((chapter) => chapter.doneByMe).length;
@@ -701,6 +703,9 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                 <span className="vote-quorum-bar"><span className="vote-quorum-fill" style={{ width: `${Math.min(100, Math.round((votes.yes / activeMemberCount) * 100))}%` }} /></span>
                 <span className="vote-quorum-label">{votes.yes}/{activeMemberCount} {pick(language, "a favor para empezar", "in favor to start", "a favor para empezar")}</span>
               </div>
+            ) : null}
+            {activeMemberCount > 0 && votesNeeded > 0 ? (
+              <p className="hint vote-needed">{pick(language, `Faltan ${votesNeeded} ${votesNeeded === 1 ? "sí" : "síes"} para empezar (o que lo apruebe un admin).`, `${votesNeeded} more yes ${votesNeeded === 1 ? "vote" : "votes"} to start (or an admin approves it).`, `Faltan ${votesNeeded} ${votesNeeded === 1 ? "si" : "síes"} para empezar (ou que o aprobe un admin).`)}</p>
             ) : null}
             <div className="vote-buttons">
               <button type="button" className={`btn vote-btn yes${votes.myVote === "yes" ? " is-on" : ""}`} disabled={busy} onClick={() => handleVote("yes")}>
