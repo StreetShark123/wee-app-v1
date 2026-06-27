@@ -276,11 +276,14 @@ Cada fase termina verde en `npm run check` (typecheck + test + design:lint).
   `/profile/:id/posts` + borradas sus páginas (TopicPage, PostDetailPage, SharePage,
   UserPostsPage) + componentes huérfanos (ShareLinkModal, CommentsPanel, EmojiMenu).
   Enlace "Mis libros/posts" retirado del TopBar. Typecheck/tests/build verdes.
-- ⏳ Queda (refactor de `App.tsx`, mayor cuidado): ~14 handlers de posts muertos
-  (onShareUrl/onRatePost/onAdmin*/notificaciones por-post/dedup) y sus libs
-  (classify, enrich, presentation, usageAnalytics-share); `ProfilePage` sigue
-  post-céntrica (es además la edición de alias/avatar → modernizar a "perfil lector").
-  `auraEngine/topicEngineV2/topicForum/topicColors/PostCard` viven anclados por ProfilePage.
+- ✅ Ronda 3: `App.tsx` 1373→712 líneas (quitados ~14 handlers de posts muertos:
+  onShareUrl/onRatePost/onAdmin*/dedup) + imports muertos podados + `enrich.ts` borrado.
+- ✅ Auditoría CSS: `global.css` 5788→3869 líneas (271 reglas muertas del news-app
+  eliminadas con script conservador; clases vivas book-/chapter-/vote- intactas;
+  design:lint OK). 220 clases muertas detectadas, ~190 retiradas.
+- ⏳ Queda: `ProfilePage` sigue post-céntrica (es además la edición de alias/avatar →
+  modernizar a "perfil lector"); ancla `auraEngine/topicEngineV2/topicForum/topicColors/
+  PostCard/appData(posts)` + las notificaciones por-post (se reusará para @menciones).
 - ✅ Borrados 7 archivos muertos (0 referencias): `IconGallery`, `AppSkeleton`,
   `TopicBlock`, `FiltersBar`, `PostDetailModal`, `LoginPage`, `InviteRedirectPage`.
 - ✅ JoinPage rediseñada: por enlace muestra "Te han invitado a {club}" + 2 botones
