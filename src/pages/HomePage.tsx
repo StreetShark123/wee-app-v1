@@ -67,8 +67,11 @@ export const HomePage = ({
     setShowOnboarding(false);
   };
 
+  const isLater = (book: (typeof books)[number]): boolean =>
+    book.status === "proposed" && !!book.votes && book.votes.later > 0 && book.votes.later >= book.votes.yes && book.votes.later >= book.votes.no;
   const reading = visibleBooks.filter((book) => book.status === "reading").sort((a, b) => featuredRank(a) - featuredRank(b));
-  const proposed = visibleBooks.filter((book) => book.status === "proposed");
+  const proposed = visibleBooks.filter((book) => book.status === "proposed" && !isLater(book));
+  const later = visibleBooks.filter(isLater);
   const finished = visibleBooks.filter((book) => book.status === "finished");
 
   const renderShelf = (title: string, list: typeof books, emptyHint: string) => (
@@ -152,6 +155,9 @@ export const HomePage = ({
               proposed,
               pick(language, "Sin propuestas. Añade un libro y votad.", "No proposals. Add a book and vote.", "Sen propostas. Engade un libro e votade.")
             )}
+            {later.length > 0
+              ? renderShelf(pick(language, "Para más adelante", "For later", "Para máis adiante"), later, "")
+              : null}
             {renderShelf(
               pick(language, "Leídos", "Read", "Lidos"),
               finished,

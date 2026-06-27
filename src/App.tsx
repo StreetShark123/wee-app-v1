@@ -340,7 +340,8 @@ const AppRoutes = () => {
       publishedYear: book.publishedYear,
       pageCount: book.pageCount,
       source: book.source,
-      manuallyEdited: book.manuallyEdited
+      manuallyEdited: book.manuallyEdited,
+      proposalNote: book.proposalNote || null
     });
     await reloadBooks();
     showToast(`"${created.title}" añadido al club.`);

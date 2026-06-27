@@ -209,6 +209,9 @@ const rowToBook = (row: Record<string, any>): Record<string, any> => ({
   manuallyEdited: Boolean(row.manually_edited),
   status: row.status ?? "proposed",
   featured: row.featured ?? undefined,
+  proposalNote: row.proposal_note ?? undefined,
+  targetChapter: row.target_chapter ?? undefined,
+  targetDate: row.target_date ?? undefined,
   createdAt: toMillis(row.created_at)
 });
 
@@ -1057,12 +1060,15 @@ const handlers = {
   "/community/meta": async (req: Request) => {
     const auth = await requireSession(req);
     if (auth instanceof Response) return auth;
-    const { data: members } = await db
-      .from("community_users")
-      .select("id,alias,community_user_roles(role)")
-      .eq("community_id", auth.community.id)
-      .eq("status", "active")
-      .order("created_at", { ascending: true });
+    const [{ data: members }, commRes] = await Promise.all([
+      db
+        .from("community_users")
+        .select("id,alias,community_user_roles(role)")
+        .eq("community_id", auth.community.id)
+        .eq("status", "active")
+        .order("created_at", { ascending: true }),
+      db.from("communities").select("approval_mode").eq("id", auth.community.id).maybeSingle()
+    ]);
 
     return json(200, {
       community: {
@@ -1070,7 +1076,8 @@ const handlers = {
         name: auth.community.name,
         description: auth.community.description ?? "",
         rulesText: auth.community.rules_text ?? "",
-        invite_policy: auth.community.invite_policy
+        invite_policy: auth.community.invite_policy,
+        approval_mode: (commRes.data?.approval_mode as string) ?? "majority"
       },
       members: (members ?? []).map((m: any) => ({ id: m.id, alias: m.alias, role: m.community_user_roles?.[0]?.role ?? "member" }))
     });
@@ -1105,13 +1112,14 @@ const handlers = {
     }
     if (description !== undefined) payload.description = description || null;
     if (rulesText !== undefined) payload.rules_text = rulesText || null;
+    if (body.approval_mode === "all" || body.approval_mode === "majority") payload.approval_mode = body.approval_mode;
     if (Object.keys(payload).length === 0) return bad("No changes");
 
     const { data, error } = await db
       .from("communities")
       .update(payload)
       .eq("id", auth.community.id)
-      .select("id,name,description,rules_text,invite_policy")
+      .select("id,name,description,rules_text,invite_policy,approval_mode")
       .single();
     if (error || !data) return json(400, { message: error?.message ?? "Community update failed" });
 
@@ -1121,7 +1129,8 @@ const handlers = {
         name: data.name,
         description: data.description ?? undefined,
         rules_text: data.rules_text ?? undefined,
-        invite_policy: data.invite_policy
+        invite_policy: data.invite_policy,
+        approval_mode: data.approval_mode ?? "majority"
       }
     });
   },
@@ -1691,7 +1700,8 @@ const handlers = {
       total_chapters: Number.isFinite(Number(b.totalChapters)) ? Number(b.totalChapters) : null,
       source,
       manually_edited: Boolean(b.manuallyEdited),
-      status: "proposed"
+      status: "proposed",
+      proposal_note: b.proposalNote ? String(b.proposalNote).trim().slice(0, 400) : null
     };
     const ins = await db.from("books").insert(row).select("*").single();
     if (ins.error) {
@@ -1722,7 +1732,7 @@ const handlers = {
     const [commentsRes, membersRes, chaptersRes, completionsRes, notesRes, aliasMap] = await Promise.all([
       db
         .from("book_comments")
-        .select("id,user_id,text,parent_id,created_at")
+        .select("id,user_id,text,parent_id,chapter_id,created_at")
         .eq("community_id", auth.community.id)
         .eq("book_id", bookId)
         .order("created_at", { ascending: true }),
@@ -1819,6 +1829,7 @@ const handlers = {
         alias: aliasMap.get(row.user_id) ?? "—",
         text: row.text,
         parentId: row.parent_id ?? undefined,
+        chapterId: row.chapter_id ?? undefined,
         reactions: Object.values(reactionsByComment[row.id] ?? {}),
         createdAt: toMillis(row.created_at)
       })),
@@ -1836,6 +1847,7 @@ const handlers = {
     const bookId = String(body.book_id ?? "").trim();
     const text = String(body.text ?? "").trim().slice(0, 2000);
     const parentId = body.parent_id ? String(body.parent_id).trim() : null;
+    const chapterId = body.chapter_id ? String(body.chapter_id).trim() : null;
     if (!bookId) return bad("book_id required");
     if (!text) return bad("text required");
 
@@ -1864,8 +1876,8 @@ const handlers = {
 
     const ins = await db
       .from("book_comments")
-      .insert({ community_id: auth.community.id, book_id: bookId, user_id: auth.user.id, text, parent_id: parentId })
-      .select("id,user_id,text,parent_id,created_at")
+      .insert({ community_id: auth.community.id, book_id: bookId, user_id: auth.user.id, text, parent_id: parentId, chapter_id: chapterId })
+      .select("id,user_id,text,parent_id,chapter_id,created_at")
       .single();
     if (ins.error) return json(400, { message: ins.error.message });
 
@@ -1925,6 +1937,7 @@ const handlers = {
         alias: auth.user.alias,
         text: ins.data.text,
         parentId: ins.data.parent_id ?? undefined,
+        chapterId: ins.data.chapter_id ?? undefined,
         reactions: [],
         createdAt: toMillis(ins.data.created_at)
       }
@@ -2383,6 +2396,31 @@ const handlers = {
     return json(200, { book: rowToBook(upd.data as Record<string, any>) });
   },
 
+  // C1: cadencia / meta de lectura (capítulo objetivo + fecha). Adder o admin.
+  "/books/set_target": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    if (!bookId) return bad("book_id required");
+    const bookRes = await db
+      .from("books")
+      .select("id,added_by")
+      .eq("community_id", auth.community.id)
+      .eq("id", bookId)
+      .maybeSingle();
+    if (bookRes.error || !bookRes.data) return json(404, { message: "Book not found" });
+    if (bookRes.data.added_by !== auth.user.id && auth.role !== "admin") {
+      return json(403, { message: "Only the facilitator (or an admin) can set the cadence" });
+    }
+    const patch: Record<string, any> = {};
+    if (body.target_chapter !== undefined) patch.target_chapter = Number.isFinite(Number(body.target_chapter)) && Number(body.target_chapter) > 0 ? Math.floor(Number(body.target_chapter)) : null;
+    if (body.target_date !== undefined) patch.target_date = body.target_date ? String(body.target_date).slice(0, 10) : null;
+    const upd = await db.from("books").update(patch).eq("community_id", auth.community.id).eq("id", bookId).select("*").single();
+    if (upd.error) return json(400, { message: upd.error.message });
+    return json(200, { book: rowToBook(upd.data as Record<string, any>) });
+  },
+
   // Voto sobre una propuesta de libro (yes/no/later). Si TODOS los miembros activos
   // votan 'yes', el libro se aprueba (proposed -> reading).
   "/books/vote": async (req: Request) => {
@@ -2410,12 +2448,16 @@ const handlers = {
 
     let status = bookRes.data.status as string;
     if (status === "proposed") {
-      const [activeRes, summary] = await Promise.all([
+      const [activeRes, summary, modeRes] = await Promise.all([
         db.from("community_users").select("id", { count: "exact", head: true }).eq("community_id", auth.community.id).eq("status", "active"),
-        voteSummary(auth.community.id, bookId, auth.user.id)
+        voteSummary(auth.community.id, bookId, auth.user.id),
+        db.from("communities").select("approval_mode").eq("id", auth.community.id).maybeSingle()
       ]);
       const activeCount = activeRes.count ?? 0;
-      if (activeCount > 0 && summary.yes >= activeCount) {
+      const mode = (modeRes.data?.approval_mode as string) ?? "majority";
+      // mayoría = más de la mitad de los miembros activos; unanimidad = todos.
+      const approved = activeCount > 0 && (mode === "all" ? summary.yes >= activeCount : summary.yes * 2 > activeCount);
+      if (approved) {
         await db.from("books").update({ status: "reading" }).eq("community_id", auth.community.id).eq("id", bookId);
         status = "reading";
       }

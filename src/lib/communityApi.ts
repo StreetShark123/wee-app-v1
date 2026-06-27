@@ -368,6 +368,9 @@ export interface ClubBook {
   featured?: BookFeatured;
   votes?: BookVotes;
   stats?: BookStats;
+  proposalNote?: string;
+  targetChapter?: number;
+  targetDate?: string;
   createdAt: number;
 }
 
@@ -408,6 +411,7 @@ export interface NewBookPayload {
   totalChapters?: number | null;
   source: BookSourceTag;
   manuallyEdited: boolean;
+  proposalNote?: string | null;
 }
 
 export const listClubBooks = async (): Promise<{ books: ClubBook[]; memberBooks: MemberBook[] }> =>
@@ -428,6 +432,7 @@ export interface BookComment {
   alias: string;
   text: string;
   parentId?: string;
+  chapterId?: string;
   reactions: CommentReaction[];
   createdAt: number;
 }
@@ -480,9 +485,24 @@ export const getClubBook = async (bookId: string): Promise<BookDetail> =>
 export const addBookComment = async (
   bookId: string,
   text: string,
-  parentId?: string
+  opts?: { parentId?: string; chapterId?: string }
 ): Promise<{ comment: BookComment }> =>
-  request<{ comment: BookComment }>("/books/comment", { book_id: bookId, text, ...(parentId ? { parent_id: parentId } : {}) });
+  request<{ comment: BookComment }>("/books/comment", {
+    book_id: bookId,
+    text,
+    ...(opts?.parentId ? { parent_id: opts.parentId } : {}),
+    ...(opts?.chapterId ? { chapter_id: opts.chapterId } : {})
+  });
+
+export const setBookTarget = async (
+  bookId: string,
+  target: { targetChapter?: number | null; targetDate?: string | null }
+): Promise<{ book: ClubBook }> =>
+  request<{ book: ClubBook }>("/books/set_target", {
+    book_id: bookId,
+    ...(target.targetChapter !== undefined ? { target_chapter: target.targetChapter } : {}),
+    ...(target.targetDate !== undefined ? { target_date: target.targetDate } : {})
+  });
 
 export const reactComment = async (
   commentId: string,

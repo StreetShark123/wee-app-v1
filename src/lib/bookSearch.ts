@@ -26,6 +26,7 @@ export interface BookDraft {
   pageCount: number | null;
   source: BookSource | "manual";
   manuallyEdited: boolean;
+  proposalNote: string;
 }
 
 interface BookSearchResponse {
@@ -56,7 +57,8 @@ export const resultToDraft = (result: BookSearchResult): BookDraft => ({
   publishedYear: result.publishedYear,
   pageCount: result.pageCount,
   source: result.source,
-  manuallyEdited: false
+  manuallyEdited: false,
+  proposalNote: ""
 });
 
 // Borrador vacío para alta 100% manual (libro que no aparece en los índices).
@@ -69,5 +71,6 @@ export const emptyDraft = (): BookDraft => ({
   publishedYear: null,
   pageCount: null,
   source: "manual",
-  manuallyEdited: true
+  manuallyEdited: true,
+  proposalNote: ""
 });

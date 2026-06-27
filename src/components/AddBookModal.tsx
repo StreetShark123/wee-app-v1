@@ -311,6 +311,21 @@ export const AddBookModal = ({ open, onClose, onAddBook, onToast }: AddBookModal
                   />
                 </label>
 
+                <label>
+                  {pick(language, "¿Por qué lo propones?", "Why are you proposing it?", "Por que o propós?")}
+                  <textarea
+                    rows={2}
+                    value={draft.proposalNote}
+                    onChange={(event) => editField("proposalNote", event.target.value)}
+                    placeholder={pick(
+                      language,
+                      "Una frase para convencer al club (se ve al votar).",
+                      "One line to convince the club (shown when voting).",
+                      "Unha frase para convencer ao club (vese ao votar)."
+                    )}
+                  />
+                </label>
+
                 <div className="book-review-actions">
                   <button type="button" className="btn" onClick={() => setPhase("search")} disabled={submitting}>
                     <Icon name="arrowLeft" /> {pick(language, "Volver", "Back", "Volver")}

@@ -11,6 +11,8 @@ interface CommentThreadProps {
   comments: BookComment[];
   members: ClubMemberLite[];
   activeUserId: string;
+  readChapterIds: Set<string>;
+  chapterLabelById: Map<string, string>;
   onReply: (parentId: string, text: string) => Promise<void>;
   onReact: (commentId: string, emoji: string) => void;
   onEdit: (commentId: string, text: string) => Promise<void>;
@@ -21,6 +23,7 @@ const CommentItem = ({
   comment,
   members,
   activeUserId,
+  chapterLabel,
   onReply,
   onReact,
   onEdit,
@@ -30,6 +33,7 @@ const CommentItem = ({
   comment: BookComment;
   members: ClubMemberLite[];
   activeUserId: string;
+  chapterLabel?: string;
   onReply: (parentId: string, text: string) => Promise<void>;
   onReact: (commentId: string, emoji: string) => void;
   onEdit: (commentId: string, text: string) => Promise<void>;
@@ -75,6 +79,7 @@ const CommentItem = ({
     <li className={`comment-item${isReply ? " comment-item-reply" : ""}`}>
       <div className="comment-head">
         <strong>{comment.alias}</strong>
+        {chapterLabel ? <span className="comment-chapter-tag">{pick(language, `Cap. ${chapterLabel}`, `Ch. ${chapterLabel}`, `Cap. ${chapterLabel}`)}</span> : null}
       </div>
 
       {editOpen ? (
@@ -174,7 +179,8 @@ const CommentItem = ({
   );
 };
 
-export const CommentThread = ({ comments, members, activeUserId, onReply, onReact, onEdit, onDelete }: CommentThreadProps) => {
+export const CommentThread = ({ comments, members, activeUserId, readChapterIds, chapterLabelById, onReply, onReact, onEdit, onDelete }: CommentThreadProps) => {
+  const { language } = useI18n();
   const roots = comments.filter((c) => !c.parentId);
   const repliesByParent = new Map<string, BookComment[]>();
   comments.forEach((c) => {
@@ -189,16 +195,27 @@ export const CommentThread = ({ comments, members, activeUserId, onReply, onReac
 
   return (
     <ul className="comment-thread">
-      {roots.map((root) => (
-        <li key={root.id} className="comment-root">
-          <ul className="comment-thread-inner">
-            <CommentItem comment={root} {...itemProps} isReply={false} />
-            {(repliesByParent.get(root.id) ?? []).map((reply) => (
-              <CommentItem key={reply.id} comment={reply} {...itemProps} isReply />
-            ))}
-          </ul>
-        </li>
-      ))}
+      {roots.map((root) => {
+        // Anti-spoiler: si está anclado a un capítulo que aún no has leído, se oculta.
+        const locked = root.chapterId ? !readChapterIds.has(root.chapterId) : false;
+        if (locked) {
+          return (
+            <li key={root.id} className="comment-root comment-locked">
+              <Icon name="eyeOff" size={12} /> {pick(language, `Comentario del cap. ${chapterLabelById.get(root.chapterId ?? "") ?? "?"} — léelo para verlo`, `Comment on ch. ${chapterLabelById.get(root.chapterId ?? "") ?? "?"} — read it to see it`, `Comentario do cap. ${chapterLabelById.get(root.chapterId ?? "") ?? "?"} — leo para velo`)}
+            </li>
+          );
+        }
+        return (
+          <li key={root.id} className="comment-root">
+            <ul className="comment-thread-inner">
+              <CommentItem comment={root} {...itemProps} chapterLabel={root.chapterId ? chapterLabelById.get(root.chapterId) : undefined} isReply={false} />
+              {(repliesByParent.get(root.id) ?? []).map((reply) => (
+                <CommentItem key={reply.id} comment={reply} {...itemProps} isReply />
+              ))}
+            </ul>
+          </li>
+        );
+      })}
     </ul>
   );
 };

@@ -4080,3 +4080,48 @@ textarea:focus-visible {
 
 .comment-del-btn { color: var(--danger); }
 .comment-del-btn:hover { color: var(--danger); text-decoration: underline; }
+
+/* C7 facilitador / C1 cadencia / C3 propuesta / D4 comentarios por capítulo */
+.book-facilitator { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; color: var(--accent-amber); margin: 2px 0 0; }
+.book-cadence { display: inline-flex; align-items: center; gap: 5px; font-size: 0.82rem; color: var(--accent-cyan); margin: 2px 0 0; }
+.book-cadence-days { color: var(--ink-1); }
+.book-cadence-edit { margin-top: 12px; flex-wrap: wrap; }
+
+.book-proposal-note {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--accent-amber);
+  background: color-mix(in srgb, var(--accent-amber) 8%, transparent);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  font-style: italic;
+  color: var(--ink-0);
+}
+.book-proposal-by { font-style: normal; font-weight: 700; color: var(--accent-amber); }
+
+.book-comment-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
+.comment-chapter-pick { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--ink-1); }
+.comment-chapter-pick select { max-width: 180px; }
+.comment-chapter-warn { margin-top: 4px; }
+
+.comment-chapter-tag {
+  margin-left: 8px;
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-cyan);
+  border: 1px solid var(--accent-cyan);
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+.comment-locked {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--ink-1);
+  background: var(--panel-0);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+}

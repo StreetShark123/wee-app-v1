@@ -21,6 +21,7 @@ import {
   setBookChaptersList,
   setBookFeatured,
   setBookStatus,
+  setBookTarget,
   toggleChapter,
   updateBook,
   voteBook,
@@ -71,8 +72,11 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const [ratingInput, setRatingInput] = useState(0);
   const [reviewInput, setReviewInput] = useState("");
   const [commentText, setCommentText] = useState("");
+  const [commentChapter, setCommentChapter] = useState("");
   const [editOpen, setEditOpen] = useState(false);
   const [edit, setEdit] = useState({ title: "", author: "", coverUrl: "", description: "" });
+  const [targetCh, setTargetCh] = useState("");
+  const [targetDate, setTargetDate] = useState("");
 
   const load = useCallback(async () => {
     if (!bookId) return;
@@ -190,8 +194,19 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     });
   const openEdit = () => {
     setEdit({ title: book.title, author: book.author ?? "", coverUrl: book.coverUrl ?? "", description: book.description ?? "" });
+    setTargetCh(book.targetChapter ? String(book.targetChapter) : "");
+    setTargetDate(book.targetDate ?? "");
     setEditOpen(true);
   };
+  const handleSetTarget = () =>
+    run(async () => {
+      const r = await setBookTarget(book.id, {
+        targetChapter: targetCh ? Number(targetCh) : null,
+        targetDate: targetDate || null
+      });
+      patch((d) => ({ ...d, book: r.book }));
+    });
+  const facilitatorAlias = clubMembers.find((m) => m.id === book.addedBy)?.alias ?? null;
   const handleSaveEdit = () => {
     void run(async () => {
       const r = await updateBook(book.id, {
@@ -206,6 +221,10 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   };
   const progressPct = total > 0 ? Math.min(100, Math.round((doneCount / total) * 100)) : 0;
   const parsedPreview = parseChapterList(chaptersRaw);
+  const daysLeft = book.targetDate ? Math.ceil((new Date(`${book.targetDate}T23:59:59`).getTime() - Date.now()) / 86400000) : null;
+  const hasCadence = book.status === "reading" && (book.targetChapter || book.targetDate);
+  const readChapterIds = new Set(chapters.filter((c) => c.doneByMe).map((c) => c.id));
+  const chapterLabelById = new Map(chapters.map((c, i) => [c.id, `${i + 1}`]));
 
   // Marcar capítulo: optimista e instantáneo (no bloquea ni recarga).
   const handleToggle = (chapterId: string, done: boolean) => {
@@ -228,13 +247,13 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     onBooksChanged();
   };
   const handleReply = async (parentId: string, text: string) => {
-    const { comment } = await addBookComment(book.id, text, parentId);
+    const { comment } = await addBookComment(book.id, text, { parentId });
     patch((d) => ({ ...d, comments: [...d.comments, comment] }));
     onBooksChanged();
   };
-  const handleAddComment = (text: string) =>
+  const handleAddComment = (text: string, chapterId?: string) =>
     run(async () => {
-      const { comment } = await addBookComment(book.id, text);
+      const { comment } = await addBookComment(book.id, text, chapterId ? { chapterId } : undefined);
       patch((d) => ({ ...d, comments: [...d.comments, comment] }));
     });
   const handleEditComment = async (commentId: string, text: string) => {
@@ -326,6 +345,21 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               {book.publishedYear ? ` · ${book.publishedYear}` : ""}
             </p>
             {book.description ? <p className="book-detail-synopsis">{book.description}</p> : null}
+            {facilitatorAlias ? (
+              <p className="book-facilitator"><Icon name="spark" size={12} /> {pick(language, `Facilita: ${facilitatorAlias}`, `Facilitator: ${facilitatorAlias}`, `Facilita: ${facilitatorAlias}`)}</p>
+            ) : null}
+            {hasCadence ? (
+              <p className="book-cadence">
+                <Icon name="target" size={12} />{" "}
+                {book.targetChapter ? pick(language, `Meta: hasta el cap. ${book.targetChapter}`, `Goal: through ch. ${book.targetChapter}`, `Meta: ata o cap. ${book.targetChapter}`) : pick(language, "Meta esta semana", "This week's goal", "Meta esta semana")}
+                {daysLeft != null ? (
+                  <span className="book-cadence-days">
+                    {" · "}
+                    {daysLeft < 0 ? pick(language, "vencida", "overdue", "vencida") : daysLeft === 0 ? pick(language, "hoy", "today", "hoxe") : pick(language, `faltan ${daysLeft} días`, `${daysLeft} days left`, `faltan ${daysLeft} días`)}
+                  </span>
+                ) : null}
+              </p>
+            ) : null}
             {book.featured === "gold" ? (
               <span className="book-flag book-flag-gold book-flag-inline">
                 {pick(language, "Lectura principal del club", "Club's main read", "Lectura principal do club")}
@@ -395,6 +429,22 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                 <Icon name="check" /> {pick(language, "Guardar cambios", "Save changes", "Gardar cambios")}
               </button>
             </div>
+
+            {/* C1: cadencia (meta de lectura) */}
+            <div className="book-manage book-cadence-edit">
+              <span className="hint"><Icon name="target" size={13} /> {pick(language, "Cadencia (meta de lectura):", "Cadence (reading goal):", "Cadencia (meta de lectura):")}</span>
+              <label className="book-chapter-set">
+                {pick(language, "Hasta el capítulo", "Through chapter", "Ata o capítulo")}
+                <input type="number" min={0} value={targetCh} onChange={(event) => setTargetCh(event.target.value)} />
+              </label>
+              <label className="book-chapter-set">
+                {pick(language, "Para la fecha", "By date", "Para a data")}
+                <input type="date" value={targetDate} onChange={(event) => setTargetDate(event.target.value)} />
+              </label>
+              <button type="button" className="btn" disabled={busy} onClick={handleSetTarget}>
+                {pick(language, "Fijar cadencia", "Set cadence", "Fixar cadencia")}
+              </button>
+            </div>
           </section>
         ) : null}
 
@@ -404,7 +454,12 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
             <div className="section-head">
               <h2><Icon name="check" /> {pick(language, "¿Lo leemos?", "Shall we read it?", "Lémolo?")}</h2>
             </div>
-            <p className="hint">{pick(language, "Se aprueba cuando TODOS votan \"sí\", o cuando un admin lo aprueba.", "Approved when EVERYONE votes \"yes\", or when an admin approves it.", "Apróbase cando TODOS votan \"si\", ou cando un admin o aproba.")}</p>
+            {book.proposalNote ? (
+              <blockquote className="book-proposal-note">
+                {facilitatorAlias ? <span className="book-proposal-by">{facilitatorAlias}: </span> : null}«{book.proposalNote}»
+              </blockquote>
+            ) : null}
+            <p className="hint">{pick(language, "Se aprueba por mayoría de síes, o cuando un admin lo aprueba.", "Approved by majority of yes votes, or when an admin approves it.", "Apróbase por maioría de síes, ou cando un admin o aproba.")}</p>
             {activeMemberCount > 0 ? (
               <div className="vote-quorum">
                 <span className="vote-quorum-bar"><span className="vote-quorum-fill" style={{ width: `${Math.min(100, Math.round((votes.yes / activeMemberCount) * 100))}%` }} /></span>
@@ -605,8 +660,10 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               event.preventDefault();
               const clean = commentText.trim();
               if (!clean) return;
+              const ch = commentChapter || undefined;
               setCommentText("");
-              void handleAddComment(clean);
+              setCommentChapter("");
+              void handleAddComment(clean, ch);
             }}
           >
             <MentionTextarea
@@ -616,9 +673,25 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               rows={2}
               placeholder={pick(language, "Comenta. Usa @nombre para mencionar. Sin spoilers 👀", "Comment. Use @name to mention. No spoilers 👀", "Comenta. Usa @nome para mencionar. Sen spoilers 👀")}
             />
-            <button type="submit" className="btn btn-primary" disabled={busy || !commentText.trim()}>
-              {pick(language, "Enviar", "Send", "Enviar")}
-            </button>
+            <div className="book-comment-foot">
+              {named ? (
+                <label className="comment-chapter-pick">
+                  {pick(language, "Sobre:", "About:", "Sobre:")}
+                  <select value={commentChapter} onChange={(event) => setCommentChapter(event.target.value)} className="settings-select">
+                    <option value="">{pick(language, "El libro (general)", "The book (general)", "O libro (xeral)")}</option>
+                    {chapters.map((c, i) => (
+                      <option key={c.id} value={c.id}>{pick(language, `Capítulo ${i + 1}`, `Chapter ${i + 1}`, `Capítulo ${i + 1}`)}</option>
+                    ))}
+                  </select>
+                </label>
+              ) : <span />}
+              <button type="submit" className="btn btn-primary" disabled={busy || !commentText.trim()}>
+                {pick(language, "Enviar", "Send", "Enviar")}
+              </button>
+            </div>
+            {commentChapter ? (
+              <p className="hint comment-chapter-warn">{pick(language, "Solo lo verán quienes hayan leído ese capítulo.", "Only members who've read that chapter will see it.", "Só o verán quen lese ese capítulo.")}</p>
+            ) : null}
           </form>
           {comments.length === 0 ? (
             <p className="hint">{pick(language, "Sé quien abre el debate. ¿Qué esperas de este libro?", "Be the one to open the debate. What do you expect from this book?", "Sé quen abre o debate. Que esperas deste libro?")}</p>
@@ -627,6 +700,8 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               comments={comments}
               members={clubMembers}
               activeUserId={activeUser.id}
+              readChapterIds={readChapterIds}
+              chapterLabelById={chapterLabelById}
               onReply={handleReply}
               onReact={handleReact}
               onEdit={handleEditComment}
