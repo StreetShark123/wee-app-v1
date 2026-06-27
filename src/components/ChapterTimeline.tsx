@@ -13,6 +13,8 @@ interface ChapterTimelineProps {
   onToggle: (chapterId: string, done: boolean) => void;
   onAddNote: (chapterId: string, text: string, kind: NoteKind, imageUrl?: string) => Promise<void>;
   onCommentNote?: (chapterId: string, note: ChapterNote) => void;
+  noteThreadById?: Map<string, { rootId: string; count: number }>;
+  onViewNoteThread?: (rootId: string) => void;
 }
 
 const YT_RE = /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/i;
@@ -104,8 +106,21 @@ const kindLabel = (kind: NoteKind, language: AppLanguage): string =>
       ? pick(language, "Pregunta de debate", "Discussion prompt", "Pregunta de debate")
       : pick(language, "Nota", "Note", "Nota");
 
-const NoteCard = ({ note, language, onComment }: { note: ChapterNote; language: AppLanguage; onComment?: () => void }) => {
+const NoteCard = ({
+  note,
+  language,
+  onComment,
+  threadCount,
+  onViewThread
+}: {
+  note: ChapterNote;
+  language: AppLanguage;
+  onComment?: () => void;
+  threadCount?: number;
+  onViewThread?: () => void;
+}) => {
   const media = mediaUrlsOf(note);
+  const hasThread = !!threadCount && threadCount > 0;
   return (
     <li className={`chapter-note chapter-note-${note.kind}`}>
       <div className="chapter-note-head">
@@ -118,16 +133,25 @@ const NoteCard = ({ note, language, onComment }: { note: ChapterNote; language: 
           {media.map((url) => <NoteMedia key={url} url={url} language={language} />)}
         </div>
       ) : null}
-      {onComment ? (
-        <button type="button" className="chapter-note-comment" onClick={onComment}>
-          <Icon name="comment" size={11} /> {pick(language, "Crear hilo", "Start thread", "Crear fío")}
-        </button>
+      {onComment || onViewThread ? (
+        <div className="chapter-note-actions">
+          {hasThread && onViewThread ? (
+            <button type="button" className="chapter-note-action chapter-note-action-view" onClick={onViewThread}>
+              <Icon name="comment" size={11} /> {pick(language, `Ver hilo · ${threadCount}`, `View thread · ${threadCount}`, `Ver fío · ${threadCount}`)}
+            </button>
+          ) : null}
+          {onComment ? (
+            <button type="button" className="chapter-note-action" onClick={onComment}>
+              <Icon name="plus" size={11} /> {hasThread ? pick(language, "Nuevo hilo", "New thread", "Novo fío") : pick(language, "Crear hilo", "Start thread", "Crear fío")}
+            </button>
+          ) : null}
+        </div>
       ) : null}
     </li>
   );
 };
 
-export const ChapterTimeline = ({ chapters, busy, activeUserId, onToggle, onAddNote, onCommentNote }: ChapterTimelineProps) => {
+export const ChapterTimeline = ({ chapters, busy, activeUserId, onToggle, onAddNote, onCommentNote, noteThreadById, onViewNoteThread }: ChapterTimelineProps) => {
   const { language } = useI18n();
   const [openFor, setOpenFor] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
@@ -212,14 +236,19 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, onToggle, onAddN
                   </button>
                   {!isCollapsed ? (
                     <ul className="chapter-notes">
-                      {visibleNotes.map((note) => (
-                        <NoteCard
-                          key={note.id}
-                          note={note}
-                          language={language}
-                          onComment={onCommentNote ? () => onCommentNote(chapter.id, note) : undefined}
-                        />
-                      ))}
+                      {visibleNotes.map((note) => {
+                        const thread = noteThreadById?.get(note.id);
+                        return (
+                          <NoteCard
+                            key={note.id}
+                            note={note}
+                            language={language}
+                            onComment={onCommentNote ? () => onCommentNote(chapter.id, note) : undefined}
+                            threadCount={thread?.count}
+                            onViewThread={thread && onViewNoteThread ? () => onViewNoteThread(thread.rootId) : undefined}
+                          />
+                        );
+                      })}
                     </ul>
                   ) : null}
                 </div>

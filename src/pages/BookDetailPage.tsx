@@ -83,6 +83,8 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const [minutesPerDay, setMinutesPerDay] = useState(30);
   const [calcPreview, setCalcPreview] = useState<{ date: string; days: number } | null>(null);
   const [pendingNote, setPendingNote] = useState<{ id: string; alias: string; text: string; chapterId: string } | null>(null);
+  const [focusComment, setFocusComment] = useState<string | null>(null);
+  const [focusTick, setFocusTick] = useState(0);
 
   const load = useCallback(async () => {
     if (!bookId) return;
@@ -112,6 +114,22 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   useEffect(() => {
     void load();
   }, [load]);
+
+  // "Ver hilo" desde una nota: abre el grupo (vía CommentThread) y salta al comentario.
+  useEffect(() => {
+    if (!focusComment) return;
+    const t = window.setTimeout(() => {
+      const el = document.getElementById(`c-${focusComment}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("comment-flash");
+        window.setTimeout(() => el.classList.remove("comment-flash"), 2200);
+      } else {
+        document.getElementById("comments-composer")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 90);
+    return () => window.clearTimeout(t);
+  }, [focusComment, focusTick]);
 
   // #1: si venimos de una notificación (#c-<id>), salta y resalta ese comentario.
   useEffect(() => {
@@ -265,6 +283,18 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const readChapterIds = new Set(chapters.filter((c) => c.doneByMe).map((c) => c.id));
   const chapterLabelById = new Map(chapters.map((c, i) => [c.id, `${i + 1}`]));
   const noteById = new Map(chapters.flatMap((c) => c.notes.map((n) => [n.id, { alias: n.alias, text: n.text }] as const)));
+  // Hilos por anotación: noteId → { rootId del hilo, nº de comentarios }.
+  const noteThreadById = (() => {
+    const replyCount = new Map<string, number>();
+    comments.forEach((c) => { if (c.parentId) replyCount.set(c.parentId, (replyCount.get(c.parentId) ?? 0) + 1); });
+    const m = new Map<string, { rootId: string; count: number }>();
+    comments.forEach((c) => { if (!c.parentId && c.noteId && !m.has(c.noteId)) m.set(c.noteId, { rootId: c.id, count: 1 + (replyCount.get(c.id) ?? 0) }); });
+    return m;
+  })();
+  const handleViewNoteThread = (rootId: string) => {
+    setFocusComment(rootId);
+    setFocusTick((t) => t + 1);
+  };
 
   // ── Cálculo de cadencia (estimación de páginas + ritmo por minutos/día) ──
   const MIN_PER_PAGE = 2; // ~2 min por página de prosa
@@ -678,12 +708,12 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                   <p className="chapter-alldone"><Icon name="check" /> {pick(language, "Has leído todos los capítulos.", "You've read every chapter.", "Liches todos os capítulos.")}</p>
                   <details className="chapter-collapsed">
                     <summary>{pick(language, `Ver los ${total} capítulos`, `Show the ${total} chapters`, `Ver os ${total} capítulos`)}</summary>
-                    <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} onCommentNote={handleCommentNote} />
+                    <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} onCommentNote={handleCommentNote} noteThreadById={noteThreadById} onViewNoteThread={handleViewNoteThread} />
                   </details>
                 </>
               ) : (
                 <>
-                  <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} onCommentNote={handleCommentNote} />
+                  <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} onCommentNote={handleCommentNote} noteThreadById={noteThreadById} onViewNoteThread={handleViewNoteThread} />
                   <button type="button" className="btn chapter-mark-all" disabled={busy} onClick={() => handleCompleteAll(true)}>
                     <Icon name="check" /> {pick(language, "Marcar todo como leído", "Mark all as read", "Marcar todo como lido")}
                   </button>
@@ -896,6 +926,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               readChapterIds={readChapterIds}
               chapterLabelById={chapterLabelById}
               noteById={noteById}
+              focusCommentId={focusComment}
               onReply={handleReply}
               onReact={handleReact}
               onEdit={handleEditComment}

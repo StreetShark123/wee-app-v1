@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { BookComment, ClubMemberLite } from "../lib/communityApi";
 import { pick, useI18n } from "../lib/i18n";
 import { Icon } from "./Icon";
@@ -14,6 +14,7 @@ interface CommentThreadProps {
   readChapterIds: Set<string>;
   chapterLabelById: Map<string, string>;
   noteById: Map<string, { alias: string; text: string }>;
+  focusCommentId?: string | null;
   onReply: (parentId: string, text: string) => Promise<void>;
   onReact: (commentId: string, emoji: string) => void;
   onEdit: (commentId: string, text: string) => Promise<void>;
@@ -191,9 +192,19 @@ const CommentItem = ({
 
 const GENERAL_KEY = "__general__";
 
-export const CommentThread = ({ comments, members, activeUserId, readChapterIds, chapterLabelById, noteById, onReply, onReact, onEdit, onDelete }: CommentThreadProps) => {
+export const CommentThread = ({ comments, members, activeUserId, readChapterIds, chapterLabelById, noteById, focusCommentId, onReply, onReact, onEdit, onDelete }: CommentThreadProps) => {
   const { language } = useI18n();
   const [openOverride, setOpenOverride] = useState<Record<string, boolean>>({});
+
+  // "Ver hilo": al enfocar un comentario, abre el grupo de su capítulo.
+  useEffect(() => {
+    if (!focusCommentId) return;
+    const target = comments.find((c) => c.id === focusCommentId);
+    if (!target) return;
+    const key = target.chapterId ?? GENERAL_KEY;
+    setOpenOverride((prev) => ({ ...prev, [key]: true }));
+  }, [focusCommentId, comments]);
+
   const roots = comments.filter((c) => !c.parentId);
   const repliesByParent = new Map<string, BookComment[]>();
   comments.forEach((c) => {
