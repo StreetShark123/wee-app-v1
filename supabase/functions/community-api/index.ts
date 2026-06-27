@@ -2489,6 +2489,36 @@ const handlers = {
     return json(200, { book: rowToBook(upd.data as Record<string, any>) });
   },
 
+  // Eliminar un libro. Lo puede quitar quien lo añadió (solo si sigue en propuesta)
+  // o cualquier admin (en cualquier estado). El borrado cascada limpia capítulos,
+  // comentarios, votos, notas y member_books.
+  "/books/delete": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    if (!bookId) return bad("book_id required");
+
+    const bookRes = await db
+      .from("books")
+      .select("id,added_by,status")
+      .eq("community_id", auth.community.id)
+      .eq("id", bookId)
+      .maybeSingle();
+    if (bookRes.error || !bookRes.data) return json(404, { message: "Book not found" });
+
+    const isAdmin = auth.role === "admin";
+    const isAdder = bookRes.data.added_by === auth.user.id;
+    if (!isAdmin && !isAdder) return json(403, { message: "Not allowed" });
+    if (!isAdmin && bookRes.data.status !== "proposed") {
+      return json(403, { message: "Only proposals can be removed by their proposer" });
+    }
+
+    const del = await db.from("books").delete().eq("community_id", auth.community.id).eq("id", bookId);
+    if (del.error) return json(500, { message: del.error.message });
+    return json(200, { ok: true });
+  },
+
   // Marca TODOS los capítulos del libro como leídos por el usuario actual.
   "/chapters/complete_all": async (req: Request) => {
     const auth = await requireSession(req);

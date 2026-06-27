@@ -612,9 +612,6 @@ const AppRoutes = () => {
               <PageTransition>
                 <SettingsPage
                   activeUser={activeUser as NonNullable<typeof activeUser>}
-                  preferences={preferences}
-                  knownTopics={knownTopics}
-                  onSave={updatePreferences}
                   onExport={onExport}
                   onImport={onImport}
                   onDeleteMyData={onDeleteMyData}

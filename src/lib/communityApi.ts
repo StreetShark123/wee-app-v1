@@ -621,6 +621,9 @@ export const voteBook = async (
 export const setBookStatus = async (bookId: string, status: BookStatus): Promise<{ book: ClubBook }> =>
   request<{ book: ClubBook }>("/books/set_status", { book_id: bookId, status });
 
+export const deleteBook = async (bookId: string): Promise<{ ok: true }> =>
+  request<{ ok: true }>("/books/delete", { book_id: bookId });
+
 export const completeAllChapters = async (
   bookId: string,
   done = true

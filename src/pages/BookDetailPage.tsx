@@ -16,6 +16,7 @@ import {
   reactComment,
   updateComment,
   deleteComment,
+  deleteBook,
   finishBook,
   getClubBook,
   setBookChaptersList,
@@ -188,6 +189,25 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   };
   const canSetChapters = book.addedBy === activeUser.id || activeUser.role === "admin";
   const isAdmin = activeUser.role === "admin";
+  const isAdder = book.addedBy === activeUser.id;
+  const canDelete = isAdmin || (isAdder && book.status === "proposed");
+  const handleDeleteBook = () => {
+    const ok = window.confirm(
+      pick(
+        language,
+        `¿Eliminar "${book.title}"? Se borrará para todo el club y no se puede deshacer.`,
+        `Delete "${book.title}"? It will be removed for the whole club and can't be undone.`,
+        `Eliminar "${book.title}"? Borrarase para todo o club e non se pode desfacer.`
+      )
+    );
+    if (!ok) return;
+    void deleteBook(book.id)
+      .then(() => {
+        onBooksChanged();
+        navigate("/home");
+      })
+      .catch(() => void load());
+  };
   const handleFeature = (featured: "gold" | "silver" | null) =>
     run(async () => {
       const r = await setBookFeatured(book.id, featured);
@@ -501,6 +521,20 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                 {pick(language, "Fijar cadencia", "Set cadence", "Fixar cadencia")}
               </button>
             </div>
+
+            {canDelete ? (
+              <div className="book-manage book-delete-zone">
+                <span className="hint"><Icon name="trash" size={13} /> {pick(language, "Zona peligrosa", "Danger zone", "Zona perigosa")}</span>
+                <p className="hint">
+                  {isAdmin && book.status !== "proposed"
+                    ? pick(language, "Como admin puedes eliminar este libro del club.", "As an admin you can remove this book from the club.", "Como admin podes eliminar este libro do club.")
+                    : pick(language, "Puedes eliminar esta propuesta mientras no esté en lectura.", "You can remove this proposal while it isn't being read.", "Podes eliminar esta proposta mentres non estea en lectura.")}
+                </p>
+                <button type="button" className="btn btn-danger" disabled={busy} onClick={handleDeleteBook}>
+                  <Icon name="trash" size={13} /> {pick(language, "Eliminar libro", "Delete book", "Eliminar libro")}
+                </button>
+              </div>
+            ) : null}
           </section>
         ) : null}
 

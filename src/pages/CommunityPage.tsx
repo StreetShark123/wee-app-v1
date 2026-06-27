@@ -278,6 +278,9 @@ export const CommunityPage = ({
                 ))}
               </ul>
             )}
+            <Link to="/communities" className="btn btn-nav community-new-club">
+              <Icon name="plus" /> {pick(language, "Crear o unirte a otro club", "Create or join another club", "Crear ou unirte a outro club")}
+            </Link>
           </article>
 
           <article className="settings-card">

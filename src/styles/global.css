@@ -2874,8 +2874,13 @@ textarea:focus-visible {
   }
 
   .notification-dropdown {
-    right: -10px;
-    width: min(94vw, 320px);
+    position: fixed;
+    top: 4.6rem;
+    left: 0.5rem;
+    right: 0.5rem;
+    width: auto;
+    max-width: none;
+    max-height: 72vh;
   }
 
   .btn {
@@ -3607,9 +3612,13 @@ textarea:focus-visible {
   background: var(--panel-1);
   color: transparent;            /* check invisible hasta marcar */
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background var(--motion-fast) var(--ease-standard),
     border-color var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard);
 }
+.chapter-check svg { display: block; }
 
 .chapter-check:hover:not(:disabled) {
   border-color: var(--success);
@@ -4220,3 +4229,8 @@ textarea:focus-visible {
 .profile-book-rating { color: var(--accent-amber); letter-spacing: 1px; font-size: 0.85rem; }
 .profile-book-review { font-size: 0.82rem; color: var(--ink-1); line-height: 1.4; }
 .profile-no-reads { margin-top: 6px; }
+
+/* Crear club desde la página del club + zona de borrado de libro */
+.community-new-club { margin-top: 10px; align-self: flex-start; }
+.book-delete-zone { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+.book-delete-zone .hint:first-child { color: var(--danger, #f25a68); font-weight: 600; }
