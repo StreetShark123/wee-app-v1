@@ -2,6 +2,7 @@ import { AnimatePresence, m } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { pick, useI18n } from "../lib/i18n";
 import { EASE_STANDARD, MOTION_DURATION } from "../lib/motion";
+import { useInstallPrompt } from "../lib/useInstallPrompt";
 import { Icon } from "./Icon";
 
 const ALPHA_VERSION = "v0.1.1-alpha";
@@ -10,6 +11,7 @@ const ALPHA_UPDATED_AT = "2026-03-04";
 export const AppFooter = () => {
   const { language } = useI18n();
   const [open, setOpen] = useState(false);
+  const { canInstall, promptInstall } = useInstallPrompt();
   const dialogRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -37,9 +39,16 @@ export const AppFooter = () => {
               )}
             </p>
           </div>
-          <button type="button" className="btn" onClick={() => setOpen(true)}>
-            <Icon name="book" size={14} /> {pick(language, "Sobre Wee", "About Wee", "Sobre Wee")}
-          </button>
+          <div className="footer-actions">
+            {canInstall ? (
+              <button type="button" className="btn btn-primary" onClick={() => void promptInstall()}>
+                <Icon name="download" size={14} /> {pick(language, "Instalar app", "Install app", "Instalar app")}
+              </button>
+            ) : null}
+            <button type="button" className="btn" onClick={() => setOpen(true)}>
+              <Icon name="book" size={14} /> {pick(language, "Sobre Wee", "About Wee", "Sobre Wee")}
+            </button>
+          </div>
         </section>
       </footer>
 
@@ -96,6 +105,20 @@ export const AppFooter = () => {
                   <p>
                     {pick(language, "Sin monetización, sin rankings de velocidad ni rachas. Notas anti-spoiler, ritmo sano y debate cuidado. La lectura es un placer compartido, no una competición.", "No monetization, no speed rankings or streaks. Anti-spoiler notes, healthy pace and tidy debate. Reading is a shared pleasure, not a competition.", "Sen monetización, sen rankings de velocidade nin rachas. Notas anti-spoiler, ritmo san e debate coidado.")}
                   </p>
+                </article>
+
+                <article className="about-card">
+                  <h3><Icon name="download" /> {pick(language, "Instálala en tu móvil", "Install it on your phone", "Instálaa no teu móbil")}</h3>
+                  <p>
+                    {canInstall
+                      ? pick(language, "Pulsa “Instalar app” aquí abajo y la tendrás como una app más, sin tiendas.", "Tap “Install app” below and you'll have it like any other app, no stores.", "Preme “Instalar app” aquí abaixo e terala como unha app máis, sen tendas.")
+                      : pick(language, "En Android: menú del navegador → “Instalar app / Añadir a pantalla de inicio”. En iPhone (Safari): Compartir → “Añadir a pantalla de inicio”.", "On Android: browser menu → “Install app / Add to Home screen”. On iPhone (Safari): Share → “Add to Home Screen”.", "En Android: menú do navegador → “Instalar app”. En iPhone (Safari): Compartir → “Engadir á pantalla de inicio”.")}
+                  </p>
+                  {canInstall ? (
+                    <button type="button" className="btn btn-primary" onClick={() => void promptInstall()}>
+                      <Icon name="download" size={14} /> {pick(language, "Instalar app", "Install app", "Instalar app")}
+                    </button>
+                  ) : null}
                 </article>
               </div>
             </m.section>

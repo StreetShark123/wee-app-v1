@@ -4450,3 +4450,6 @@ textarea:focus-visible {
   .chapter-note-actions { display: grid; grid-template-columns: 1fr 1fr; }
   .chapter-note-action:only-child { grid-column: 1 / -1; }
 }
+
+/* PWA: acciones del footer (Instalar app + Sobre Wee) */
+.footer-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
