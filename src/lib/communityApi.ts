@@ -365,7 +365,16 @@ export interface ClubBook {
   manuallyEdited: boolean;
   status: BookStatus;
   featured?: BookFeatured;
+  votes?: BookVotes;
   createdAt: number;
+}
+
+export type BookVote = "yes" | "no" | "later";
+export interface BookVotes {
+  yes: number;
+  no: number;
+  later: number;
+  myVote: BookVote | null;
 }
 
 export interface MemberBook {
@@ -436,6 +445,7 @@ export interface BookDetail {
   members: BookMemberProgress[];
   myMember: BookMemberProgress | null;
   chapters: BookChapter[];
+  votes: BookVotes;
 }
 
 export const getClubBook = async (bookId: string): Promise<BookDetail> =>
@@ -508,6 +518,21 @@ export interface BookEditPatch {
 
 export const updateBook = async (bookId: string, patch: BookEditPatch): Promise<{ book: ClubBook }> =>
   request<{ book: ClubBook }>("/books/update", { book_id: bookId, ...patch });
+
+export const voteBook = async (
+  bookId: string,
+  vote: BookVote
+): Promise<{ votes: BookVotes; bookStatus: BookStatus }> =>
+  request<{ votes: BookVotes; bookStatus: BookStatus }>("/books/vote", { book_id: bookId, vote });
+
+export const setBookStatus = async (bookId: string, status: BookStatus): Promise<{ book: ClubBook }> =>
+  request<{ book: ClubBook }>("/books/set_status", { book_id: bookId, status });
+
+export const completeAllChapters = async (
+  bookId: string,
+  done = true
+): Promise<{ myMember: MemberBook; bookStatus: BookStatus }> =>
+  request<{ myMember: MemberBook; bookStatus: BookStatus }>("/chapters/complete_all", { book_id: bookId, done });
 
 export const setBookFeatured = async (
   bookId: string,

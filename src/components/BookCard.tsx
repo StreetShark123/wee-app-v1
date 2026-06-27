@@ -23,21 +23,19 @@ export const BookCard = ({ book, member, onOpen }: BookCardProps) => {
   const { language } = useI18n();
   const onShelf = member ? pick(language, "En tu estante", "On your shelf", "No teu estante") : null;
 
-  const flagLabel =
-    book.featured === "gold"
-      ? pick(language, "Lectura actual", "Reading now", "Lectura actual")
-      : book.featured === "silver"
-        ? pick(language, "Siguiente", "Up next", "Seguinte")
-        : null;
+  const flagLabel = book.featured === "gold" ? pick(language, "Principal", "Main read", "Principal") : null;
 
   return (
     <button
       type="button"
-      className={`book-card${book.featured ? ` book-card-featured-${book.featured}` : ""}`}
+      className={`book-card${book.featured === "gold" ? " book-card-featured-gold" : ""}`}
       onClick={() => onOpen?.(book)}
       aria-label={book.title}
     >
-      {flagLabel ? <span className={`book-flag book-flag-${book.featured}`}>{flagLabel}</span> : null}
+      {flagLabel ? <span className="book-flag book-flag-gold">{flagLabel}</span> : null}
+      {book.status === "proposed" && book.votes && book.votes.yes > 0 ? (
+        <span className="book-vote-badge"><Icon name="check" size={11} /> {book.votes.yes}</span>
+      ) : null}
       {book.coverUrl ? (
         <img className="book-card-cover" src={book.coverUrl} alt="" loading="lazy" />
       ) : (

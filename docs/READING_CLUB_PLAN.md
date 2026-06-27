@@ -246,6 +246,21 @@ Cada fase termina verde en `npm run check` (typecheck + test + design:lint).
 - ⏳ APLAZADO (subfeatures grandes): hilos de comentarios DENTRO de cada nota;
   subir imágenes (hoy es por URL, no upload a Storage); auditoría CSS completa.
 
+### Fase 5.8 — Ciclo de vida del libro (propuesta→votación→lectura→leído) — ✅ HECHA 2026-06-27
+- Estanterías en home por estado: **Propuestas · En lectura · Leídos** (`books.status`).
+- **Votación** de propuestas (`book_votes`: yes/no/later). **Todos los miembros activos
+  votan 'yes' → aprobado (status='reading')**. Endpoint `/books/vote`.
+- **Admin fuerza estado** (`/books/set_status`: proposed/reading/finished).
+- `recomputeBookStatus` redefinido: **"todos = los que lo están leyendo"** (no todos los
+  miembros). Si entra un lector nuevo, vuelve a 'reading'. Respeta 'proposed'.
+- **Principal único (oro)** entre las de lectura; **plata eliminada**.
+- **"Marcar todo como leído"** (`/chapters/complete_all`).
+- **Valoración solo al marcar TODOS los capítulos**; lista de capítulos **colapsa**;
+  **reseña** opcional (visible en lectores cuando el libro está 'finished').
+- **Layout**: `.home-books` igualada al ancho del header (main=1180; antes 1040).
+- ⏳ Sigue aplazado: hilos de comentarios en notas, upload de imágenes (Storage),
+  auditoría CSS integral.
+
 ### Fase 6 — Limpieza de legado de noticias (EN CURSO)
 - ✅ Borrados 7 archivos muertos (0 referencias): `IconGallery`, `AppSkeleton`,
   `TopicBlock`, `FiltersBar`, `PostDetailModal`, `LoginPage`, `InviteRedirectPage`.

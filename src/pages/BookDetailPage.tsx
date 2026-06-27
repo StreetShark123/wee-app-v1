@@ -8,13 +8,18 @@ import { parseChapterList } from "../lib/parseChapters";
 import {
   addBookComment,
   addChapterNote,
+  completeAllChapters,
   finishBook,
   getClubBook,
   setBookChaptersList,
   setBookFeatured,
+  setBookStatus,
   toggleChapter,
   updateBook,
-  type BookDetail
+  voteBook,
+  type BookDetail,
+  type BookStatus,
+  type BookVote
 } from "../lib/communityApi";
 import type { User } from "../lib/types";
 
@@ -42,6 +47,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const [chaptersRaw, setChaptersRaw] = useState("");
   const [numberInput, setNumberInput] = useState(0);
   const [ratingInput, setRatingInput] = useState(0);
+  const [reviewInput, setReviewInput] = useState("");
   const [commentText, setCommentText] = useState("");
   const [editOpen, setEditOpen] = useState(false);
   const [edit, setEdit] = useState({ title: "", author: "", coverUrl: "", description: "" });
@@ -53,6 +59,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
       const data = await getClubBook(bookId);
       setDetail(data);
       setRatingInput(data.myMember?.rating ?? 0);
+      setReviewInput(data.myMember?.review ?? "");
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : pick(language, "No se pudo cargar el libro.", "Couldn't load the book.", "Non se puido cargar o libro."));
@@ -109,10 +116,18 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     );
   }
 
-  const { book, comments, members, myMember, chapters } = detail;
+  const { book, comments, members, myMember, chapters, votes } = detail;
   const named = chapters.length > 0;
   const total = chapters.length;
   const doneCount = chapters.filter((chapter) => chapter.doneByMe).length;
+  const allDone = total > 0 && doneCount === total;
+  const handleVote = (vote: BookVote) => run(() => voteBook(book.id, vote));
+  const handleStatus = (status: BookStatus) => run(() => setBookStatus(book.id, status));
+  const handleCompleteAll = (done: boolean) => run(() => completeAllChapters(book.id, done));
+  const saveRating = (value: number) => {
+    setRatingInput(value);
+    void run(() => finishBook(book.id, value, reviewInput.trim() || undefined));
+  };
   const canSetChapters = book.addedBy === activeUser.id || activeUser.role === "admin";
   const isAdmin = activeUser.role === "admin";
   const handleFeature = (featured: "gold" | "silver" | null) => run(() => setBookFeatured(book.id, featured));
@@ -180,22 +195,32 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               {book.publishedYear ? ` · ${book.publishedYear}` : ""}
             </p>
             {book.description ? <p className="book-detail-synopsis">{book.description}</p> : null}
-            {book.featured ? (
-              <span className={`book-flag book-flag-${book.featured} book-flag-inline`}>
-                {book.featured === "gold"
-                  ? pick(language, "Lectura actual del club", "Club's current read", "Lectura actual do club")
-                  : pick(language, "Siguiente lectura", "Up next", "Seguinte lectura")}
+            {book.featured === "gold" ? (
+              <span className="book-flag book-flag-gold book-flag-inline">
+                {pick(language, "Lectura principal del club", "Club's main read", "Lectura principal do club")}
               </span>
             ) : null}
             {isAdmin ? (
-              <div className="book-feature-controls">
-                <span className="hint">{pick(language, "Destacar en el club:", "Feature in the club:", "Destacar no club:")}</span>
-                <button type="button" className={`btn book-feature-btn gold${book.featured === "gold" ? " is-on" : ""}`} disabled={busy} onClick={() => handleFeature(book.featured === "gold" ? null : "gold")}>
-                  {pick(language, "Principal", "Primary", "Principal")}
-                </button>
-                <button type="button" className={`btn book-feature-btn silver${book.featured === "silver" ? " is-on" : ""}`} disabled={busy} onClick={() => handleFeature(book.featured === "silver" ? null : "silver")}>
-                  {pick(language, "Secundaria", "Secondary", "Secundaria")}
-                </button>
+              <div className="book-admin-controls">
+                <div className="book-feature-controls">
+                  <span className="hint">{pick(language, "Estado:", "Status:", "Estado:")}</span>
+                  {(["proposed", "reading", "finished"] as BookStatus[]).map((status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      className={`btn book-status-btn${book.status === status ? " is-on" : ""}`}
+                      disabled={busy}
+                      onClick={() => handleStatus(status)}
+                    >
+                      {statusLabel(status, language)}
+                    </button>
+                  ))}
+                </div>
+                {book.status === "reading" ? (
+                  <button type="button" className={`btn book-feature-btn gold${book.featured === "gold" ? " is-on" : ""}`} disabled={busy} onClick={() => handleFeature(book.featured === "gold" ? null : "gold")}>
+                    <Icon name="spark" size={13} /> {book.featured === "gold" ? pick(language, "Quitar principal", "Unset main", "Quitar principal") : pick(language, "Marcar principal", "Set as main", "Marcar principal")}
+                  </button>
+                ) : null}
               </div>
             ) : null}
             {canSetChapters && !editOpen ? (
@@ -240,6 +265,32 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
           </section>
         ) : null}
 
+        {/* Votación de la propuesta */}
+        {book.status === "proposed" ? (
+          <section className="page-section book-vote">
+            <div className="section-head">
+              <h2><Icon name="check" /> {pick(language, "¿Lo leemos?", "Shall we read it?", "Lémolo?")}</h2>
+            </div>
+            <p className="hint">{pick(language, "Vota si el club lee este libro. Cuando todos digan \"sí\", pasa a 'en lectura'.", "Vote whether the club reads this. When everyone says \"yes\", it moves to 'reading'.", "Vota se o club le este libro. Cando todos digan \"si\", pasa a 'en lectura'.")}</p>
+            <div className="vote-buttons">
+              <button type="button" className={`btn vote-btn yes${votes.myVote === "yes" ? " is-on" : ""}`} disabled={busy} onClick={() => handleVote("yes")}>
+                {pick(language, "Sí", "Yes", "Si")} · {votes.yes}
+              </button>
+              <button type="button" className={`btn vote-btn no${votes.myVote === "no" ? " is-on" : ""}`} disabled={busy} onClick={() => handleVote("no")}>
+                {pick(language, "No", "No", "Non")} · {votes.no}
+              </button>
+              <button type="button" className={`btn vote-btn later${votes.myVote === "later" ? " is-on" : ""}`} disabled={busy} onClick={() => handleVote("later")}>
+                {pick(language, "Ahora no", "Not now", "Agora non")} · {votes.later}
+              </button>
+            </div>
+            {isAdmin ? (
+              <button type="button" className="btn btn-primary" disabled={busy} onClick={() => handleStatus("reading")}>
+                <Icon name="check" /> {pick(language, "Aprobar y poner en lectura", "Approve and start reading", "Aprobar e poñer en lectura")}
+              </button>
+            ) : null}
+          </section>
+        ) : null}
+
         {/* Seguimiento de lectura por capítulos */}
         <section className="page-section">
           <div className="section-head">
@@ -254,12 +305,22 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               <span className="book-card-progress">
                 <span className="book-card-progress-fill" style={{ width: `${progressPct}%` }} />
               </span>
-              <ChapterTimeline
-                chapters={chapters}
-                busy={busy}
-                onToggle={handleToggle}
-                onAddNote={handleAddNote}
-              />
+              {allDone ? (
+                <>
+                  <p className="chapter-alldone"><Icon name="check" /> {pick(language, "Has leído todos los capítulos.", "You've read every chapter.", "Liches todos os capítulos.")}</p>
+                  <details className="chapter-collapsed">
+                    <summary>{pick(language, `Ver los ${total} capítulos`, `Show the ${total} chapters`, `Ver os ${total} capítulos`)}</summary>
+                    <ChapterTimeline chapters={chapters} busy={busy} onToggle={handleToggle} onAddNote={handleAddNote} />
+                  </details>
+                </>
+              ) : (
+                <>
+                  <ChapterTimeline chapters={chapters} busy={busy} onToggle={handleToggle} onAddNote={handleAddNote} />
+                  <button type="button" className="btn chapter-mark-all" disabled={busy} onClick={() => handleCompleteAll(true)}>
+                    <Icon name="check" /> {pick(language, "Marcar todo como leído", "Mark all as read", "Marcar todo como lido")}
+                  </button>
+                </>
+              )}
               {canSetChapters ? (
                 <details className="chapter-redefine">
                   <summary>{pick(language, "Redefinir la lista de capítulos", "Redefine the chapter list", "Redefinir a lista de capítulos")}</summary>
@@ -322,30 +383,38 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
             <p className="hint">{pick(language, "Quien añadió el libro aún no ha definido los capítulos.", "Whoever added the book hasn't set the chapters yet.", "Quen engadiu o libro aínda non definiu os capítulos.")}</p>
           )}
 
-          {/* Terminar + valoración (1-5) */}
-          {named && myMember?.shelf !== "finished" ? (
-            <button type="button" className="btn btn-primary chapter-finish" disabled={busy} onClick={() => run(() => finishBook(book.id, ratingInput || undefined))}>
-              <Icon name="check" /> {pick(language, "Marcar libro como terminado", "Mark book as finished", "Marcar libro como rematado")}
-            </button>
-          ) : null}
-          <div className="book-rating">
-            <span>{pick(language, "Tu valoración", "Your rating", "A túa valoración")}:</span>
-            {[1, 2, 3, 4, 5].map((value) => (
-              <button
-                key={value}
-                type="button"
-                className={`book-star${ratingInput >= value ? " is-on" : ""}`}
-                aria-label={`${value}`}
-                disabled={busy}
-                onClick={() => {
-                  setRatingInput(value);
-                  void run(() => finishBook(book.id, value));
-                }}
-              >
-                <Icon name="spark" size={16} />
+          {/* Valoración: solo cuando has marcado TODOS los capítulos */}
+          {allDone ? (
+            <div className="book-rating-block">
+              <p className="chapter-finish-title">{pick(language, "¡Terminado! Valora el libro", "Done! Rate the book", "Rematado! Valora o libro")}</p>
+              <div className="book-rating">
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`book-star${ratingInput >= value ? " is-on" : ""}`}
+                    aria-label={`${value}`}
+                    disabled={busy}
+                    onClick={() => saveRating(value)}
+                  >
+                    <Icon name="spark" size={18} />
+                  </button>
+                ))}
+              </div>
+              <textarea
+                className="book-review-input"
+                rows={2}
+                value={reviewInput}
+                onChange={(event) => setReviewInput(event.target.value)}
+                placeholder={pick(language, "Reseña (opcional). Se verá cuando todos terminen.", "Review (optional). Shown when everyone finishes.", "Reseña (opcional).")}
+              />
+              <button type="button" className="btn" disabled={busy} onClick={() => run(() => finishBook(book.id, ratingInput || undefined, reviewInput.trim() || undefined))}>
+                {pick(language, "Guardar reseña", "Save review", "Gardar reseña")}
               </button>
-            ))}
-          </div>
+            </div>
+          ) : named ? (
+            <p className="hint chapter-rating-hint">{pick(language, "La valoración aparece cuando marcas todos los capítulos.", "Rating appears once you've checked every chapter.", "A valoración aparece cando marcas todos os capítulos.")}</p>
+          ) : null}
         </section>
 
         {/* Progreso del club */}
@@ -359,15 +428,25 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
           ) : (
             <ul className="book-members">
               {members.map((member) => (
-                <li key={member.userId}>
-                  <span>{member.alias}</span>
-                  <span className="book-member-state">
-                    {member.shelf === "finished"
-                      ? pick(language, "Terminado", "Finished", "Rematado")
-                      : total > 0
-                        ? `${member.chaptersDone}/${total}`
-                        : pick(language, "Leyendo", "Reading", "Lendo")}
-                  </span>
+                <li key={member.userId} className="book-member">
+                  <div className="book-member-row">
+                    <span>{member.alias}</span>
+                    <span className="book-member-state">
+                      {member.shelf === "finished" ? (
+                        <>
+                          {member.rating ? <span className="book-member-rating">{"★".repeat(member.rating)}</span> : null}
+                          {pick(language, "Terminado", "Finished", "Rematado")}
+                        </>
+                      ) : total > 0 ? (
+                        `${member.chaptersDone}/${total}`
+                      ) : (
+                        pick(language, "Leyendo", "Reading", "Lendo")
+                      )}
+                    </span>
+                  </div>
+                  {book.status === "finished" && member.review ? (
+                    <p className="book-member-review">{member.review}</p>
+                  ) : null}
                 </li>
               ))}
             </ul>

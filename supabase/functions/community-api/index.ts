@@ -234,32 +234,48 @@ const clubUserAliasMap = async (communityId: string): Promise<Map<string, string
   return new Map((res.data ?? []).map((row: Record<string, any>) => [row.id as string, (row.alias as string) ?? "—"]));
 };
 
-// Recalcula books.status a partir del progreso del club:
-//   'finished' si TODOS los miembros activos terminaron (y hay ≥1 miembro);
-//   'reading'  si hay algún progreso; 'proposed' si nadie ha empezado.
+// Recalcula books.status SOLO entre 'reading' y 'finished' (la propuesta la decide la
+// votación / el admin, no el progreso). 'finished' cuando TODOS los que lo están
+// leyendo lo han terminado (y hay ≥1 lector). Si entra un lector nuevo, vuelve a 'reading'.
 const recomputeBookStatus = async (communityId: string, bookId: string): Promise<string> => {
-  const [activeRes, memberRes] = await Promise.all([
-    db
-      .from("community_users")
-      .select("id", { count: "exact", head: true })
-      .eq("community_id", communityId)
-      .eq("status", "active"),
+  const [bookRes, memberRes] = await Promise.all([
+    db.from("books").select("status").eq("community_id", communityId).eq("id", bookId).maybeSingle(),
     db
       .from("member_books")
       .select("user_id,shelf,chapters_done")
       .eq("community_id", communityId)
       .eq("book_id", bookId)
   ]);
-  const activeCount = activeRes.count ?? 0;
-  const members = memberRes.data ?? [];
-  const finishedCount = members.filter((m: Record<string, any>) => m.shelf === "finished").length;
-  const anyProgress = members.some(
-    (m: Record<string, any>) => m.shelf === "finished" || m.shelf === "reading" || Number(m.chapters_done ?? 0) > 0
+  const current = (bookRes.data?.status as string) ?? "proposed";
+  if (current === "proposed") return "proposed"; // la votación/el admin mueven proposed→reading
+
+  const readers = (memberRes.data ?? []).filter(
+    (m: Record<string, any>) => m.shelf === "reading" || m.shelf === "finished" || Number(m.chapters_done ?? 0) > 0
   );
-  const status =
-    activeCount > 0 && finishedCount >= activeCount ? "finished" : anyProgress ? "reading" : "proposed";
+  const allFinished = readers.length > 0 && readers.every((m: Record<string, any>) => m.shelf === "finished");
+  const status = allFinished ? "finished" : "reading";
   await db.from("books").update({ status }).eq("community_id", communityId).eq("id", bookId);
   return status;
+};
+
+// Resumen de votos de un libro {yes,no,later} + voto del usuario actual.
+const voteSummary = async (
+  communityId: string,
+  bookId: string,
+  userId: string
+): Promise<{ yes: number; no: number; later: number; myVote: string | null }> => {
+  const res = await db
+    .from("book_votes")
+    .select("user_id,vote")
+    .eq("community_id", communityId)
+    .eq("book_id", bookId);
+  const rows = res.data ?? [];
+  return {
+    yes: rows.filter((r: Record<string, any>) => r.vote === "yes").length,
+    no: rows.filter((r: Record<string, any>) => r.vote === "no").length,
+    later: rows.filter((r: Record<string, any>) => r.vote === "later").length,
+    myVote: (rows.find((r: Record<string, any>) => r.user_id === userId)?.vote as string) ?? null
+  };
 };
 
 // Recalcula member_books de un usuario a partir de sus checkmarks de capítulo.
@@ -1595,7 +1611,7 @@ const handlers = {
   "/books/list": async (req: Request) => {
     const auth = await requireSession(req);
     if (auth instanceof Response) return auth;
-    const [booksRes, memberRes] = await Promise.all([
+    const [booksRes, memberRes, votesRes] = await Promise.all([
       db
         .from("books")
         .select("*")
@@ -1605,12 +1621,30 @@ const handlers = {
         .from("member_books")
         .select("*")
         .eq("community_id", auth.community.id)
-        .eq("user_id", auth.user.id)
+        .eq("user_id", auth.user.id),
+      db
+        .from("book_votes")
+        .select("book_id,user_id,vote")
+        .eq("community_id", auth.community.id)
     ]);
     if (booksRes.error) return json(500, { message: booksRes.error.message });
     if (memberRes.error) return json(500, { message: memberRes.error.message });
+    if (votesRes.error) return json(500, { message: votesRes.error.message });
+
+    const voteByBook: Record<string, { yes: number; no: number; later: number; myVote: string | null }> = {};
+    (votesRes.data ?? []).forEach((row: Record<string, any>) => {
+      const v = (voteByBook[row.book_id] = voteByBook[row.book_id] ?? { yes: 0, no: 0, later: 0, myVote: null });
+      if (row.vote === "yes") v.yes += 1;
+      else if (row.vote === "no") v.no += 1;
+      else if (row.vote === "later") v.later += 1;
+      if (row.user_id === auth.user.id) v.myVote = row.vote;
+    });
+
     return json(200, {
-      books: (booksRes.data ?? []).map((row) => rowToBook(row as Record<string, any>)),
+      books: (booksRes.data ?? []).map((row) => ({
+        ...rowToBook(row as Record<string, any>),
+        votes: voteByBook[(row as Record<string, any>).id] ?? { yes: 0, no: 0, later: 0, myVote: null }
+      })),
       memberBooks: (memberRes.data ?? []).map((row) => rowToMemberBook(row as Record<string, any>))
     });
   },
@@ -1734,6 +1768,7 @@ const handlers = {
       notes: notesByChapter[row.id] ?? []
     }));
 
+    const votes = await voteSummary(auth.community.id, bookId, auth.user.id);
     return json(200, {
       book: rowToBook(bookRes.data as Record<string, any>),
       comments: (commentsRes.data ?? []).map((row: Record<string, any>) => ({
@@ -1745,7 +1780,8 @@ const handlers = {
       })),
       members,
       myMember: members.find((m: Record<string, any>) => m.userId === auth.user.id) ?? null,
-      chapters
+      chapters,
+      votes
     });
   },
 
@@ -2068,7 +2104,8 @@ const handlers = {
     const body = await parseBody(req);
     const bookId = String(body.book_id ?? "").trim();
     if (!bookId) return bad("book_id required");
-    const featured = body.featured === "gold" || body.featured === "silver" ? body.featured : null;
+    // Solo 'gold' (principal único). 'silver' descontinuado.
+    const featured = body.featured === "gold" ? "gold" : null;
 
     const bookRes = await db
       .from("books")
@@ -2079,7 +2116,7 @@ const handlers = {
     if (bookRes.error || !bookRes.data) return json(404, { message: "Book not found" });
 
     if (featured) {
-      // Libera ese color de cualquier otro libro del club (índice único parcial).
+      // Libera el oro de cualquier otro libro del club (índice único parcial).
       await db
         .from("books")
         .update({ featured: null })
@@ -2138,6 +2175,114 @@ const handlers = {
       .single();
     if (upd.error) return json(400, { message: upd.error.message });
     return json(200, { book: rowToBook(upd.data as Record<string, any>) });
+  },
+
+  // Voto sobre una propuesta de libro (yes/no/later). Si TODOS los miembros activos
+  // votan 'yes', el libro se aprueba (proposed -> reading).
+  "/books/vote": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    if (!bookId) return bad("book_id required");
+    const vote = ["yes", "no", "later"].includes(body.vote) ? body.vote : null;
+    if (!vote) return bad("vote must be yes|no|later");
+
+    const bookRes = await db
+      .from("books")
+      .select("id,status")
+      .eq("community_id", auth.community.id)
+      .eq("id", bookId)
+      .maybeSingle();
+    if (bookRes.error || !bookRes.data) return json(404, { message: "Book not found" });
+
+    const up = await db.from("book_votes").upsert(
+      { community_id: auth.community.id, book_id: bookId, user_id: auth.user.id, vote, created_at: nowIso() },
+      { onConflict: "book_id,user_id" }
+    );
+    if (up.error) return json(400, { message: up.error.message });
+
+    let status = bookRes.data.status as string;
+    if (status === "proposed") {
+      const [activeRes, summary] = await Promise.all([
+        db.from("community_users").select("id", { count: "exact", head: true }).eq("community_id", auth.community.id).eq("status", "active"),
+        voteSummary(auth.community.id, bookId, auth.user.id)
+      ]);
+      const activeCount = activeRes.count ?? 0;
+      if (activeCount > 0 && summary.yes >= activeCount) {
+        await db.from("books").update({ status: "reading" }).eq("community_id", auth.community.id).eq("id", bookId);
+        status = "reading";
+      }
+    }
+    const votes = await voteSummary(auth.community.id, bookId, auth.user.id);
+    return json(200, { votes, bookStatus: status });
+  },
+
+  // El admin fuerza el estado del libro (proposed/reading/finished).
+  "/books/set_status": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const denied = ensureAdmin(auth.role);
+    if (denied) return denied;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    if (!bookId) return bad("book_id required");
+    const status = ["proposed", "reading", "finished"].includes(body.status) ? body.status : null;
+    if (!status) return bad("status must be proposed|reading|finished");
+
+    const upd = await db
+      .from("books")
+      .update({ status })
+      .eq("community_id", auth.community.id)
+      .eq("id", bookId)
+      .select("*")
+      .single();
+    if (upd.error || !upd.data) return json(404, { message: upd.error?.message ?? "Book not found" });
+    return json(200, { book: rowToBook(upd.data as Record<string, any>) });
+  },
+
+  // Marca TODOS los capítulos del libro como leídos por el usuario actual.
+  "/chapters/complete_all": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    if (!bookId) return bad("book_id required");
+    const done = body.done === false ? false : true;
+
+    const chaptersRes = await db
+      .from("book_chapters")
+      .select("id")
+      .eq("community_id", auth.community.id)
+      .eq("book_id", bookId);
+    if (chaptersRes.error) return json(500, { message: chaptersRes.error.message });
+    const chapterIds = (chaptersRes.data ?? []).map((r: Record<string, any>) => r.id as string);
+
+    if (done) {
+      if (chapterIds.length > 0) {
+        const rows = chapterIds.map((chapterId) => ({
+          community_id: auth.community.id,
+          book_id: bookId,
+          chapter_id: chapterId,
+          user_id: auth.user.id,
+          completed_at: nowIso()
+        }));
+        const up = await db.from("chapter_completions").upsert(rows, { onConflict: "chapter_id,user_id" });
+        if (up.error) return json(400, { message: up.error.message });
+      }
+    } else {
+      const del = await db
+        .from("chapter_completions")
+        .delete()
+        .eq("community_id", auth.community.id)
+        .eq("book_id", bookId)
+        .eq("user_id", auth.user.id);
+      if (del.error) return json(400, { message: del.error.message });
+    }
+
+    const member = await recomputeMemberFromChapters(auth.community.id, bookId, auth.user.id);
+    const status = await recomputeBookStatus(auth.community.id, bookId);
+    return json(200, { myMember: rowToMemberBook(member), bookStatus: status });
   }
 } as const;
 

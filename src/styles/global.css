@@ -5626,3 +5626,84 @@ textarea:focus-visible {
   border: 1px solid var(--line);
   margin: 4px 0 10px;
 }
+
+/* ─────────── Ciclo de vida del libro: estanterías, votación, estados ─────────── */
+/* Igualar ancho de la estantería al del header (main = 1180px) */
+.home-books { max-width: 100%; }
+
+.shelves { display: flex; flex-direction: column; gap: 22px; margin-top: 8px; }
+.shelf-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  margin: 0 0 10px;
+}
+.shelf-count {
+  font-size: 0.72rem;
+  color: var(--ink-1);
+  background: var(--panel-1);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.book-vote-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 18%, var(--bg-0));
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
+/* Votación */
+.vote-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.vote-btn { font-weight: 600; }
+.vote-btn.yes.is-on { background: var(--success); border-color: var(--success); color: #0b1a12; }
+.vote-btn.no.is-on { background: var(--danger); border-color: var(--danger); color: #2a0b10; }
+.vote-btn.later.is-on { background: var(--warning); border-color: var(--warning); color: #2a1f08; }
+
+/* Controles de admin */
+.book-admin-controls { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.book-status-btn { font-size: 0.8rem; padding: 3px 10px; }
+.book-status-btn.is-on { border-color: var(--brand); color: var(--brand-strong); }
+
+/* Capítulos: todo leído / colapsar / marcar todo */
+.chapter-alldone {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--success);
+  font-weight: 600;
+  margin: 0;
+}
+.chapter-collapsed summary { cursor: pointer; color: var(--ink-1); font-size: 0.88rem; padding: 4px 0; }
+.chapter-mark-all { align-self: flex-start; }
+
+/* Valoración al terminar */
+.book-rating-block {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--accent-amber);
+  background: color-mix(in srgb, var(--accent-amber) 8%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.chapter-finish-title { font-weight: 700; margin: 0; }
+.book-review-input { width: 100%; }
+.chapter-rating-hint { margin-top: 12px; }
+
+/* Lectores con reseña */
+.book-member { flex-direction: column; align-items: stretch; gap: 4px; }
+.book-member-row { display: flex; justify-content: space-between; gap: 10px; }
+.book-member-rating { color: var(--accent-amber); margin-right: 6px; letter-spacing: 1px; }
+.book-member-review { margin: 0; font-size: 0.85rem; color: var(--ink-1); line-height: 1.4; }

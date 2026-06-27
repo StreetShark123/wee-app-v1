@@ -66,6 +66,21 @@ export const HomePage = ({
     setShowOnboarding(false);
   };
 
+  const reading = visibleBooks.filter((book) => book.status === "reading").sort((a, b) => featuredRank(a) - featuredRank(b));
+  const proposed = visibleBooks.filter((book) => book.status === "proposed");
+  const finished = visibleBooks.filter((book) => book.status === "finished");
+
+  const renderShelf = (title: string, list: typeof books) => (
+    <div className="shelf">
+      <h3 className="shelf-title">{title} <span className="shelf-count">{list.length}</span></h3>
+      <div className="book-grid">
+        {list.map((book) => (
+          <BookCard key={book.id} book={book} member={memberByBookId.get(book.id)} onOpen={(entry) => navigate(`/book/${entry.id}`)} />
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <main>
       <TopBar user={activeUser} onOpenShare={onOpenAddBook} onLogout={onLogout} />
@@ -104,27 +119,22 @@ export const HomePage = ({
 
           {booksLoading && books.length === 0 ? (
             <p className="hint">{pick(language, "Cargando la estantería", "Loading the shelf", "Cargando a estantería")}<span className="loading-dots" aria-hidden="true" /></p>
-          ) : visibleBooks.length > 0 ? (
-            <div className="book-grid">
-              {visibleBooks.map((book) => (
-                <BookCard
-                  key={book.id}
-                  book={book}
-                  member={memberByBookId.get(book.id)}
-                  onOpen={(entry) => navigate(`/book/${entry.id}`)}
-                />
-              ))}
-            </div>
           ) : books.length === 0 ? (
             <article className="empty-state">
               <h3>{pick(language, "La estantería está vacía", "The shelf is empty", "A estantería está baleira")}</h3>
-              <p>{pick(language, "Añade el primer libro y empieza la lectura compartida.", "Add the first book and start reading together.", "Engade o primeiro libro e empeza a lectura compartida.")}</p>
+              <p>{pick(language, "Propón el primer libro y votad si lo leéis.", "Propose the first book and vote to read it together.", "Propón o primeiro libro e votade se o ledes.")}</p>
               <button type="button" className="btn btn-primary" onClick={onOpenAddBook}>
-                <Icon name="plus" /> {pick(language, "Añadir un libro", "Add a book", "Engadir un libro")}
+                <Icon name="plus" /> {pick(language, "Proponer un libro", "Propose a book", "Propoñer un libro")}
               </button>
             </article>
-          ) : (
+          ) : visibleBooks.length === 0 ? (
             <p className="hint">{pick(language, "Ningún libro coincide con la búsqueda.", "No book matches your search.", "Ningún libro coincide coa busca.")}</p>
+          ) : (
+            <div className="shelves">
+              {reading.length > 0 ? renderShelf(pick(language, "En lectura", "Reading now", "En lectura"), reading) : null}
+              {proposed.length > 0 ? renderShelf(pick(language, "Propuestas", "Proposals", "Propostas"), proposed) : null}
+              {finished.length > 0 ? renderShelf(pick(language, "Leídos", "Read", "Lidos"), finished) : null}
+            </div>
           )}
         </section>
       </div>
