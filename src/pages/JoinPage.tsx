@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "../components/Icon";
 import { pick, useI18n } from "../lib/i18n";
@@ -23,21 +23,20 @@ export const JoinPage = ({ isLoggedIn, onPreviewCommunity, onJoinCommunity, onEn
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [joining, setJoining] = useState(false);
 
-  useEffect(() => {
+  // ¿Llegamos por un enlace de invitación? Entonces el código ya viene en la URL.
+  const inviteFromUrl = useMemo(() => {
     const params = new URLSearchParams(location.search);
-    const invite = params.get("invite");
-    const code = params.get("code");
-    if (invite) setJoinInput(invite);
-    else if (code) setJoinInput(code);
+    return params.get("invite") ?? params.get("code") ?? "";
   }, [location.search]);
+  const cameByLink = Boolean(inviteFromUrl);
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const invite = params.get("invite");
-    const code = params.get("code");
-    const source = invite ?? code ?? "";
-    if (!source) return;
-    const parsed = parseCommunityJoinInput(source);
+    if (inviteFromUrl) setJoinInput(inviteFromUrl);
+  }, [inviteFromUrl]);
+
+  useEffect(() => {
+    if (!inviteFromUrl) return;
+    const parsed = parseCommunityJoinInput(inviteFromUrl);
     if (!parsed.code && !parsed.token) return;
     setLoadingPreview(true);
     setError(null);
@@ -55,7 +54,7 @@ export const JoinPage = ({ isLoggedIn, onPreviewCommunity, onJoinCommunity, onEn
         );
       })
       .finally(() => setLoadingPreview(false));
-  }, [language, location.search, onPreviewCommunity]);
+  }, [language, inviteFromUrl, onPreviewCommunity]);
 
   const submitPreview = async (event: FormEvent) => {
     event.preventDefault();
@@ -94,17 +93,66 @@ export const JoinPage = ({ isLoggedIn, onPreviewCommunity, onJoinCommunity, onEn
     }
   };
 
+  // ─── Vista de invitación (llegaste por enlace): clara y de dos botones ──────────
+  if (cameByLink) {
+    return (
+      <main className="page-section narrow invite-screen">
+        {loadingPreview && !preview ? (
+          <p className="hint invite-loading">
+            {pick(language, "Buscando tu invitación", "Looking up your invite", "Buscando a túa invitación")}
+            <span className="loading-dots" aria-hidden="true" />
+          </p>
+        ) : preview ? (
+          <article className="invite-hero">
+            <span className="invite-eyebrow">{pick(language, "Te han invitado a", "You've been invited to", "Convidáronte a")}</span>
+            <h1 className="invite-club-name">{preview.name}</h1>
+            {preview.description ? <p className="invite-club-desc">{preview.description}</p> : null}
+
+            {isLoggedIn ? (
+              <button type="button" className="btn btn-primary invite-cta" onClick={() => void confirmJoin()} disabled={joining}>
+                <Icon name="check" /> {joining ? (
+                  <>
+                    {pick(language, "Entrando", "Joining", "Entrando")}
+                    <span className="loading-dots" aria-hidden="true" />
+                  </>
+                ) : pick(language, `Unirme a ${preview.name}`, `Join ${preview.name}`, `Unirme a ${preview.name}`)}
+              </button>
+            ) : (
+              <div className="invite-choice">
+                <button type="button" className="btn btn-primary invite-cta" onClick={() => navigate(`/login${location.search}`)}>
+                  <Icon name="user" /> {pick(language, "Ya tengo cuenta", "I already have an account", "Xa teño conta")}
+                </button>
+                <button type="button" className="btn invite-cta" onClick={() => navigate(`/signup${location.search}`)}>
+                  <Icon name="plus" /> {pick(language, "Crear cuenta nueva", "Create a new account", "Crear conta nova")}
+                </button>
+              </div>
+            )}
+          </article>
+        ) : (
+          <article className="invite-hero">
+            <h1 className="invite-club-name">{pick(language, "Invitación no válida", "Invalid invite", "Invitación non válida")}</h1>
+            <p className="invite-club-desc">{error}</p>
+            <button type="button" className="btn" onClick={() => navigate("/communities")}>
+              <Icon name="arrowLeft" /> {pick(language, "Ir a mis clubs", "Go to my clubs", "Ir aos meus clubs")}
+            </button>
+          </article>
+        )}
+      </main>
+    );
+  }
+
+  // ─── Entrada manual del código (entraste a /join sin enlace) ────────────────────
   return (
     <main className="page-section narrow">
       <div className="section-head">
         <h2><Icon name="link" /> {pick(language, "Unirme a un club", "Join with code", "Unirme con código")}</h2>
       </div>
-      <p className="section-intro">{pick(language, "Pega el código, revisa el club y entra en un toque.", "Paste the code, check the community, and jump in.", "Pega o código, revisa a comunidade e entra nun toque.")}</p>
+      <p className="section-intro">{pick(language, "Pega el código de invitación del club.", "Paste the club's invite code.", "Pega o código de invitación do club.")}</p>
 
       <form className="stack" onSubmit={submitPreview}>
         <label className="form-field">
           {pick(language, "Código del club", "Community code", "Código de comunidade")}
-          <input value={joinInput} onChange={(event) => setJoinInput(event.target.value)} />
+          <input value={joinInput} onChange={(event) => setJoinInput(event.target.value)} autoFocus />
         </label>
         <div className="auth-entry-actions">
           <button type="submit" className="btn btn-primary" disabled={loadingPreview}>
@@ -137,10 +185,10 @@ export const JoinPage = ({ isLoggedIn, onPreviewCommunity, onJoinCommunity, onEn
           ) : (
             <div className="auth-entry-actions">
               <button type="button" className="btn btn-primary" onClick={() => navigate(`/login${location.search}`)}>
-                <Icon name="check" /> {pick(language, "Entrar con mi cuenta", "Log in with my account", "Entrar coa miña conta")}
+                <Icon name="user" /> {pick(language, "Ya tengo cuenta", "I have an account", "Xa teño conta")}
               </button>
               <button type="button" className="btn" onClick={() => navigate(`/signup${location.search}`)}>
-                <Icon name="plus" /> {pick(language, "Crear cuenta", "Create account", "Crear conta")}
+                <Icon name="plus" /> {pick(language, "Crear cuenta nueva", "Create account", "Crear conta nova")}
               </button>
             </div>
           )}

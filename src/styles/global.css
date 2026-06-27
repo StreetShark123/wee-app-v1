@@ -5456,3 +5456,61 @@ textarea:focus-visible {
   border-color: var(--ink-1);
   color: var(--ink-0);
 }
+
+/* ───────────────────────────── Pantalla de invitación ────────────────────────── */
+.invite-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.invite-loading {
+  text-align: center;
+}
+
+.invite-hero {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 20px;
+  background: var(--panel-0);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.invite-eyebrow {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-1);
+}
+
+.invite-club-name {
+  font-size: 1.8rem;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.invite-club-desc {
+  color: var(--ink-1);
+  max-width: 38ch;
+  margin: 0 0 6px;
+}
+
+.invite-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 300px;
+  margin-top: 6px;
+}
+
+.invite-cta {
+  justify-content: center;
+  width: 100%;
+  max-width: 300px;
+}

@@ -232,8 +232,20 @@ Cada fase termina verde en `npm run check` (typecheck + test + design:lint).
   plata="Siguiente") y `HomePage` ordena destacados primero; `BookDetailPage` da
   controles de admin para marcar Principal/Secundaria. Verificado (el oro "se roba").
 
-### Fase 6 — Limpieza de legado de noticias
-- Retirar/ocultar share-URL, aura, topics, clasificador, dedup si no aportan al club.
+### Fase 6 — Limpieza de legado de noticias (EN CURSO)
+- ✅ Borrados 7 archivos muertos (0 referencias): `IconGallery`, `AppSkeleton`,
+  `TopicBlock`, `FiltersBar`, `PostDetailModal`, `LoginPage`, `InviteRedirectPage`.
+- ✅ JoinPage rediseñada: por enlace muestra "Te han invitado a {club}" + 2 botones
+  (ya tengo cuenta / crear cuenta nueva), sin pedir código (viene en la URL). El
+  campo de código solo aparece en entrada manual a `/join` sin enlace.
+- ⏳ PENDIENTE (refactor grande, riesgo medio — hacerlo enfocado y verificado):
+  rutas de noticias `/topic` `/post` `/share` `/profile/:id/posts` + sus páginas
+  (TopicPage, PostDetailPage, SharePage, UserPostsPage) siguen ruteadas. Están muy
+  entrelazadas: ProfilePage es post-céntrica, TopBar enlaza a `/profile/:id/posts`,
+  NotificationsMenu a `/post/:id`, y `useAppData`/App tienen toda la maquinaria de
+  posts (onShareUrl, onRatePost, aura, classify, topicEngineV2, enrich, PostCard,
+  CommentsPanel, EmojiMenu, ShareLinkModal). Quitarlo exige rediseñar ProfilePage
+  (→ "libros leídos del usuario"), TopBar y notificaciones (→ eventos de libro).
 - Renombrar copy y tipos (`Post`→`Book`) de forma incremental y verificada.
 - Actualizar README (sigue describiendo "curación de noticias").
 
