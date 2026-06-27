@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { BookComment, ClubMemberLite } from "../lib/communityApi";
 import { pick, useI18n } from "../lib/i18n";
+import { useConfirm } from "../lib/confirm";
 import { Icon } from "./Icon";
 import { Linkify } from "./Linkify";
 import { MentionTextarea } from "./MentionTextarea";
@@ -42,6 +43,7 @@ const CommentItem = ({
   isReply: boolean;
 }) => {
   const { language } = useI18n();
+  const confirm = useConfirm();
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
@@ -133,8 +135,13 @@ const CommentItem = ({
             <button
               type="button"
               className="comment-reply-btn comment-del-btn"
-              onClick={() => {
-                if (window.confirm(pick(language, "¿Borrar este comentario?", "Delete this comment?", "Borrar este comentario?"))) onDelete(comment.id);
+              onClick={async () => {
+                const ok = await confirm({
+                  title: pick(language, "¿Borrar este comentario?", "Delete this comment?", "Borrar este comentario?"),
+                  confirmLabel: pick(language, "Borrar", "Delete", "Borrar"),
+                  danger: true
+                });
+                if (ok) onDelete(comment.id);
               }}
             >
               {pick(language, "Borrar", "Delete", "Borrar")}

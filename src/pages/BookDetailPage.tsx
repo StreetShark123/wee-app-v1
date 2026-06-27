@@ -4,6 +4,7 @@ import { ChapterTimeline } from "../components/ChapterTimeline";
 import { Icon } from "../components/Icon";
 import { TopBar } from "../components/TopBar";
 import { pick, useI18n } from "../lib/i18n";
+import { useConfirm } from "../lib/confirm";
 import { parseChapterList } from "../lib/parseChapters";
 import { getCachedBook, setCachedBook } from "../lib/booksCache";
 import { BookDetailSkeleton } from "../components/Skeletons";
@@ -66,6 +67,7 @@ const toggleReactionLocal = (reactions: CommentReaction[], emoji: string): Comme
 
 export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksChanged }: BookDetailPageProps) => {
   const { language } = useI18n();
+  const confirm = useConfirm();
   const navigate = useNavigate();
   const location = useLocation();
   const { bookId } = useParams<{ bookId: string }>();
@@ -232,15 +234,13 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const isAdmin = activeUser.role === "admin";
   const isAdder = book.addedBy === activeUser.id;
   const canDelete = isAdmin || (isAdder && book.status === "proposed");
-  const handleDeleteBook = () => {
-    const ok = window.confirm(
-      pick(
-        language,
-        `¿Eliminar "${book.title}"? Se borrará para todo el club y no se puede deshacer.`,
-        `Delete "${book.title}"? It will be removed for the whole club and can't be undone.`,
-        `Eliminar "${book.title}"? Borrarase para todo o club e non se pode desfacer.`
-      )
-    );
+  const handleDeleteBook = async () => {
+    const ok = await confirm({
+      title: pick(language, `¿Eliminar "${book.title}"?`, `Delete "${book.title}"?`, `Eliminar "${book.title}"?`),
+      message: pick(language, "Se borrará para todo el club y no se puede deshacer.", "It will be removed for the whole club and can't be undone.", "Borrarase para todo o club e non se pode desfacer."),
+      confirmLabel: pick(language, "Eliminar libro", "Delete book", "Eliminar libro"),
+      danger: true
+    });
     if (!ok) return;
     void deleteBook(book.id)
       .then(() => {
@@ -386,8 +386,13 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     const { note } = await updateChapterNote(noteId, { text });
     patchNote(noteId, (n) => ({ ...n, text: note.text, editedAt: note.editedAt ?? Date.now() }));
   };
-  const handleDeleteNote = (noteId: string) => {
-    if (!window.confirm(pick(language, "¿Borrar esta anotación?", "Delete this note?", "Borrar esta anotación?"))) return;
+  const handleDeleteNote = async (noteId: string) => {
+    const ok = await confirm({
+      title: pick(language, "¿Borrar esta nota?", "Delete this note?", "Borrar esta nota?"),
+      confirmLabel: pick(language, "Borrar", "Delete", "Borrar"),
+      danger: true
+    });
+    if (!ok) return;
     patch((d) => ({ ...d, chapters: d.chapters.map((c) => ({ ...c, notes: c.notes.filter((n) => n.id !== noteId) })) }));
     void deleteChapterNote(noteId).catch(() => void load());
   };
@@ -450,22 +455,20 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
         void load(); // si falla, recupera el estado real
       });
   };
-  const confirmReset = (): boolean => {
-    if (chapters.length === 0) return true;
+  const confirmReset = (): Promise<boolean> => {
+    if (chapters.length === 0) return Promise.resolve(true);
     const affected = members.filter((m) => (m.chaptersDone ?? 0) > 0).length;
     const who = affected === 0
       ? pick(language, "Nadie ha empezado todavía.", "Nobody has started yet.", "Aínda non empezou ninguén.")
       : affected === 1
         ? pick(language, "1 persona perderá su progreso.", "1 person will lose their progress.", "1 persoa perderá o seu progreso.")
         : pick(language, `${affected} personas perderán su progreso.`, `${affected} people will lose their progress.`, `${affected} persoas perderán o seu progreso.`);
-    return window.confirm(
-      pick(
-        language,
-        `Esto reemplaza la lista de capítulos y REINICIA el progreso del club. ${who} ¿Seguro?`,
-        `This replaces the chapter list and RESETS the club's progress. ${who} Are you sure?`,
-        `Isto substitúe a lista e REINICIA o progreso do club. ${who} Seguro?`
-      )
-    );
+    return confirm({
+      title: pick(language, "¿Redefinir los capítulos?", "Redefine the chapters?", "Redefinir os capítulos?"),
+      message: pick(language, `Reemplaza la lista y REINICIA el progreso del club. ${who}`, `Replaces the list and RESETS the club's progress. ${who}`, `Substitúe a lista e REINICIA o progreso do club. ${who}`),
+      confirmLabel: pick(language, "Reemplazar", "Replace", "Substituír"),
+      danger: true
+    });
   };
   const applyChapters = (titles: string[]) =>
     run(async () => {
@@ -478,13 +481,13 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
       }));
       setChaptersRaw("");
     });
-  const handleCreateChapters = () => {
+  const handleCreateChapters = async () => {
     const titles = parseChapterList(chaptersRaw);
-    if (titles.length === 0 || !confirmReset()) return;
+    if (titles.length === 0 || !(await confirmReset())) return;
     void applyChapters(titles);
   };
-  const handleCreateNumbered = (count: number) => {
-    if (count < 1 || !confirmReset()) return;
+  const handleCreateNumbered = async (count: number) => {
+    if (count < 1 || !(await confirmReset())) return;
     void applyChapters(
       Array.from({ length: Math.min(400, count) }, (_, i) => pick(language, `Capítulo ${i + 1}`, `Chapter ${i + 1}`, `Capítulo ${i + 1}`))
     );

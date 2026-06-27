@@ -4495,3 +4495,7 @@ textarea:focus-visible {
 .chapter-note-edited { color: var(--ink-1); font-style: italic; font-weight: 400; font-size: 0.92em; }
 .chapter-note-edit { display: flex; flex-direction: column; gap: 6px; }
 .chapter-note-action-del:hover { border-color: var(--danger); color: var(--danger); }
+
+/* Modal de confirmación propio (sustituye window.confirm) */
+.confirm-modal h2 { margin: 0 0 6px; font-size: 1.05rem; }
+.confirm-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }

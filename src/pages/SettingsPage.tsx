@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Icon } from "../components/Icon";
 import { pick, useI18n } from "../lib/i18n";
+import { useConfirm } from "../lib/confirm";
 import { TopBar } from "../components/TopBar";
 import { isAnalyticsOptedOut, setAnalyticsOptOut } from "../lib/usageAnalytics";
 import type { User } from "../lib/types";
@@ -23,6 +24,7 @@ export const SettingsPage = ({
   onLogout
 }: SettingsPageProps) => {
   const { language } = useI18n();
+  const confirm = useConfirm();
   const [message, setMessage] = useState<string | null>(null);
   const [optedOut, setOptedOut] = useState(isAnalyticsOptedOut());
 
@@ -113,14 +115,12 @@ export const SettingsPage = ({
             type="button"
             className="btn"
             onClick={async () => {
-              const okDelete = window.confirm(
-                pick(
-                  language,
-                  "Esto eliminará tu cuenta y tus datos asociados en el club. ¿Continuar?",
-                  "This will delete your account and your related club data. Continue?",
-                  "Isto eliminará a túa conta e os teus datos asociados no club. Continuar?"
-                )
-              );
+              const okDelete = await confirm({
+                title: pick(language, "¿Eliminar tu cuenta y datos?", "Delete your account and data?", "Eliminar a túa conta e datos?"),
+                message: pick(language, "Esto eliminará tu cuenta y tus datos asociados en el club. No se puede deshacer.", "This will delete your account and your related club data. It can't be undone.", "Isto eliminará a túa conta e os teus datos asociados no club. Non se pode desfacer."),
+                confirmLabel: pick(language, "Eliminar todo", "Delete everything", "Eliminar todo"),
+                danger: true
+              });
               if (!okDelete) return;
               try {
                 await onDeleteMyData();

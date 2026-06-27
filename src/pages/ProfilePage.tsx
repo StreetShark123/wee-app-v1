@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { Avatar } from "../components/Avatar";
 import { Icon } from "../components/Icon";
 import { pick, useI18n } from "../lib/i18n";
+import { useConfirm } from "../lib/confirm";
 import { generateAlias } from "../lib/aliasGenerator";
 import { TopBar } from "../components/TopBar";
 import { getUserProfile, type UserProfile } from "../lib/communityApi";
@@ -40,6 +41,7 @@ export const ProfilePage = ({
   onOpenShareModal
 }: ProfilePageProps) => {
   const { language } = useI18n();
+  const confirm = useConfirm();
   const params = useParams();
   const userId = params.userId ?? activeUser.id;
   const profileUser = users.find((user) => user.id === userId) ?? activeUser;
@@ -225,7 +227,12 @@ export const ProfilePage = ({
                 type="button"
                 className="btn"
                 onClick={async () => {
-                  const okDelete = window.confirm(pick(language, "¿Eliminar este usuario del club?", "Remove this user from the community?", "Eliminar este usuario da comunidade?"));
+                  const okDelete = await confirm({
+                    title: pick(language, "¿Eliminar este usuario del club?", "Remove this user from the club?", "Eliminar este usuario do club?"),
+                    message: pick(language, "Es una decisión de moderación visible para el club.", "It's a moderation decision visible to the club.", "É unha decisión de moderación visible para o club."),
+                    confirmLabel: pick(language, "Eliminar", "Remove", "Eliminar"),
+                    danger: true
+                  });
                   if (!okDelete) return;
                   const result = await onDeleteUser(profileUser.id);
                   onToast(result.message);
