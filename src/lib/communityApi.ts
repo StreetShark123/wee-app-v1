@@ -550,6 +550,10 @@ export interface UserProfile {
 export const getUserProfile = async (userId: string): Promise<UserProfile> =>
   request<UserProfile>("/users/profile", { user_id: userId });
 
+// Export de datos propios (solo del usuario actual). Forma libre: JSON legible.
+export const exportMyData = async (): Promise<Record<string, unknown>> =>
+  request<Record<string, unknown>>("/data/export_me", {});
+
 export const setBookProgress = async (
   bookId: string,
   chaptersDone: number,

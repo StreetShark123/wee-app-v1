@@ -7,7 +7,7 @@ import { Icon } from "./components/Icon";
 import { PageTransition } from "./components/PageTransition";
 import { AddBookModal } from "./components/AddBookModal";
 import type { BookDraft } from "./lib/bookSearch";
-import { createClubBook, listClubBooks, listNotifications, markNotificationsRead, type ClubBook, type MemberBook } from "./lib/communityApi";
+import { createClubBook, exportMyData, listClubBooks, listNotifications, markNotificationsRead, type ClubBook, type MemberBook } from "./lib/communityApi";
 import { clearBooksCache, getCachedList, setCachedList } from "./lib/booksCache";
 import { Toast } from "./components/Toast";
 import { useAppData } from "./lib/appData";
@@ -268,7 +268,8 @@ const AppRoutes = () => {
   );
 
   const onExport = async (): Promise<void> => {
-    const data = await exportJson();
+    // Solo TUS datos (perfil + tus comentarios/notas/progreso/valoraciones), nunca los de otros.
+    const data = await exportMyData();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);

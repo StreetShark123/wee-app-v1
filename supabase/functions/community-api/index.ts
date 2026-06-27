@@ -2636,6 +2636,54 @@ const handlers = {
     return json(200, { ok: true });
   },
 
+  // Exportación de datos PROPIOS (RGPD-friendly): solo lo del usuario que pide,
+  // nunca datos de otros miembros.
+  "/data/export_me": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const me = auth.user.id;
+
+    const [profileRes, roleRes, memberRes, commentsRes, notesRes, votesRes] = await Promise.all([
+      db.from("community_users").select("id,alias,avatar_url,created_at").eq("community_id", auth.community.id).eq("id", me).maybeSingle(),
+      db.from("community_user_roles").select("role").eq("community_id", auth.community.id).eq("user_id", me).maybeSingle(),
+      db.from("member_books").select("book_id,shelf,chapters_done,rating,review,finished_at,updated_at").eq("community_id", auth.community.id).eq("user_id", me),
+      db.from("book_comments").select("id,book_id,chapter_id,text,created_at,edited_at,deleted_at").eq("community_id", auth.community.id).eq("user_id", me),
+      db.from("chapter_notes").select("id,chapter_id,book_id,kind,text,image_url,created_at").eq("community_id", auth.community.id).eq("user_id", me),
+      db.from("book_votes").select("book_id,vote,voted_at").eq("community_id", auth.community.id).eq("user_id", me)
+    ]);
+
+    // Resolver títulos de libros implicados (solo para legibilidad del export).
+    const bookIds = unique([
+      ...(memberRes.data ?? []).map((r: Record<string, any>) => r.book_id),
+      ...(commentsRes.data ?? []).map((r: Record<string, any>) => r.book_id),
+      ...(notesRes.data ?? []).map((r: Record<string, any>) => r.book_id),
+      ...(votesRes.data ?? []).map((r: Record<string, any>) => r.book_id)
+    ].filter(Boolean));
+    const booksRes = bookIds.length > 0
+      ? await db.from("books").select("id,title").eq("community_id", auth.community.id).in("id", bookIds)
+      : { data: [], error: null } as const;
+    const titleById = new Map((booksRes.data ?? []).map((b: Record<string, any>) => [b.id, b.title]));
+    const withTitle = (bookId: string) => titleById.get(bookId) ?? null;
+
+    return json(200, {
+      exportedAt: nowIso(),
+      community: auth.community.name ?? auth.community.id,
+      profile: profileRes.data
+        ? { alias: profileRes.data.alias, avatarUrl: profileRes.data.avatar_url ?? null, role: (roleRes.data?.role as string) ?? "member", joinedAt: profileRes.data.created_at }
+        : null,
+      reading: (memberRes.data ?? []).map((r: Record<string, any>) => ({
+        book: withTitle(r.book_id), shelf: r.shelf, chaptersDone: r.chapters_done, rating: r.rating ?? null, review: r.review ?? null, finishedAt: r.finished_at ?? null
+      })),
+      comments: (commentsRes.data ?? []).filter((r: Record<string, any>) => !r.deleted_at).map((r: Record<string, any>) => ({
+        book: withTitle(r.book_id), text: r.text, createdAt: r.created_at, editedAt: r.edited_at ?? null
+      })),
+      notes: (notesRes.data ?? []).map((r: Record<string, any>) => ({
+        book: withTitle(r.book_id), kind: r.kind, text: r.text, link: r.image_url ?? null, createdAt: r.created_at
+      })),
+      votes: (votesRes.data ?? []).map((r: Record<string, any>) => ({ book: withTitle(r.book_id), vote: r.vote, votedAt: r.voted_at }))
+    });
+  },
+
   // Perfil público de un miembro: su actividad de lectura en el club.
   "/users/profile": async (req: Request) => {
     const auth = await requireSession(req);
