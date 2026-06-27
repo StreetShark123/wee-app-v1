@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { pick, useI18n } from "../lib/i18n";
 import { EASE_STANDARD, MOTION_DURATION } from "../lib/motion";
@@ -45,7 +45,7 @@ export const AppFooter = () => {
 
       <AnimatePresence>
         {open ? (
-          <motion.div
+          <m.div
             className="modal-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -53,7 +53,7 @@ export const AppFooter = () => {
             transition={{ duration: MOTION_DURATION.fast, ease: EASE_STANDARD }}
             onClick={() => setOpen(false)}
           >
-            <motion.section
+            <m.section
               ref={dialogRef}
               className="modal-card modal-card-compact about-modal"
               role="dialog"
@@ -98,8 +98,8 @@ export const AppFooter = () => {
                   </p>
                 </article>
               </div>
-            </motion.section>
-          </motion.div>
+            </m.section>
+          </m.div>
         ) : null}
       </AnimatePresence>
     </>

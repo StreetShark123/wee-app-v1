@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { pick, useI18n } from "../lib/i18n";
 import { Icon } from "./Icon";
@@ -80,7 +80,7 @@ export const CommunityLoadingScreen = ({
   const currentTip = tips[tipIndex % Math.max(tips.length, 1)] ?? "";
 
   return (
-    <motion.main
+    <m.main
       className={`community-loading-screen${finishing ? " is-finishing" : ""}`}
       initial={{ opacity: 1 }}
       animate={{ opacity: 1 }}
@@ -98,7 +98,7 @@ export const CommunityLoadingScreen = ({
         <h2>{pick(language, "Montando tu club", "Building your home", "Montando a túa home")}</h2>
         <p className="hint">{pick(language, "Un segundo y te acompañamos al debate.", "One sec and we’ll walk you into the thread.", "Un segundo e acompañámoste ao fío.")}</p>
         <AnimatePresence mode="wait">
-          <motion.p
+          <m.p
             key={`${tipIndex}-${currentTip}`}
             className="community-loading-tip"
             initial={{ opacity: 0, y: 8 }}
@@ -107,10 +107,10 @@ export const CommunityLoadingScreen = ({
             transition={{ duration: 0.24, ease: "easeOut" }}
           >
             {currentTip}
-          </motion.p>
+          </m.p>
         </AnimatePresence>
       </div>
       <span className="community-loading-fade" aria-hidden="true" />
-    </motion.main>
+    </m.main>
   );
 };

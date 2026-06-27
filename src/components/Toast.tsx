@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { EASE_STANDARD, MOTION_DURATION } from "../lib/motion";
 
 interface ToastProps {
@@ -8,7 +8,7 @@ interface ToastProps {
 export const Toast = ({ message }: ToastProps) => (
   <AnimatePresence>
     {message ? (
-      <motion.div
+      <m.div
         className="toast"
         initial={{ opacity: 0, y: 18, scale: 0.985 }}
         animate={{ opacity: 1, y: 0 }}
@@ -16,7 +16,7 @@ export const Toast = ({ message }: ToastProps) => (
         transition={{ duration: MOTION_DURATION.fast, ease: EASE_STANDARD }}
       >
         {message}
-      </motion.div>
+      </m.div>
     ) : null}
   </AnimatePresence>
 );

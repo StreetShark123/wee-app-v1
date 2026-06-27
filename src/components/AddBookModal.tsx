@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { pick, useI18n } from "../lib/i18n";
 import { EASE_STANDARD, MOTION_DURATION } from "../lib/motion";
@@ -127,7 +127,7 @@ export const AddBookModal = ({ open, onClose, onAddBook, onToast }: AddBookModal
   return (
     <AnimatePresence>
       {open ? (
-        <motion.div
+        <m.div
           className="modal-overlay modal-overlay-share"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -135,7 +135,7 @@ export const AddBookModal = ({ open, onClose, onAddBook, onToast }: AddBookModal
           transition={{ duration: MOTION_DURATION.fast, ease: EASE_STANDARD }}
           onClick={onClose}
         >
-          <motion.section
+          <m.section
             ref={dialogRef}
             className="modal-card modal-card-share"
             role="dialog"
@@ -344,8 +344,8 @@ export const AddBookModal = ({ open, onClose, onAddBook, onToast }: AddBookModal
                 </div>
               </form>
             ) : null}
-          </motion.section>
-        </motion.div>
+          </m.section>
+        </m.div>
       ) : null}
     </AnimatePresence>
   );

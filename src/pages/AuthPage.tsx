@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "../components/Icon";
 import { pick, useI18n } from "../lib/i18n";
@@ -74,7 +74,7 @@ export const AuthPage = ({ mode, onLogin, onRegister }: AuthPageProps) => {
           <span className="auth-hero-brand">Wee</span>
           <span className="auth-hero-claim-wrap">
             <AnimatePresence mode="wait" initial={false}>
-              <motion.span
+              <m.span
                 key={`${language}-${claimIndex}`}
                 className="auth-hero-claim"
                 initial={{ opacity: 0, y: 6, filter: "blur(4px)" }}
@@ -83,7 +83,7 @@ export const AuthPage = ({ mode, onLogin, onRegister }: AuthPageProps) => {
                 transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
               >
                 {heroClaims[claimIndex]}
-              </motion.span>
+              </m.span>
             </AnimatePresence>
           </span>
         </h1>

@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CommunityLoadingScreen } from "../components/CommunityLoadingScreen";
 import { Icon } from "../components/Icon";
@@ -165,7 +165,7 @@ export const CommunitiesPickerPage = ({
             {communities.map((community) => {
             const isActive = selectedCommunityId === community.community_id;
             return (
-              <motion.article
+              <m.article
                 key={community.community_id}
                 className={`community-picker-card-item${isActive ? " is-active" : ""}`}
                 onClick={() => setSelectedCommunityId(community.community_id)}
@@ -179,7 +179,7 @@ export const CommunitiesPickerPage = ({
               >
                 <h3>{community.name}</h3>
                 <p className="hint">{pick(language, "Rol", "Role", "Rol")}: {community.role}</p>
-              </motion.article>
+              </m.article>
             );
             })}
           </AnimatePresence>
@@ -233,7 +233,7 @@ export const CommunitiesPickerPage = ({
 
         <AnimatePresence initial={false}>
           {createOpen ? (
-            <motion.form
+            <m.form
               key="create-community-form"
               className="stack community-create-form"
               onSubmit={submitCreate}
@@ -253,7 +253,7 @@ export const CommunitiesPickerPage = ({
               <button type="submit" className="btn btn-primary" disabled={creatingCommunity}>
                 <Icon name="check" /> {creatingCommunity ? pick(language, "Creando...", "Creating...", "Creando...") : pick(language, "Crear y entrar", "Create and enter", "Crear e entrar")}
               </button>
-            </motion.form>
+            </m.form>
           ) : null}
         </AnimatePresence>
 
