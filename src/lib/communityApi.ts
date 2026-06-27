@@ -415,11 +415,19 @@ export const listClubBooks = async (): Promise<{ books: ClubBook[]; memberBooks:
 export const createClubBook = async (book: NewBookPayload): Promise<{ book: ClubBook }> =>
   request<{ book: ClubBook }>("/books/create", { book });
 
+export interface CommentReaction {
+  emoji: string;
+  count: number;
+  mine: boolean;
+}
+
 export interface BookComment {
   id: string;
   userId: string;
   alias: string;
   text: string;
+  parentId?: string;
+  reactions: CommentReaction[];
   createdAt: number;
 }
 
@@ -460,8 +468,18 @@ export interface BookDetail {
 export const getClubBook = async (bookId: string): Promise<BookDetail> =>
   request<BookDetail>("/books/get", { book_id: bookId });
 
-export const addBookComment = async (bookId: string, text: string): Promise<{ comment: BookComment }> =>
-  request<{ comment: BookComment }>("/books/comment", { book_id: bookId, text });
+export const addBookComment = async (
+  bookId: string,
+  text: string,
+  parentId?: string
+): Promise<{ comment: BookComment }> =>
+  request<{ comment: BookComment }>("/books/comment", { book_id: bookId, text, ...(parentId ? { parent_id: parentId } : {}) });
+
+export const reactComment = async (
+  commentId: string,
+  emoji: string
+): Promise<{ commentId: string; reactions: CommentReaction[] }> =>
+  request<{ commentId: string; reactions: CommentReaction[] }>("/comments/react", { comment_id: commentId, emoji });
 
 export const setBookProgress = async (
   bookId: string,

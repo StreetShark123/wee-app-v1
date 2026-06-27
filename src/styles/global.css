@@ -3971,3 +3971,51 @@ textarea:focus-visible {
 /* B2: botón de acción destructiva */
 .btn-danger { border-color: var(--danger); color: var(--danger); }
 .btn-danger:hover { background: color-mix(in srgb, var(--danger) 16%, transparent); }
+
+/* ─────────────────────────── Comentarios: hilos + reacciones ────────────────── */
+.comment-thread, .comment-thread-inner { list-style: none; margin: 0; padding: 0; }
+.comment-thread { display: flex; flex-direction: column; gap: 12px; }
+.comment-root { background: var(--panel-0); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 10px 12px; }
+.comment-thread-inner { display: flex; flex-direction: column; gap: 10px; }
+
+.comment-item { display: flex; flex-direction: column; gap: 5px; }
+.comment-item-reply { padding-left: 14px; border-left: 2px solid var(--line); }
+.comment-head strong { font-size: 0.82rem; color: var(--brand-strong); }
+.comment-text { margin: 0; font-size: 0.9rem; line-height: 1.45; }
+.comment-text a { color: var(--brand-strong); text-decoration: underline; }
+
+.comment-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.reaction-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel-1);
+  color: var(--ink-1);
+  cursor: pointer;
+}
+.reaction-chip.is-mine { border-color: var(--brand); color: var(--brand-strong); background: color-mix(in srgb, var(--brand) 14%, transparent); }
+.reaction-add { position: relative; display: inline-flex; }
+.reaction-add-btn { color: var(--ink-1); }
+.reaction-picker {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 5;
+  display: flex;
+  gap: 2px;
+  padding: 5px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel-1);
+  box-shadow: 0 8px 20px rgb(4 9 22 / 35%);
+}
+.reaction-emoji { font-size: 1.1rem; line-height: 1; padding: 4px 6px; border: 0; background: transparent; border-radius: 8px; cursor: pointer; }
+.reaction-emoji:hover { background: color-mix(in srgb, var(--brand) 18%, transparent); }
+.comment-reply-btn { font-size: 0.78rem; color: var(--ink-1); background: transparent; border: 0; cursor: pointer; padding: 2px 4px; }
+.comment-reply-btn:hover { color: var(--ink-0); }
+.comment-reply-form { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.comment-reply-actions { display: flex; justify-content: flex-end; gap: 8px; }

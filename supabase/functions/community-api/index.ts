@@ -1722,7 +1722,7 @@ const handlers = {
     const [commentsRes, membersRes, chaptersRes, completionsRes, notesRes, aliasMap] = await Promise.all([
       db
         .from("book_comments")
-        .select("id,user_id,text,created_at")
+        .select("id,user_id,text,parent_id,created_at")
         .eq("community_id", auth.community.id)
         .eq("book_id", bookId)
         .order("created_at", { ascending: true }),
@@ -1790,12 +1790,25 @@ const handlers = {
     }));
 
     const votes = await voteSummary(auth.community.id, bookId, auth.user.id);
-    const memberCountRes = await db
-      .from("community_users")
-      .select("id", { count: "exact", head: true })
-      .eq("community_id", auth.community.id)
-      .eq("status", "active");
+    const commentIds = (commentsRes.data ?? []).map((r: Record<string, any>) => r.id);
+    const [memberCountRes, reactionsRes] = await Promise.all([
+      db
+        .from("community_users")
+        .select("id", { count: "exact", head: true })
+        .eq("community_id", auth.community.id)
+        .eq("status", "active"),
+      commentIds.length > 0
+        ? db.from("comment_reactions").select("comment_id,user_id,emoji").in("comment_id", commentIds)
+        : Promise.resolve({ data: [], error: null } as const)
+    ]);
     const activeMemberCount = memberCountRes.count ?? 0;
+    const reactionsByComment: Record<string, Record<string, { emoji: string; count: number; mine: boolean }>> = {};
+    (reactionsRes.data ?? []).forEach((r: Record<string, any>) => {
+      const byEmoji = (reactionsByComment[r.comment_id] = reactionsByComment[r.comment_id] ?? {});
+      const e = (byEmoji[r.emoji] = byEmoji[r.emoji] ?? { emoji: r.emoji, count: 0, mine: false });
+      e.count += 1;
+      if (r.user_id === auth.user.id) e.mine = true;
+    });
     return json(200, {
       activeMemberCount,
       book: rowToBook(bookRes.data as Record<string, any>),
@@ -1804,6 +1817,8 @@ const handlers = {
         userId: row.user_id,
         alias: aliasMap.get(row.user_id) ?? "—",
         text: row.text,
+        parentId: row.parent_id ?? undefined,
+        reactions: Object.values(reactionsByComment[row.id] ?? {}),
         createdAt: toMillis(row.created_at)
       })),
       members,
@@ -1819,6 +1834,7 @@ const handlers = {
     const body = await parseBody(req);
     const bookId = String(body.book_id ?? "").trim();
     const text = String(body.text ?? "").trim().slice(0, 2000);
+    const parentId = body.parent_id ? String(body.parent_id).trim() : null;
     if (!bookId) return bad("book_id required");
     if (!text) return bad("text required");
 
@@ -1830,10 +1846,23 @@ const handlers = {
       .maybeSingle();
     if (bookRes.error || !bookRes.data) return json(404, { message: "Book not found" });
 
+    // Validar que el padre pertenece al mismo libro/club (y no anidar más de 1 nivel).
+    if (parentId) {
+      const parentRes = await db
+        .from("book_comments")
+        .select("id,book_id,parent_id")
+        .eq("community_id", auth.community.id)
+        .eq("id", parentId)
+        .maybeSingle();
+      if (parentRes.error || !parentRes.data || parentRes.data.book_id !== bookId) {
+        return json(404, { message: "Parent comment not found" });
+      }
+    }
+
     const ins = await db
       .from("book_comments")
-      .insert({ community_id: auth.community.id, book_id: bookId, user_id: auth.user.id, text })
-      .select("id,user_id,text,created_at")
+      .insert({ community_id: auth.community.id, book_id: bookId, user_id: auth.user.id, text, parent_id: parentId })
+      .select("id,user_id,text,parent_id,created_at")
       .single();
     if (ins.error) return json(400, { message: ins.error.message });
     return json(200, {
@@ -1842,9 +1871,55 @@ const handlers = {
         userId: ins.data.user_id,
         alias: auth.user.alias,
         text: ins.data.text,
+        parentId: ins.data.parent_id ?? undefined,
+        reactions: [],
         createdAt: toMillis(ins.data.created_at)
       }
     });
+  },
+
+  // Reacción emoji a un comentario (toggle). Para agradecer/resonar, sin leaderboard.
+  "/comments/react": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const commentId = String(body.comment_id ?? "").trim();
+    const emoji = String(body.emoji ?? "").trim().slice(0, 16);
+    if (!commentId) return bad("comment_id required");
+    if (!emoji) return bad("emoji required");
+
+    const cRes = await db
+      .from("book_comments")
+      .select("id")
+      .eq("community_id", auth.community.id)
+      .eq("id", commentId)
+      .maybeSingle();
+    if (cRes.error || !cRes.data) return json(404, { message: "Comment not found" });
+
+    const existing = await db
+      .from("comment_reactions")
+      .select("emoji")
+      .eq("comment_id", commentId)
+      .eq("user_id", auth.user.id)
+      .eq("emoji", emoji)
+      .maybeSingle();
+    if (existing.data) {
+      await db.from("comment_reactions").delete().eq("comment_id", commentId).eq("user_id", auth.user.id).eq("emoji", emoji);
+    } else {
+      await db.from("comment_reactions").upsert(
+        { community_id: auth.community.id, comment_id: commentId, user_id: auth.user.id, emoji, created_at: nowIso() },
+        { onConflict: "comment_id,user_id,emoji" }
+      );
+    }
+    // Devolver el recuento actualizado de ese comentario.
+    const all = await db.from("comment_reactions").select("emoji,user_id").eq("comment_id", commentId);
+    const byEmoji: Record<string, { emoji: string; count: number; mine: boolean }> = {};
+    (all.data ?? []).forEach((r: Record<string, any>) => {
+      const e = (byEmoji[r.emoji] = byEmoji[r.emoji] ?? { emoji: r.emoji, count: 0, mine: false });
+      e.count += 1;
+      if (r.user_id === auth.user.id) e.mine = true;
+    });
+    return json(200, { commentId, reactions: Object.values(byEmoji) });
   },
 
   "/books/progress": async (req: Request) => {

@@ -7,10 +7,12 @@ import { pick, useI18n } from "../lib/i18n";
 import { parseChapterList } from "../lib/parseChapters";
 import { getCachedBook, setCachedBook } from "../lib/booksCache";
 import { BookDetailSkeleton } from "../components/Skeletons";
+import { CommentThread } from "../components/CommentThread";
 import {
   addBookComment,
   addChapterNote,
   completeAllChapters,
+  reactComment,
   finishBook,
   getClubBook,
   setBookChaptersList,
@@ -163,6 +165,11 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     await addChapterNote(chapterId, text, kind, imageUrl);
     await afterMutation();
   };
+  const handleReply = async (parentId: string, text: string) => {
+    await addBookComment(book.id, text, parentId);
+    await afterMutation();
+  };
+  const handleReact = (commentId: string, emoji: string) => run(() => reactComment(commentId, emoji));
   const confirmReset = (): boolean =>
     chapters.length === 0 ||
     window.confirm(
@@ -510,16 +517,9 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
             </button>
           </form>
           {comments.length === 0 ? (
-            <p className="hint">{pick(language, "Sé el primero en comentar.", "Be the first to comment.", "Sé o primeiro en comentar.")}</p>
+            <p className="hint">{pick(language, "Sé quien abre el debate. ¿Qué esperas de este libro?", "Be the one to open the debate. What do you expect from this book?", "Sé quen abre o debate. Que esperas deste libro?")}</p>
           ) : (
-            <ul className="book-comments">
-              {comments.map((comment) => (
-                <li key={comment.id}>
-                  <strong>{comment.alias}</strong>
-                  <p>{comment.text}</p>
-                </li>
-              ))}
-            </ul>
+            <CommentThread comments={comments} busy={busy} onReply={handleReply} onReact={handleReact} />
           )}
         </section>
       </div>
