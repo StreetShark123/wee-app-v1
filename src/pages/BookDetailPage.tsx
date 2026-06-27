@@ -594,12 +594,12 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                   <p className="chapter-alldone"><Icon name="check" /> {pick(language, "Has leído todos los capítulos.", "You've read every chapter.", "Liches todos os capítulos.")}</p>
                   <details className="chapter-collapsed">
                     <summary>{pick(language, `Ver los ${total} capítulos`, `Show the ${total} chapters`, `Ver os ${total} capítulos`)}</summary>
-                    <ChapterTimeline chapters={chapters} busy={busy} onToggle={handleToggle} onAddNote={handleAddNote} />
+                    <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} />
                   </details>
                 </>
               ) : (
                 <>
-                  <ChapterTimeline chapters={chapters} busy={busy} onToggle={handleToggle} onAddNote={handleAddNote} />
+                  <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} />
                   <button type="button" className="btn chapter-mark-all" disabled={busy} onClick={() => handleCompleteAll(true)}>
                     <Icon name="check" /> {pick(language, "Marcar todo como leído", "Mark all as read", "Marcar todo como lido")}
                   </button>

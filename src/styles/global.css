@@ -4234,3 +4234,37 @@ textarea:focus-visible {
 .community-new-club { margin-top: 10px; align-self: flex-start; }
 .book-delete-zone { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
 .book-delete-zone .hint:first-child { color: var(--danger, #f25a68); font-weight: 600; }
+
+/* Notas: enlaces multipropósito (YouTube / imagen / web) + sin "morado" de visited */
+.chapter-note-text a,
+.chapter-note-text a:visited { color: var(--brand-strong); text-decoration: underline; text-underline-offset: 2px; }
+.chapter-note-text a:focus-visible,
+.note-media:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 6px; }
+
+.chapter-note-media { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+
+.note-media { display: inline-flex; align-items: center; text-decoration: none; color: var(--brand-strong); }
+.note-media-link {
+  gap: 5px;
+  padding: 4px 9px;
+  font-size: 0.78rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-1);
+  max-width: 100%;
+}
+.note-media-link:hover { border-color: var(--brand); }
+
+.note-media-img img { max-width: 160px; max-height: 120px; border-radius: 8px; display: block; object-fit: cover; }
+
+.note-media-yt { position: relative; width: 200px; max-width: 100%; border-radius: 8px; overflow: hidden; }
+.note-media-yt img { width: 100%; height: 112px; object-fit: cover; display: block; }
+.note-media-yt .note-media-play {
+  position: absolute; inset: 0; margin: auto; width: 40px; height: 40px;
+  display: grid; place-items: center; color: #fff; font-size: 16px;
+  background: rgb(0 0 0 / 55%); border-radius: 999px;
+}
+.note-media-yt .note-media-tag {
+  position: absolute; left: 6px; bottom: 6px; font-size: 0.66rem; letter-spacing: 0.03em;
+  background: rgb(0 0 0 / 70%); color: #fff; padding: 1px 6px; border-radius: 4px;
+}
