@@ -4510,3 +4510,23 @@ textarea:focus-visible {
 /* Pantalla de error (chunk viejo / fallo de carga) */
 .app-error-screen { text-align: center; }
 .app-error-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+
+/* Ventana del club: invitar destacado + gestión de miembros */
+.community-invite-card { border-color: color-mix(in srgb, var(--brand) 30%, var(--line)); }
+
+.member-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.member-name { font-weight: 500; min-width: 0; }
+.member-you { font-weight: 400; }
+.member-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+.badge-owner { color: #2a1c05; background: var(--accent-amber); border: 1px solid color-mix(in srgb, var(--accent-amber) 70%, #000); }
+.badge-admin { color: var(--brand-strong); background: color-mix(in srgb, var(--brand) 16%, transparent); border: 1px solid color-mix(in srgb, var(--brand) 45%, var(--line)); }
+.badge-member { color: var(--ink-1); background: var(--panel-1); border: 1px solid var(--line); }
+
+.btn-tiny { min-height: 28px; padding: 3px 10px; font-size: 0.74rem; }
+.btn-tiny-danger:hover { border-color: var(--danger); color: var(--danger); }
+
+@media (max-width: 480px) {
+  .member-row { align-items: flex-start; }
+  .member-meta { width: 100%; }
+}

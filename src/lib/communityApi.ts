@@ -245,8 +245,8 @@ export const logoutCommunityUser = async (): Promise<void> => {
   setCommunitySession(null);
 };
 
-export const loadCommunityMeta = async (): Promise<{ community: CommunitySelection; members: Array<{ id: string; alias: string; role: "admin" | "member" }> }> =>
-  request<{ community: CommunitySelection; members: Array<{ id: string; alias: string; role: "admin" | "member" }> }>("/community/meta", {});
+export const loadCommunityMeta = async (): Promise<{ community: CommunitySelection & { ownerId?: string | null }; members: Array<{ id: string; alias: string; role: "admin" | "member" }> }> =>
+  request<{ community: CommunitySelection & { ownerId?: string | null }; members: Array<{ id: string; alias: string; role: "admin" | "member" }> }>("/community/meta", {});
 
 export const updateCommunity = async (payload: {
   name?: string;

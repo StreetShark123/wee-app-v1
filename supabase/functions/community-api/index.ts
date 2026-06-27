@@ -939,6 +939,8 @@ const handlers = {
       { onConflict: "community_id,user_id" }
     );
     if (roleUpsert.error) return json(500, { message: roleUpsert.error.message });
+    // El creador es el "admin principal" (owner) del club.
+    await db.from("communities").update({ created_by: profileRes.data.community_user_id }).eq("id", communityId).is("created_by", null);
 
     const inviteInsert = await db.from("community_invites").insert({
       community_id: communityId,
@@ -1067,8 +1069,12 @@ const handlers = {
         .eq("community_id", auth.community.id)
         .eq("status", "active")
         .order("created_at", { ascending: true }),
-      db.from("communities").select("approval_mode").eq("id", auth.community.id).maybeSingle()
+      db.from("communities").select("approval_mode,created_by").eq("id", auth.community.id).maybeSingle()
     ]);
+
+    const memberList = (members ?? []).map((m: any) => ({ id: m.id, alias: m.alias, role: m.community_user_roles?.[0]?.role ?? "member" }));
+    // Owner = created_by; si falta (clubs antiguos), el admin más antiguo (members van por created_at asc).
+    const ownerId = (commRes.data?.created_by as string) ?? memberList.find((m) => m.role === "admin")?.id ?? null;
 
     return json(200, {
       community: {
@@ -1077,9 +1083,10 @@ const handlers = {
         description: auth.community.description ?? "",
         rulesText: auth.community.rules_text ?? "",
         invite_policy: auth.community.invite_policy,
-        approval_mode: (commRes.data?.approval_mode as string) ?? "majority"
+        approval_mode: (commRes.data?.approval_mode as string) ?? "majority",
+        ownerId
       },
-      members: (members ?? []).map((m: any) => ({ id: m.id, alias: m.alias, role: m.community_user_roles?.[0]?.role ?? "member" }))
+      members: memberList
     });
   },
 

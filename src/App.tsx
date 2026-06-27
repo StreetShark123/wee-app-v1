@@ -40,6 +40,7 @@ const AppRoutes = () => {
     selectedCommunity,
     communityRulesText,
     communityMembers,
+    communityOwnerId,
     preferences,
     loading,
     backendError,
@@ -635,12 +636,16 @@ const AppRoutes = () => {
                   activeUser={activeUser as NonNullable<typeof activeUser>}
                   selectedCommunity={selectedCommunity}
                   members={communityMembers}
+                  ownerId={communityOwnerId}
                   communities={myCommunities}
                   rulesText={communityRulesText}
                   onUpdateCommunity={updateCommunityDetails}
                   onCreateInvite={createCommunityInvite}
                   onSwitchCommunity={setCommunityAsActive}
                   onLeaveCommunity={leaveCurrentCommunity}
+                  onSetUserRole={onAdminSetUserRole}
+                  onDeleteUser={onAdminDeleteUser}
+                  onRefreshMembers={loadCommunityOverview}
                   onLogout={logoutGlobal}
                   onOpenShareModal={() => setShareModalOpen(true)}
                   onToast={showToast}

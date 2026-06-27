@@ -132,6 +132,7 @@ export const useAppData = () => {
   );
   const [communityRulesText, setCommunityRulesText] = useState("");
   const [communityMembers, setCommunityMembers] = useState<Array<{ id: string; alias: string; role: "admin" | "member" }>>([]);
+  const [communityOwnerId, setCommunityOwnerId] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [loading, setLoading] = useState(true);
   const [backendError, setBackendError] = useState<string | null>(null);
@@ -399,6 +400,7 @@ export const useAppData = () => {
     const data = await loadCommunityMeta();
     setCommunityRulesText(data.community.rulesText ?? "");
     setCommunityMembers(data.members);
+    setCommunityOwnerId(data.community.ownerId ?? null);
     if (data.community.id && data.community.name) {
       const selected: CommunitySelection = {
         id: data.community.id,
@@ -749,6 +751,7 @@ export const useAppData = () => {
     selectedCommunity,
     communityRulesText,
     communityMembers,
+    communityOwnerId,
     loading,
     backendError,
     preferences,
