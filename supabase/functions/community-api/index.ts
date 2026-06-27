@@ -193,6 +193,112 @@ const rowToCommunityUser = (row: Record<string, any>): Record<string, any> => ({
   createdAt: toMillis(row.created_at)
 });
 
+const rowToBook = (row: Record<string, any>): Record<string, any> => ({
+  id: row.id,
+  communityId: row.community_id,
+  addedBy: row.added_by ?? undefined,
+  isbn: row.isbn ?? undefined,
+  title: row.title,
+  author: row.author ?? undefined,
+  coverUrl: row.cover_url ?? undefined,
+  description: row.description ?? undefined,
+  publishedYear: row.published_year ?? undefined,
+  pageCount: row.page_count ?? undefined,
+  totalChapters: row.total_chapters ?? undefined,
+  source: row.source ?? "manual",
+  manuallyEdited: Boolean(row.manually_edited),
+  status: row.status ?? "proposed",
+  featured: row.featured ?? undefined,
+  createdAt: toMillis(row.created_at)
+});
+
+const rowToMemberBook = (row: Record<string, any>): Record<string, any> => ({
+  bookId: row.book_id,
+  userId: row.user_id,
+  shelf: row.shelf ?? "reading",
+  chaptersDone: Number(row.chapters_done ?? 0),
+  rating: row.rating ?? undefined,
+  review: row.review ?? undefined,
+  finishedAt: row.finished_at ? toMillis(row.finished_at) : undefined,
+  updatedAt: toMillis(row.updated_at)
+});
+
+// Mapa id→alias de los miembros activos del club (para resolver autores de
+// comentarios y progreso sin múltiples joins).
+const clubUserAliasMap = async (communityId: string): Promise<Map<string, string>> => {
+  const res = await db
+    .from("community_users")
+    .select("id,alias")
+    .eq("community_id", communityId)
+    .eq("status", "active");
+  return new Map((res.data ?? []).map((row: Record<string, any>) => [row.id as string, (row.alias as string) ?? "—"]));
+};
+
+// Recalcula books.status a partir del progreso del club:
+//   'finished' si TODOS los miembros activos terminaron (y hay ≥1 miembro);
+//   'reading'  si hay algún progreso; 'proposed' si nadie ha empezado.
+const recomputeBookStatus = async (communityId: string, bookId: string): Promise<string> => {
+  const [activeRes, memberRes] = await Promise.all([
+    db
+      .from("community_users")
+      .select("id", { count: "exact", head: true })
+      .eq("community_id", communityId)
+      .eq("status", "active"),
+    db
+      .from("member_books")
+      .select("user_id,shelf,chapters_done")
+      .eq("community_id", communityId)
+      .eq("book_id", bookId)
+  ]);
+  const activeCount = activeRes.count ?? 0;
+  const members = memberRes.data ?? [];
+  const finishedCount = members.filter((m: Record<string, any>) => m.shelf === "finished").length;
+  const anyProgress = members.some(
+    (m: Record<string, any>) => m.shelf === "finished" || m.shelf === "reading" || Number(m.chapters_done ?? 0) > 0
+  );
+  const status =
+    activeCount > 0 && finishedCount >= activeCount ? "finished" : anyProgress ? "reading" : "proposed";
+  await db.from("books").update({ status }).eq("community_id", communityId).eq("id", bookId);
+  return status;
+};
+
+// Recalcula member_books de un usuario a partir de sus checkmarks de capítulo.
+const recomputeMemberFromChapters = async (
+  communityId: string,
+  bookId: string,
+  userId: string
+): Promise<Record<string, any>> => {
+  const [totalRes, doneRes] = await Promise.all([
+    db.from("book_chapters").select("id", { count: "exact", head: true }).eq("community_id", communityId).eq("book_id", bookId),
+    db
+      .from("chapter_completions")
+      .select("chapter_id", { count: "exact", head: true })
+      .eq("community_id", communityId)
+      .eq("book_id", bookId)
+      .eq("user_id", userId)
+  ]);
+  const total = totalRes.count ?? 0;
+  const done = doneRes.count ?? 0;
+  const shelf = total > 0 && done >= total ? "finished" : done > 0 ? "reading" : "want";
+  const upsert = await db
+    .from("member_books")
+    .upsert(
+      {
+        community_id: communityId,
+        book_id: bookId,
+        user_id: userId,
+        shelf,
+        chapters_done: done,
+        finished_at: shelf === "finished" ? nowIso() : null,
+        updated_at: nowIso()
+      },
+      { onConflict: "community_id,book_id,user_id" }
+    )
+    .select("*")
+    .single();
+  return upsert.data ?? {};
+};
+
 const buildPostFromRows = (
   row: Record<string, any>,
   comments: Record<string, any>[],
@@ -1483,6 +1589,509 @@ const handlers = {
       .single();
     if (readError) return json(500, { message: readError.message });
     return json(200, { user: rowToCommunityUser(updated as Record<string, any>) });
+  },
+
+  // ───────────────────────────── Club de lectura: libros ─────────────────────────
+  "/books/list": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const [booksRes, memberRes] = await Promise.all([
+      db
+        .from("books")
+        .select("*")
+        .eq("community_id", auth.community.id)
+        .order("created_at", { ascending: false }),
+      db
+        .from("member_books")
+        .select("*")
+        .eq("community_id", auth.community.id)
+        .eq("user_id", auth.user.id)
+    ]);
+    if (booksRes.error) return json(500, { message: booksRes.error.message });
+    if (memberRes.error) return json(500, { message: memberRes.error.message });
+    return json(200, {
+      books: (booksRes.data ?? []).map((row) => rowToBook(row as Record<string, any>)),
+      memberBooks: (memberRes.data ?? []).map((row) => rowToMemberBook(row as Record<string, any>))
+    });
+  },
+
+  "/books/create": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const b = (body.book ?? {}) as Record<string, any>;
+    const title = String(b.title ?? "").trim().slice(0, 300);
+    if (!title) return bad("title required");
+    const source = ["google_books", "open_library", "manual"].includes(b.source) ? b.source : "manual";
+    const row = {
+      community_id: auth.community.id,
+      added_by: auth.user.id,
+      isbn: b.isbn ? String(b.isbn).trim().slice(0, 32) : null,
+      title,
+      author: b.author ? String(b.author).trim().slice(0, 200) : null,
+      cover_url: b.coverUrl ? String(b.coverUrl).trim() : null,
+      description: b.description ? String(b.description).trim().slice(0, 4000) : null,
+      published_year: Number.isFinite(Number(b.publishedYear)) ? Number(b.publishedYear) : null,
+      page_count: Number.isFinite(Number(b.pageCount)) ? Number(b.pageCount) : null,
+      total_chapters: Number.isFinite(Number(b.totalChapters)) ? Number(b.totalChapters) : null,
+      source,
+      manually_edited: Boolean(b.manuallyEdited),
+      status: "proposed"
+    };
+    const ins = await db.from("books").insert(row).select("*").single();
+    if (ins.error) {
+      if (ins.error.message.toLowerCase().includes("duplicate")) {
+        return json(409, { message: "BOOK_ALREADY_IN_CLUB" });
+      }
+      return json(400, { message: ins.error.message });
+    }
+    return json(200, { book: rowToBook(ins.data as Record<string, any>) });
+  },
+
+  "/books/get": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    if (!bookId) return bad("book_id required");
+
+    const bookRes = await db
+      .from("books")
+      .select("*")
+      .eq("community_id", auth.community.id)
+      .eq("id", bookId)
+      .maybeSingle();
+    if (bookRes.error) return json(500, { message: bookRes.error.message });
+    if (!bookRes.data) return json(404, { message: "Book not found" });
+
+    const [commentsRes, membersRes, chaptersRes, completionsRes, notesRes, aliasMap] = await Promise.all([
+      db
+        .from("book_comments")
+        .select("id,user_id,text,created_at")
+        .eq("community_id", auth.community.id)
+        .eq("book_id", bookId)
+        .order("created_at", { ascending: true }),
+      db
+        .from("member_books")
+        .select("*")
+        .eq("community_id", auth.community.id)
+        .eq("book_id", bookId),
+      db
+        .from("book_chapters")
+        .select("id,idx,title")
+        .eq("community_id", auth.community.id)
+        .eq("book_id", bookId)
+        .order("idx", { ascending: true }),
+      db
+        .from("chapter_completions")
+        .select("chapter_id,user_id")
+        .eq("community_id", auth.community.id)
+        .eq("book_id", bookId),
+      db
+        .from("chapter_notes")
+        .select("id,chapter_id,user_id,kind,text,created_at")
+        .eq("community_id", auth.community.id)
+        .eq("book_id", bookId)
+        .order("created_at", { ascending: true }),
+      clubUserAliasMap(auth.community.id)
+    ]);
+    if (commentsRes.error) return json(500, { message: commentsRes.error.message });
+    if (membersRes.error) return json(500, { message: membersRes.error.message });
+    if (chaptersRes.error) return json(500, { message: chaptersRes.error.message });
+    if (completionsRes.error) return json(500, { message: completionsRes.error.message });
+    if (notesRes.error) return json(500, { message: notesRes.error.message });
+
+    const members = (membersRes.data ?? []).map((row: Record<string, any>) => ({
+      ...rowToMemberBook(row),
+      alias: aliasMap.get(row.user_id) ?? "—"
+    }));
+
+    const completions = completionsRes.data ?? [];
+    const countByChapter: Record<string, number> = {};
+    const mineSet = new Set<string>();
+    completions.forEach((row: Record<string, any>) => {
+      countByChapter[row.chapter_id] = (countByChapter[row.chapter_id] ?? 0) + 1;
+      if (row.user_id === auth.user.id) mineSet.add(row.chapter_id);
+    });
+    const notesByChapter: Record<string, any[]> = {};
+    (notesRes.data ?? []).forEach((row: Record<string, any>) => {
+      (notesByChapter[row.chapter_id] = notesByChapter[row.chapter_id] ?? []).push({
+        id: row.id,
+        userId: row.user_id ?? undefined,
+        alias: aliasMap.get(row.user_id) ?? "—",
+        kind: row.kind ?? "note",
+        text: row.text,
+        createdAt: toMillis(row.created_at)
+      });
+    });
+    const chapters = (chaptersRes.data ?? []).map((row: Record<string, any>) => ({
+      id: row.id,
+      idx: row.idx,
+      title: row.title,
+      doneByMe: mineSet.has(row.id),
+      completedCount: countByChapter[row.id] ?? 0,
+      notes: notesByChapter[row.id] ?? []
+    }));
+
+    return json(200, {
+      book: rowToBook(bookRes.data as Record<string, any>),
+      comments: (commentsRes.data ?? []).map((row: Record<string, any>) => ({
+        id: row.id,
+        userId: row.user_id,
+        alias: aliasMap.get(row.user_id) ?? "—",
+        text: row.text,
+        createdAt: toMillis(row.created_at)
+      })),
+      members,
+      myMember: members.find((m: Record<string, any>) => m.userId === auth.user.id) ?? null,
+      chapters
+    });
+  },
+
+  "/books/comment": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    const text = String(body.text ?? "").trim().slice(0, 2000);
+    if (!bookId) return bad("book_id required");
+    if (!text) return bad("text required");
+
+    const bookRes = await db
+      .from("books")
+      .select("id")
+      .eq("community_id", auth.community.id)
+      .eq("id", bookId)
+      .maybeSingle();
+    if (bookRes.error || !bookRes.data) return json(404, { message: "Book not found" });
+
+    const ins = await db
+      .from("book_comments")
+      .insert({ community_id: auth.community.id, book_id: bookId, user_id: auth.user.id, text })
+      .select("id,user_id,text,created_at")
+      .single();
+    if (ins.error) return json(400, { message: ins.error.message });
+    return json(200, {
+      comment: {
+        id: ins.data.id,
+        userId: ins.data.user_id,
+        alias: auth.user.alias,
+        text: ins.data.text,
+        createdAt: toMillis(ins.data.created_at)
+      }
+    });
+  },
+
+  "/books/progress": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    if (!bookId) return bad("book_id required");
+
+    const bookRes = await db
+      .from("books")
+      .select("id,total_chapters")
+      .eq("community_id", auth.community.id)
+      .eq("id", bookId)
+      .maybeSingle();
+    if (bookRes.error || !bookRes.data) return json(404, { message: "Book not found" });
+
+    const total = bookRes.data.total_chapters as number | null;
+    let chaptersDone = Math.max(0, Math.floor(Number(body.chapters_done ?? 0)) || 0);
+    if (total && chaptersDone > total) chaptersDone = total;
+    // El estante deriva del progreso salvo que se pase explícito.
+    const finished = total ? chaptersDone >= total : false;
+    const shelf = ["want", "reading", "finished"].includes(body.shelf)
+      ? body.shelf
+      : finished
+        ? "finished"
+        : chaptersDone > 0
+          ? "reading"
+          : "want";
+
+    const upsert = await db
+      .from("member_books")
+      .upsert(
+        {
+          community_id: auth.community.id,
+          book_id: bookId,
+          user_id: auth.user.id,
+          shelf,
+          chapters_done: chaptersDone,
+          finished_at: shelf === "finished" ? nowIso() : null,
+          updated_at: nowIso()
+        },
+        { onConflict: "community_id,book_id,user_id" }
+      )
+      .select("*")
+      .single();
+    if (upsert.error) return json(400, { message: upsert.error.message });
+
+    const status = await recomputeBookStatus(auth.community.id, bookId);
+    return json(200, { myMember: rowToMemberBook(upsert.data as Record<string, any>), bookStatus: status });
+  },
+
+  "/books/finish": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    if (!bookId) return bad("book_id required");
+    const rating = body.rating === undefined || body.rating === null ? null : Math.max(1, Math.min(5, Math.floor(Number(body.rating))));
+    const review = body.review ? String(body.review).trim().slice(0, 4000) : null;
+
+    const bookRes = await db
+      .from("books")
+      .select("id,total_chapters")
+      .eq("community_id", auth.community.id)
+      .eq("id", bookId)
+      .maybeSingle();
+    if (bookRes.error || !bookRes.data) return json(404, { message: "Book not found" });
+    const total = bookRes.data.total_chapters as number | null;
+
+    const upsert = await db
+      .from("member_books")
+      .upsert(
+        {
+          community_id: auth.community.id,
+          book_id: bookId,
+          user_id: auth.user.id,
+          shelf: "finished",
+          chapters_done: total ?? 0,
+          rating,
+          review,
+          finished_at: nowIso(),
+          updated_at: nowIso()
+        },
+        { onConflict: "community_id,book_id,user_id" }
+      )
+      .select("*")
+      .single();
+    if (upsert.error) return json(400, { message: upsert.error.message });
+
+    const status = await recomputeBookStatus(auth.community.id, bookId);
+    return json(200, { myMember: rowToMemberBook(upsert.data as Record<string, any>), bookStatus: status });
+  },
+
+  "/books/set_chapters": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    if (!bookId) return bad("book_id required");
+    const totalChapters = Number.isFinite(Number(body.total_chapters)) ? Math.max(0, Math.floor(Number(body.total_chapters))) : null;
+
+    const bookRes = await db
+      .from("books")
+      .select("id,added_by")
+      .eq("community_id", auth.community.id)
+      .eq("id", bookId)
+      .maybeSingle();
+    if (bookRes.error || !bookRes.data) return json(404, { message: "Book not found" });
+    if (bookRes.data.added_by !== auth.user.id && auth.role !== "admin") {
+      return json(403, { message: "Only the member who added the book (or an admin) can set chapters" });
+    }
+
+    const upd = await db
+      .from("books")
+      .update({ total_chapters: totalChapters })
+      .eq("community_id", auth.community.id)
+      .eq("id", bookId)
+      .select("*")
+      .single();
+    if (upd.error) return json(400, { message: upd.error.message });
+    return json(200, { book: rowToBook(upd.data as Record<string, any>) });
+  },
+
+  // Define la lista de capítulos con nombre (reemplaza la existente). Resetea el progreso.
+  "/chapters/set": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    if (!bookId) return bad("book_id required");
+    const titles = (Array.isArray(body.chapters) ? body.chapters : [])
+      .map((t: unknown) => String(t ?? "").trim().slice(0, 280))
+      .filter((t: string) => t.length > 0)
+      .slice(0, 400);
+    if (titles.length === 0) return bad("chapters required");
+
+    const bookRes = await db
+      .from("books")
+      .select("id,added_by")
+      .eq("community_id", auth.community.id)
+      .eq("id", bookId)
+      .maybeSingle();
+    if (bookRes.error || !bookRes.data) return json(404, { message: "Book not found" });
+    if (bookRes.data.added_by !== auth.user.id && auth.role !== "admin") {
+      return json(403, { message: "Only the member who added the book (or an admin) can set chapters" });
+    }
+
+    // Reemplazo limpio: borra capítulos (cascada a completions/notes) y recrea.
+    await db.from("book_chapters").delete().eq("community_id", auth.community.id).eq("book_id", bookId);
+    const rows = titles.map((title: string, idx: number) => ({
+      community_id: auth.community.id,
+      book_id: bookId,
+      idx,
+      title
+    }));
+    const ins = await db.from("book_chapters").insert(rows).select("id,idx,title");
+    if (ins.error) return json(400, { message: ins.error.message });
+
+    await db.from("books").update({ total_chapters: titles.length }).eq("community_id", auth.community.id).eq("id", bookId);
+    // Reset de progreso (las completions se borraron en cascada).
+    await db
+      .from("member_books")
+      .update({ chapters_done: 0, shelf: "want", finished_at: null, updated_at: nowIso() })
+      .eq("community_id", auth.community.id)
+      .eq("book_id", bookId);
+    const status = await recomputeBookStatus(auth.community.id, bookId);
+
+    return json(200, {
+      chapters: (ins.data ?? []).map((row: Record<string, any>) => ({
+        id: row.id,
+        idx: row.idx,
+        title: row.title,
+        doneByMe: false,
+        completedCount: 0,
+        notes: []
+      })),
+      bookStatus: status
+    });
+  },
+
+  // Marca/desmarca un capítulo como completado por el usuario actual.
+  "/chapters/toggle": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const chapterId = String(body.chapter_id ?? "").trim();
+    if (!chapterId) return bad("chapter_id required");
+    const done = Boolean(body.done);
+
+    const chapterRes = await db
+      .from("book_chapters")
+      .select("id,book_id")
+      .eq("community_id", auth.community.id)
+      .eq("id", chapterId)
+      .maybeSingle();
+    if (chapterRes.error || !chapterRes.data) return json(404, { message: "Chapter not found" });
+    const bookId = chapterRes.data.book_id as string;
+
+    if (done) {
+      const up = await db.from("chapter_completions").upsert(
+        {
+          community_id: auth.community.id,
+          book_id: bookId,
+          chapter_id: chapterId,
+          user_id: auth.user.id,
+          completed_at: nowIso()
+        },
+        { onConflict: "chapter_id,user_id" }
+      );
+      if (up.error) return json(400, { message: up.error.message });
+    } else {
+      const del = await db
+        .from("chapter_completions")
+        .delete()
+        .eq("chapter_id", chapterId)
+        .eq("user_id", auth.user.id);
+      if (del.error) return json(400, { message: del.error.message });
+    }
+
+    const member = await recomputeMemberFromChapters(auth.community.id, bookId, auth.user.id);
+    const status = await recomputeBookStatus(auth.community.id, bookId);
+    return json(200, {
+      chapterId,
+      done,
+      myMember: rowToMemberBook(member),
+      bookStatus: status
+    });
+  },
+
+  // Añade una anotación (nota o referencia) a un capítulo.
+  "/chapters/note/add": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const chapterId = String(body.chapter_id ?? "").trim();
+    const text = String(body.text ?? "").trim().slice(0, 4000);
+    if (!chapterId) return bad("chapter_id required");
+    if (!text) return bad("text required");
+    const kind = body.kind === "reference" ? "reference" : "note";
+
+    const chapterRes = await db
+      .from("book_chapters")
+      .select("id,book_id")
+      .eq("community_id", auth.community.id)
+      .eq("id", chapterId)
+      .maybeSingle();
+    if (chapterRes.error || !chapterRes.data) return json(404, { message: "Chapter not found" });
+
+    const ins = await db
+      .from("chapter_notes")
+      .insert({
+        community_id: auth.community.id,
+        book_id: chapterRes.data.book_id,
+        chapter_id: chapterId,
+        user_id: auth.user.id,
+        kind,
+        text
+      })
+      .select("id,chapter_id,user_id,kind,text,created_at")
+      .single();
+    if (ins.error) return json(400, { message: ins.error.message });
+    return json(200, {
+      note: {
+        id: ins.data.id,
+        chapterId: ins.data.chapter_id,
+        userId: ins.data.user_id ?? undefined,
+        alias: auth.user.alias,
+        kind: ins.data.kind ?? "note",
+        text: ins.data.text,
+        createdAt: toMillis(ins.data.created_at)
+      }
+    });
+  },
+
+  // Marca/quita el libro destacado de lectura del club (admin). Solo uno por color.
+  "/books/feature": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const denied = ensureAdmin(auth.role);
+    if (denied) return denied;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    if (!bookId) return bad("book_id required");
+    const featured = body.featured === "gold" || body.featured === "silver" ? body.featured : null;
+
+    const bookRes = await db
+      .from("books")
+      .select("id")
+      .eq("community_id", auth.community.id)
+      .eq("id", bookId)
+      .maybeSingle();
+    if (bookRes.error || !bookRes.data) return json(404, { message: "Book not found" });
+
+    if (featured) {
+      // Libera ese color de cualquier otro libro del club (índice único parcial).
+      await db
+        .from("books")
+        .update({ featured: null })
+        .eq("community_id", auth.community.id)
+        .eq("featured", featured)
+        .neq("id", bookId);
+    }
+    const upd = await db
+      .from("books")
+      .update({ featured })
+      .eq("community_id", auth.community.id)
+      .eq("id", bookId)
+      .select("*")
+      .single();
+    if (upd.error) return json(400, { message: upd.error.message });
+    return json(200, { book: rowToBook(upd.data as Record<string, any>) });
   }
 } as const;
 

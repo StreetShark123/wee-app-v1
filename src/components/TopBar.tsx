@@ -61,17 +61,17 @@ const TopBarInner = ({ user, communityName, onLeaveCommunity, searchValue, onSea
         </span>
           <span className="brand-copy">
           <span className="brand-text">Wee</span>
-          <span className="brand-tag">{communityLabel ? `${communityLabel}` : pick(language, "tu comunidad", "your community", "a túa comunidade")}</span>
+          <span className="brand-tag">{communityLabel ? `${communityLabel}` : pick(language, "tu club", "your community", "a túa comunidade")}</span>
         </span>
       </Link>
 
       {onSearchChange ? (
-        <label className="topbar-search" aria-label={pick(language, "Buscar por tema o palabra", "Search by topic or keyword", "Buscar por tema ou palabra")}>
+        <label className="topbar-search" aria-label={pick(language, "Buscar por libro, autor o tema", "Search by topic or keyword", "Buscar por tema ou palabra")}>
           <Icon name="search" size={14} />
           <input
             value={searchValue ?? ""}
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder={pick(language, "Busca tema, palabra o fuente...", "Search topic, keyword or source...", "Busca tema, palabra ou fonte...")}
+            placeholder={pick(language, "Busca libro, autor o tema...", "Search topic, keyword or source...", "Busca tema, palabra ou fonte...")}
           />
         </label>
       ) : null}
@@ -79,11 +79,11 @@ const TopBarInner = ({ user, communityName, onLeaveCommunity, searchValue, onSea
       <div className="topbar-right">
         {onOpenShare ? (
           <button type="button" className="btn btn-primary" onClick={onOpenShare}>
-            <Icon name="plus" size={14} /> {pick(language, "Compartir link", "Share link", "Compartir ligazón")}
+            <Icon name="plus" size={14} /> {pick(language, "Recomendar libro", "Share link", "Compartir ligazón")}
           </button>
         ) : (
           <Link to="/share" className="btn btn-primary">
-            <Icon name="plus" size={14} /> {pick(language, "Compartir link", "Share link", "Compartir ligazón")}
+            <Icon name="plus" size={14} /> {pick(language, "Recomendar libro", "Share link", "Compartir ligazón")}
           </Link>
         )}
 
@@ -115,7 +115,7 @@ const TopBarInner = ({ user, communityName, onLeaveCommunity, searchValue, onSea
                 <Icon name="user" size={13} /> {pick(language, "Perfil", "Profile", "Perfil")}
               </Link>
               <Link to="/community" role="menuitem" className="user-menu-item" onClick={() => setProfileOpen(false)}>
-                <Icon name="users" size={13} /> {pick(language, "Comunidad", "Community", "Comunidade")}
+                <Icon name="users" size={13} /> {pick(language, "Club", "Community", "Comunidade")}
               </Link>
               <Link
                 to={`/profile/${user.id}/posts`}
@@ -123,7 +123,7 @@ const TopBarInner = ({ user, communityName, onLeaveCommunity, searchValue, onSea
                 className="user-menu-item"
                 onClick={() => setProfileOpen(false)}
               >
-                <Icon name="news" size={13} /> {pick(language, "Mis publicaciones", "My posts", "As miñas publicacións")}
+                <Icon name="news" size={13} /> {pick(language, "Mis libros", "My posts", "As miñas publicacións")}
               </Link>
               <Link to="/settings" role="menuitem" className="user-menu-item" onClick={() => setProfileOpen(false)}>
                 <Icon name="settings" size={13} /> {pick(language, "Ajustes", "Settings", "Axustes")}
@@ -138,7 +138,7 @@ const TopBarInner = ({ user, communityName, onLeaveCommunity, searchValue, onSea
                     onLeaveCommunity();
                   }}
                 >
-                  <Icon name="logout" size={13} /> {pick(language, "Salir de la comunidad", "Leave community", "Saír da comunidade")}
+                  <Icon name="logout" size={13} /> {pick(language, "Salir del club", "Leave community", "Saír da comunidade")}
                 </button>
               ) : null}
               {onLogout ? (

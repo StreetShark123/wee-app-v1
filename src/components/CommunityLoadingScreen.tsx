@@ -23,20 +23,20 @@ export const CommunityLoadingScreen = ({
 
   const tips = useMemo(() => {
     const featuredTopic = topics[0];
-    const communityLabel = communityName ?? pick(language, "tu comunidad", "your community", "a túa comunidade");
+    const communityLabel = communityName ?? pick(language, "tu club", "your community", "a túa comunidade");
     const peopleLabel =
       usersCount > 0
         ? pick(
             language,
-            `${usersCount} personas ya están calentando el hilo.`,
+            `${usersCount} personas ya están calentando el debate.`,
             `${usersCount} people are already warming up the thread.`,
             `${usersCount} persoas xa están quentando o fío.`
           )
-        : pick(language, "Hoy toca abrir buen hilo.", "Time to open a good thread.", "Hoxe toca abrir bo fío.");
+        : pick(language, "Hoy toca abrir buen debate.", "Time to open a good thread.", "Hoxe toca abrir bo fío.");
     return [
       pick(
         language,
-        `Poniendo a punto el feed de ${communityLabel}...`,
+        `Poniendo a punto las lecturas de ${communityLabel}...`,
         `Tuning ${communityLabel}'s feed...`,
         `Poñendo a punto o feed de ${communityLabel}...`
       ),
@@ -56,13 +56,13 @@ export const CommunityLoadingScreen = ({
       peopleLabel,
       pick(
         language,
-        "Quitando ruido y dejando lo útil para el grupo.",
+        "Quitando ruido y dejando las buenas lecturas para el club.",
         "Cutting noise and keeping what helps the group.",
         "Quitando ruído e deixando o útil para o grupo."
       ),
       pick(
         language,
-        "Preparando tu sala para compartir y comentar sin perder el hilo.",
+        "Preparando tu sala para compartir libros y debatir sin perder el hilo.",
         "Getting your room ready to share and comment without losing the thread.",
         "Preparando a túa sala para compartir e comentar sen perder o fío."
       )
@@ -95,8 +95,8 @@ export const CommunityLoadingScreen = ({
             <Icon name="spiral" size={18} />
           </span>
         </div>
-        <h2>{pick(language, "Montando tu home", "Building your home", "Montando a túa home")}</h2>
-        <p className="hint">{pick(language, "Un segundo y te acompañamos al hilo.", "One sec and we’ll walk you into the thread.", "Un segundo e acompañámoste ao fío.")}</p>
+        <h2>{pick(language, "Montando tu club", "Building your home", "Montando a túa home")}</h2>
+        <p className="hint">{pick(language, "Un segundo y te acompañamos al debate.", "One sec and we’ll walk you into the thread.", "Un segundo e acompañámoste ao fío.")}</p>
         <AnimatePresence mode="wait">
           <motion.p
             key={`${tipIndex}-${currentTip}`}

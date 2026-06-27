@@ -24,7 +24,7 @@ export const SharePage = ({ activeUser, onShareUrl, getDuplicatePreview, onToast
     event.preventDefault();
     if (submitting) return;
     if (!url.trim()) {
-      onToast(pick(language, "Pega un link para compartir.", "Paste a link to share.", "Pega unha ligazón para compartir."));
+      onToast(pick(language, "Pega el enlace de un libro o lectura para compartir.", "Paste a link to share.", "Pega unha ligazón para compartir."));
       return;
     }
     setSubmitting(true);
@@ -36,7 +36,7 @@ export const SharePage = ({ activeUser, onShareUrl, getDuplicatePreview, onToast
       onToast(
         err instanceof Error
           ? err.message
-          : pick(language, "Ups, no pudimos publicar ahora. Prueba otra vez.", "Oops, we couldn't publish right now. Try again.", "Ups, non puidemos publicar agora. Proba outra vez.")
+          : pick(language, "Ups, no pudimos añadirlo al club ahora. Prueba otra vez.", "Oops, we couldn't publish right now. Try again.", "Ups, non puidemos publicar agora. Proba outra vez.")
       );
     } finally {
       setSubmitting(false);
@@ -47,12 +47,12 @@ export const SharePage = ({ activeUser, onShareUrl, getDuplicatePreview, onToast
     <main>
       <TopBar user={activeUser} onLogout={onLogout} />
       <section className="page-section narrow">
-        <h2>{pick(language, "Comparte un link", "Share a link", "Comparte unha ligazón")}</h2>
-        <p className="section-intro">{pick(language, "Pega el link y ya está. Wee lo ordena por tema y evita duplicados.", "Paste the link and done. Wee sorts it by topic and avoids duplicates.", "Pega a ligazón e listo. Wee ordénao por tema e evita duplicados.")}</p>
+        <h2>{pick(language, "Recomienda un libro", "Share a link", "Comparte unha ligazón")}</h2>
+        <p className="section-intro">{pick(language, "Pega el enlace del libro y ya está. Wee lo ordena por tema y evita duplicados.", "Paste the link and done. Wee sorts it by topic and avoids duplicates.", "Pega a ligazón e listo. Wee ordénao por tema e evita duplicados.")}</p>
         <ol className="share-steps">
-          <li>{pick(language, "Pega la URL", "Paste the URL", "Pega a URL")}</li>
-          <li>{pick(language, "Mira si ya está en la comunidad", "Check if it's already in the community", "Mira se xa está na comunidade")}</li>
-          <li>{pick(language, "Publícalo para abrir o reforzar el hilo", "Post it to open or reinforce the thread", "Publícao para abrir ou reforzar o fío")}</li>
+          <li>{pick(language, "Pega el enlace del libro o la lectura (ficha, reseña, artículo)", "Paste the URL", "Pega a URL")}</li>
+          <li>{pick(language, "Mira si ya está en el club", "Check if it's already in the community", "Mira se xa está na comunidade")}</li>
+          <li>{pick(language, "Añádelo para abrir o reforzar el debate", "Post it to open or reinforce the thread", "Publícao para abrir ou reforzar o fío")}</li>
         </ol>
         <form className="stack" onSubmit={submit}>
           <label className="form-field">
@@ -72,11 +72,11 @@ export const SharePage = ({ activeUser, onShareUrl, getDuplicatePreview, onToast
               {duplicateState.sameUser
                 ? pick(
                     language,
-                    `Ese link ya lo compartiste. Va al mismo hilo para no liarla: ${duplicateState.contributors} colaboradores · ${duplicateState.totalShares} envíos.`,
+                    `Ese libro ya lo recomendaste. Va al mismo hilo para no liarla: ${duplicateState.contributors} colaboradores · ${duplicateState.totalShares} envíos.`,
                     `You've already shared this link. We'll keep it in the same thread: ${duplicateState.contributors} contributors · ${duplicateState.totalShares} shares.`,
                     `Esa ligazón xa a compartiches. Vai ao mesmo fío para non liarse: ${duplicateState.contributors} colaboradores · ${duplicateState.totalShares} envíos.`
                   )
-                : pick(language, `Ese link ya está en Wee: ${duplicateState.contributors} personas (${duplicateState.totalShares} envíos). Lo sumamos al mismo hilo.`, `This link is already in Wee: ${duplicateState.contributors} people (${duplicateState.totalShares} shares). We'll merge it into the same thread.`, `Esa ligazón xa está en Wee: ${duplicateState.contributors} persoas (${duplicateState.totalShares} envíos). Sumámola ao mesmo fío.`)}
+                : pick(language, `Ese libro ya está en Wee: ${duplicateState.contributors} personas (${duplicateState.totalShares} envíos). Lo sumamos al mismo hilo.`, `This link is already in Wee: ${duplicateState.contributors} people (${duplicateState.totalShares} shares). We'll merge it into the same thread.`, `Esa ligazón xa está en Wee: ${duplicateState.contributors} persoas (${duplicateState.totalShares} envíos). Sumámola ao mesmo fío.`)}
             </p>
           ) : null}
 
@@ -84,11 +84,11 @@ export const SharePage = ({ activeUser, onShareUrl, getDuplicatePreview, onToast
             <Icon name="link" />{" "}
             {submitting ? (
               <>
-                {pick(language, "Procesando noticia", "Processing post", "Procesando nova")}
+                {pick(language, "Añadiendo el libro", "Processing post", "Procesando nova")}
                 <span className="loading-dots" aria-hidden="true" />
               </>
             ) : (
-              pick(language, "Publicar en Wee", "Post on Wee", "Publicar en Wee")
+              pick(language, "Añadir al club", "Post on Wee", "Publicar en Wee")
             )}
           </button>
         </form>

@@ -8,10 +8,9 @@ interface AuthPageProps {
   mode: "login" | "signup";
   onLogin: (username: string, password: string) => Promise<void>;
   onRegister: (username: string, password: string, email?: string) => Promise<void>;
-  onChangeLanguage: (language: "es" | "en" | "gl") => void;
 }
 
-export const AuthPage = ({ mode, onLogin, onRegister, onChangeLanguage }: AuthPageProps) => {
+export const AuthPage = ({ mode, onLogin, onRegister }: AuthPageProps) => {
   const { language } = useI18n();
   const location = useLocation();
   const navigate = useNavigate();
@@ -25,9 +24,9 @@ export const AuthPage = ({ mode, onLogin, onRegister, onChangeLanguage }: AuthPa
   const appVersion = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? "alpha v1";
   const lastUpdated = (import.meta.env.VITE_LAST_UPDATED as string | undefined) ?? "05 Mar 2026";
   const heroClaims = [
-    pick(language, "Tu gente, tus temas, todo en orden", "Your people, your topics, all in one flow", "A túa xente, os teus temas, todo en orde"),
-    pick(language, "Comparte aquí primero y el hilo no se pierde", "Share here first and the thread stays clear", "Comparte aquí primeiro e o fío non se perde"),
-    pick(language, "Menos ruido, más contexto para decidir mejor", "Less noise, more context to decide better", "Menos ruído, máis contexto para decidir mellor")
+    pick(language, "Tu club, tus libros, todo en orden", "Your people, your topics, all in one flow", "A túa xente, os teus temas, todo en orde"),
+    pick(language, "Comparte lo que lees y el hilo no se pierde", "Share here first and the thread stays clear", "Comparte aquí primeiro e o fío non se perde"),
+    pick(language, "Menos ruido, más contexto para debatir mejor", "Less noise, more context to decide better", "Menos ruído, máis contexto para decidir mellor")
   ];
 
   useEffect(() => {
@@ -70,20 +69,6 @@ export const AuthPage = ({ mode, onLogin, onRegister, onChangeLanguage }: AuthPa
 
   return (
     <main className="auth-layout auth-layout-single">
-      <div className="auth-language-switch" role="group" aria-label={pick(language, "Idioma", "Language", "Idioma")}>
-        {(["gl", "es", "en"] as const).map((option) => (
-          <button
-            key={option}
-            type="button"
-            className={`auth-language-btn${language === option ? " active" : ""}`}
-            onClick={() => onChangeLanguage(option)}
-            aria-pressed={language === option}
-          >
-            {option.toUpperCase()}
-          </button>
-        ))}
-      </div>
-
       <section className="auth-card auth-card-main auth-card-access">
         <h1 className="auth-hero-title">
           <span className="auth-hero-brand">Wee</span>
@@ -102,7 +87,7 @@ export const AuthPage = ({ mode, onLogin, onRegister, onChangeLanguage }: AuthPa
             </AnimatePresence>
           </span>
         </h1>
-        <p className="hint">{pick(language, "Una sola cuenta para Wee. Entras, eliges comunidad y ya estás con tu gente.", "One account for all Wee. Log in, pick your community, and you are in with your people.", "Unha soa conta para Wee. Entras, escolles comunidade e xa estás coa túa xente.")}</p>
+        <p className="hint">{pick(language, "Una sola cuenta para Wee. Entras, eliges tu club de lectura y ya estás con tu gente.", "One account for all Wee. Log in, pick your community, and you are in with your people.", "Unha soa conta para Wee. Entras, escolles comunidade e xa estás coa túa xente.")}</p>
 
         <form className="stack" onSubmit={submit}>
           <label className="form-field">
@@ -151,7 +136,7 @@ export const AuthPage = ({ mode, onLogin, onRegister, onChangeLanguage }: AuthPa
           <p className="auth-next-step">
             {pick(
               language,
-              "Siguiente paso: eliges comunidad y entras directo al feed.",
+              "Siguiente paso: eliges tu club de lectura y entras directo a las lecturas.",
               "Next step: pick your community and go straight to feed.",
               "Seguinte paso: escolles comunidade e entras directo no feed."
             )}

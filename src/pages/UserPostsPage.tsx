@@ -63,7 +63,7 @@ export const UserPostsPage = ({
             <Avatar user={profileUser} size={74} />
             <div>
               <h2>{profileUser.alias}</h2>
-              <p>{pick(language, `${userPosts.length} noticias compartidas`, `${userPosts.length} shared posts`, `${userPosts.length} novas compartidas`)}</p>
+              <p>{pick(language, `${userPosts.length} libros recomendados`, `${userPosts.length} shared posts`, `${userPosts.length} novas compartidas`)}</p>
             </div>
           </div>
           <div className="profile-actions page-head-actions profile-top-links">
@@ -79,7 +79,7 @@ export const UserPostsPage = ({
         </div>
 
         <div className="tabs">
-          <button type="button" className={tab === "shared" ? "tab active" : "tab"} onClick={() => setTab("shared")}><Icon name="news" /> {pick(language, "Publicadas", "Shared", "Publicadas")}</button>
+          <button type="button" className={tab === "shared" ? "tab active" : "tab"} onClick={() => setTab("shared")}><Icon name="news" /> {pick(language, "Recomendados", "Shared", "Publicadas")}</button>
           <button type="button" className={tab === "interest" ? "tab active" : "tab"} onClick={() => setTab("interest")}><Icon name="heart" /> {pick(language, "Top Aura", "Top Aura", "Top Aura")}</button>
         </div>
 
@@ -93,17 +93,17 @@ export const UserPostsPage = ({
                 onOpenDetail={(entry) => navigate(`/post/${entry.id}`)}
                 canDelete={isOwnProfile || canAdminDelete}
                 onDelete={(postId) => {
-                  const shouldDelete = window.confirm(pick(language, "¿Quitar esta noticia de tu perfil?", "Remove this post from your profile?", "Quitar esta nova do teu perfil?"));
+                  const shouldDelete = window.confirm(pick(language, "¿Quitar este libro de tu perfil?", "Remove this post from your profile?", "Quitar esta nova do teu perfil?"));
                   if (!shouldDelete) return;
                   void onDeletePost(postId);
-                  onToast(pick(language, "Noticia eliminada.", "Post removed.", "Nova eliminada."));
+                  onToast(pick(language, "Libro eliminado.", "Post removed.", "Nova eliminada."));
                 }}
               />
             ))
           ) : (
             <article className="empty-state">
-              <h3>{pick(language, "No hay noticias en esta vista", "No posts in this view", "Non hai novas nesta vista")}</h3>
-              <p>{isOwnProfile ? pick(language, "Comparte un link y empiezas tu historial.", "Share a link and start your history.", "Comparte unha ligazón e comezas o teu historial.") : pick(language, "Este usuario todavía no publicó aquí.", "This user hasn't posted here yet.", "Este usuario aínda non publicou aquí.")}</p>
+              <h3>{pick(language, "No hay libros en esta vista", "No posts in this view", "Non hai novas nesta vista")}</h3>
+              <p>{isOwnProfile ? pick(language, "Recomienda un libro y empiezas tu historial.", "Share a link and start your history.", "Comparte unha ligazón e comezas o teu historial.") : pick(language, "Este usuario todavía no recomendó nada aquí.", "This user hasn't posted here yet.", "Este usuario aínda non publicou aquí.")}</p>
             </article>
           )}
         </div>

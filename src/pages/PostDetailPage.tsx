@@ -161,7 +161,7 @@ export const PostDetailPage = ({
       <main>
         <TopBar user={activeUser} onOpenShare={onOpenShareModal} onLogout={onLogout} />
         <section className="page-section narrow">
-          <h2>{pick(language, "No encontramos esta noticia", "We can't find this post", "Non atopamos esta nova")}</h2>
+          <h2>{pick(language, "No encontramos este libro", "We can't find this post", "Non atopamos esta nova")}</h2>
           <p className="hint">{pick(language, "Puede que se haya eliminado o fusionado con un duplicado.", "It may have been removed or merged as duplicate.", "Pode que se eliminase ou fusionase cun duplicado.")}</p>
           <Link to="/home" className="btn"><Icon name="arrowLeft" /> {pick(language, "Volver al inicio", "Back home", "Volver ao inicio")}</Link>
         </section>
@@ -204,7 +204,7 @@ export const PostDetailPage = ({
                       <input
                         value={manualTopic}
                         onChange={(event) => setManualTopic(event.target.value)}
-                        placeholder={pick(language, "Ejemplo: energia", "Example: energy", "Exemplo: enerxia")}
+                        placeholder={pick(language, "Ejemplo: novela negra", "Example: energy", "Exemplo: enerxia")}
                       />
                       <button
                         type="button"
@@ -322,14 +322,14 @@ export const PostDetailPage = ({
                               type="button"
                               className="btn"
                               onClick={async () => {
-                                const okDelete = window.confirm(pick(language, "¿Eliminar esta noticia?", "Delete this post?", "Eliminar esta nova?"));
+                                const okDelete = window.confirm(pick(language, "¿Eliminar este libro?", "Delete this post?", "Eliminar esta nova?"));
                                 if (!okDelete) return;
                                 const result = await onAdminDeletePost(current.id);
                                 onToast(result.message);
                                 if (result.ok) navigate("/home");
                               }}
                             >
-                              {pick(language, "Eliminar noticia", "Delete post", "Eliminar nova")}
+                              {pick(language, "Eliminar libro", "Delete post", "Eliminar nova")}
                             </button>
                           </div>
                         </div>
@@ -381,7 +381,7 @@ export const PostDetailPage = ({
                     ))}
                   </ul>
                 ) : (
-                  <p>{pick(language, "Sale de señales de la comunidad y del contexto del hilo.", "Based on community signals and thread context.", "Sae de sinais da comunidade e do contexto do fío.")}</p>
+                  <p>{pick(language, "Sale de señales del club y del contexto del hilo.", "Based on community signals and thread context.", "Sae de sinais da comunidade e do contexto do fío.")}</p>
                 )}
               </span>
             </span>
@@ -407,7 +407,7 @@ export const PostDetailPage = ({
             </div>
           ) : null}
 
-          {current.text ? <p className="post-text">{current.text}</p> : <p className="post-text">{pick(language, "No hay resumen disponible.", "No summary available.", "Non hai resumo dispoñible.")}</p>}
+          {current.text ? <p className="post-text">{current.text}</p> : <p className="post-text">{pick(language, "No hay sinopsis disponible.", "No summary available.", "Non hai resumo dispoñible.")}</p>}
           {!isAdmin ? (
             <div className="detail-actions">
               <input
@@ -453,8 +453,8 @@ export const PostDetailPage = ({
                     setShowSourceVoteHint(false);
                     onToast(
                       openedWindow
-                        ? pick(language, "Fuente abierta. Ya puedes valorar esta noticia.", "Source opened. You can now rate this post.", "Fonte aberta. Xa podes valorar esta nova.")
-                        : pick(language, "Si no se abrió la pestaña, revisa el bloqueador. Ya puedes valorar esta noticia.", "If no tab opened, check your popup blocker. You can now rate this post.", "Se non se abriu a pestana, revisa o bloqueador. Xa podes valorar esta nova.")
+                        ? pick(language, "Fuente abierta. Ya puedes valorar este libro.", "Source opened. You can now rate this post.", "Fonte aberta. Xa podes valorar esta nova.")
+                        : pick(language, "Si no se abrió la pestaña, revisa el bloqueador. Ya puedes valorar este libro.", "If no tab opened, check your popup blocker. You can now rate this post.", "Se non se abriu a pestana, revisa o bloqueador. Xa podes valorar esta nova.")
                     );
                   } catch {
                     onToast(
@@ -471,7 +471,7 @@ export const PostDetailPage = ({
               <Icon name="news" /> {pick(language, "Fuente", "Source", "Fonte")}
               </button>
             ) : (
-              <span className="hint">{pick(language, "Esta noticia no tiene URL externa.", "This post has no external URL.", "Esta nova non ten URL externa.")}</span>
+              <span className="hint">{pick(language, "Este libro no tiene enlace externo.", "This post has no external URL.", "Esta nova non ten URL externa.")}</span>
             )}
 
             <button
@@ -541,7 +541,7 @@ export const PostDetailPage = ({
               <Icon name="thumbDown" />
             </button>
           </div>
-          {showSourceVoteHint && !canRate && current.url ? <p className="warning">{pick(language, "Visita la fuente antes de votar esta noticia.", "Visit the source before rating this post.", "Visita a fonte antes de votar esta nova.")}</p> : null}
+          {showSourceVoteHint && !canRate && current.url ? <p className="warning">{pick(language, "Visita la fuente antes de votar este libro.", "Visit the source before rating this post.", "Visita a fonte antes de votar esta nova.")}</p> : null}
 
           <section className="detail-comments">
             <CommentsPanel
@@ -599,7 +599,7 @@ export const PostDetailPage = ({
                             ))}
                           </ul>
                         ) : (
-                          <p>{pick(language, "Basado en señales de la comunidad y contexto del hilo.", "Based on community signals and thread context.", "Baseado en sinais da comunidade e contexto do fío.")}</p>
+                          <p>{pick(language, "Basado en señales del club y contexto del hilo.", "Based on community signals and thread context.", "Baseado en sinais da comunidade e contexto do fío.")}</p>
                         )}
                       </span>
                     </span>

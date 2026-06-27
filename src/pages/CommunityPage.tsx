@@ -82,7 +82,7 @@ export const CommunityPage = ({
         description: descriptionInput.trim(),
         rulesText: rulesInput.trim()
       });
-      onToast?.(pick(language, "Comunidad actualizada.", "Community updated.", "Comunidade actualizada."));
+      onToast?.(pick(language, "Club actualizado.", "Community updated.", "Comunidade actualizada."));
       setIsEditingSettings(false);
     } catch (error) {
       onToast?.(error instanceof Error ? error.message : pick(language, "No se guardó. Inténtalo otra vez.", "Couldn't save. Please try again.", "Non se gardou. Inténtao outra vez."));
@@ -111,7 +111,7 @@ export const CommunityPage = ({
       if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
         await navigator.share({
           title: pick(language, "Invitación a Wee", "Wee invite", "Invitación a Wee"),
-          text: pick(language, "Únete a nuestra comunidad en Wee.", "Join our Wee community.", "Únete á nosa comunidade en Wee."),
+          text: pick(language, "Únete a nuestro club de lectura en Wee.", "Join our Wee community.", "Únete á nosa comunidade en Wee."),
           url: link
         });
         onToast?.(pick(language, "Invitación compartida.", "Invite shared.", "Invitación compartida."));
@@ -128,13 +128,13 @@ export const CommunityPage = ({
     setSwitchingCommunityId(communityId);
     try {
       await onSwitchCommunity(communityId);
-      onToast?.(pick(language, "Comunidad cambiada. Vamos al inicio.", "Community switched. Taking you home.", "Comunidade cambiada. Imos ao inicio."));
+      onToast?.(pick(language, "Club cambiado. Vamos al inicio.", "Community switched. Taking you home.", "Comunidade cambiada. Imos ao inicio."));
       navigate("/home");
     } catch (error) {
       onToast?.(
         error instanceof Error
           ? error.message
-          : pick(language, "No pudimos cambiar de comunidad.", "Could not switch community.", "Non puidemos cambiar de comunidade.")
+          : pick(language, "No pudimos cambiar de club.", "Could not switch community.", "Non puidemos cambiar de comunidade.")
       );
     } finally {
       setSwitchingCommunityId(null);
@@ -148,7 +148,7 @@ export const CommunityPage = ({
         communityName={selectedCommunity?.name}
           onLeaveCommunity={async () => {
             await onLeaveCommunity();
-          onToast?.(pick(language, "Has salido de la comunidad.", "You left the community.", "Saíches da comunidade."));
+          onToast?.(pick(language, "Has salido del club.", "You left the community.", "Saíches da comunidade."));
         }}
         onOpenShare={onOpenShareModal}
         onLogout={onLogout}
@@ -156,7 +156,7 @@ export const CommunityPage = ({
 
       <section className="page-section community-page-section">
         <div className="section-head">
-          <h2><Icon name="users" /> {pick(language, "Comunidad", "Community", "Comunidade")}</h2>
+          <h2><Icon name="users" /> {pick(language, "El club", "Community", "Comunidade")}</h2>
           <div className="page-head-actions">
             <Link to="/home" className="btn btn-nav">
               <Icon name="home" /> {pick(language, "Inicio", "Home", "Inicio")}
@@ -166,7 +166,7 @@ export const CommunityPage = ({
 
         <article className="settings-card community-settings-card">
           <div className="community-settings-head">
-            <h3>{pick(language, "Ajustes de comunidad", "Community settings", "Axustes da comunidade")}</h3>
+            <h3>{pick(language, "Ajustes del club", "Community settings", "Axustes da comunidade")}</h3>
             {isAdmin ? (
               <button
                 type="button"
@@ -185,7 +185,7 @@ export const CommunityPage = ({
           <p className="hint">
             {pick(
               language,
-              "Pon esto a punto: nombre claro, descripción breve y normas fáciles de seguir.",
+              "Pon esto a punto: nombre claro del club, descripción breve y normas fáciles de seguir.",
               "Keep this tidy: clear name, short description, and easy-to-follow rules.",
               "Deixa isto a punto: nome claro, descrición breve e normas fáciles de seguir."
             )}
@@ -223,7 +223,7 @@ export const CommunityPage = ({
                 disabled={!isAdmin || !isEditingSettings}
                 placeholder={pick(
                   language,
-                  "Visible solo para miembros. Ejemplo: respeto, cero spam, fuentes claras.",
+                  "Visible solo para miembros. Ejemplo: respeto, cero spam, fuentes claras y sin destripar el final.",
                   "Visible to members only. Example: be respectful, no spam, share clear sources.",
                   "Visible só para membros. Exemplo: respecto, cero spam, fontes claras."
                 )}
@@ -250,14 +250,14 @@ export const CommunityPage = ({
 
         <div className="settings-grid community-page-grid">
           <article className="settings-card community-switch-card">
-            <h3><Icon name="spiral" /> {pick(language, "Tus comunidades", "Your communities", "As túas comunidades")}</h3>
+            <h3><Icon name="spiral" /> {pick(language, "Tus clubs", "Your communities", "As túas comunidades")}</h3>
             <p className="hint">
               {selectedCommunity?.name
                 ? pick(language, `Ahora mismo estás en ${selectedCommunity.name}.`, `Right now you are in ${selectedCommunity.name}.`, `Agora mesmo estás en ${selectedCommunity.name}.`)
-                : pick(language, "Elige comunidad para seguir.", "Pick a community to continue.", "Escolle comunidade para continuar.")}
+                : pick(language, "Elige un club para seguir.", "Pick a community to continue.", "Escolle comunidade para continuar.")}
             </p>
             {otherCommunities.length === 0 ? (
-              <p className="hint">{pick(language, "No tienes más comunidades por ahora.", "No other communities yet.", "Aínda non tes máis comunidades.")}</p>
+              <p className="hint">{pick(language, "No tienes más clubs por ahora.", "No other communities yet.", "Aínda non tes máis comunidades.")}</p>
             ) : (
               <ul className="user-list">
                 {otherCommunities.map((community) => (
@@ -296,14 +296,14 @@ export const CommunityPage = ({
 
           <article className="settings-card">
             <h3><Icon name="link" /> {pick(language, "Invitar gente", "Invite people", "Convidar xente")}</h3>
-            <p className="hint">{pick(language, "Comparte el código y trae a tu gente al hilo.", "Share the code and bring your people into the thread.", "Comparte o código e trae á túa xente ao fío.")}</p>
+            <p className="hint">{pick(language, "Comparte el código y trae a tu gente al club.", "Share the code and bring your people into the thread.", "Comparte o código e trae á túa xente ao fío.")}</p>
             <div className="stack community-settings-form">
               <button type="button" className="btn btn-nav" onClick={generateInvite}>
                 <Icon name="plus" /> {pick(language, "Crear invitación", "Create invite", "Crear invitación")}
               </button>
               {invite ? (
                 <>
-                  <div className="hint">{pick(language, "Código de comunidad", "Community code", "Código da comunidade")}: <strong>{invite.code}</strong></div>
+                  <div className="hint">{pick(language, "Código del club", "Community code", "Código da comunidade")}: <strong>{invite.code}</strong></div>
                   <div className="auth-entry-actions community-invite-actions">
                     <button type="button" className="btn btn-nav" onClick={() => copy(invite.code, pick(language, "Código", "Code", "Código"))}>
                       <Icon name="link" /> {pick(language, "Copiar código", "Copy code", "Copiar código")}

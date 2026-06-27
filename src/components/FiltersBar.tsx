@@ -23,7 +23,7 @@ const FiltersBarInner = ({ filters, onChange, availableTopics, availableDomains 
     <section className="filters">
       <input
         type="search"
-        placeholder={pick(language, "Buscar por texto, tema o dominio", "Search by text, topic or domain", "Buscar por texto, tema ou dominio")}
+        placeholder={pick(language, "Buscar por título, autor, tema o fuente", "Search by text, topic or domain", "Buscar por texto, tema ou dominio")}
         value={filters.query}
         onChange={(event) => onChange({ ...filters, query: event.target.value })}
       />

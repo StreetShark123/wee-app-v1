@@ -76,7 +76,7 @@ export const CommunitiesPickerPage = ({
   const toFriendlyError = (raw: unknown, fallbackEs: string, fallbackEn: string, fallbackGl: string) => {
     const message = raw instanceof Error ? raw.message : "";
     if (message.includes("COMMUNITY_NAME_EXISTS")) {
-      return pick(language, "Ese nombre ya está pillado por otra comunidad.", "That name is already taken by another community.", "Ese nome xa está collido por outra comunidade.");
+      return pick(language, "Ese nombre ya está pillado por otro club.", "That name is already taken by another community.", "Ese nome xa está collido por outra comunidade.");
     }
     return raw instanceof Error ? raw.message : pick(language, fallbackEs, fallbackEn, fallbackGl);
   };
@@ -95,7 +95,7 @@ export const CommunitiesPickerPage = ({
       }
       navigate("/home");
     } catch (err) {
-      setError(toFriendlyError(err, "No pudimos entrar en esa comunidad.", "Could not enter that community.", "Non puidemos entrar nesa comunidade."));
+      setError(toFriendlyError(err, "No pudimos entrar en ese club.", "Could not enter that community.", "Non puidemos entrar nesa comunidade."));
       setEnteringCommunityName(null);
     } finally {
       setLoadingId(null);
@@ -118,7 +118,7 @@ export const CommunitiesPickerPage = ({
       setSelectedCommunityId(created.id);
       await enter(created.id);
     } catch (err) {
-      setError(toFriendlyError(err, "No pudimos crear la comunidad ahora mismo.", "Could not create community right now.", "Non puidemos crear a comunidade agora mesmo."));
+      setError(toFriendlyError(err, "No pudimos crear el club ahora mismo.", "Could not create community right now.", "Non puidemos crear a comunidade agora mesmo."));
     } finally {
       setCreatingCommunity(false);
     }
@@ -139,17 +139,17 @@ export const CommunitiesPickerPage = ({
     <main className="auth-layout auth-layout-single communities-picker-layout">
       <section className="auth-card auth-card-main auth-card-access communities-picker-card">
         <div className="section-head">
-          <h2><Icon name="users" /> {pick(language, "Tus comunidades", "Your communities", "As túas comunidades")}</h2>
+          <h2><Icon name="users" /> {pick(language, "Tus clubes", "Your communities", "As túas comunidades")}</h2>
           <button type="button" className="btn" onClick={() => void exitToLogin()} disabled={loggingOut}>
             <Icon name="logout" /> {loggingOut ? pick(language, "Saliendo...", "Signing out...", "Saíndo...") : pick(language, "Cerrar sesión", "Log out", "Pechar sesión")}
           </button>
         </div>
         <p className="section-intro">
           {loading && communities.length === 0
-            ? pick(language, "Cargando tus comunidades...", "Loading your communities...", "Cargando as túas comunidades...")
+            ? pick(language, "Cargando tus clubes...", "Loading your communities...", "Cargando as túas comunidades...")
             : communities.length > 0
-            ? pick(language, "Elige dónde quieres entrar hoy.", "Pick where you want to jump in today.", "Escolle onde queres entrar hoxe.")
-            : pick(language, "Todavía no estás en ninguna comunidad. Crea una o únete con un código y arrancamos.", "You are not in any community yet. Create one or join with a code and let's get going.", "Aínda non estás en ningunha comunidade. Crea unha ou únete cun código e arrincamos.")}
+            ? pick(language, "Elige a qué club de lectura quieres entrar hoy.", "Pick where you want to jump in today.", "Escolle onde queres entrar hoxe.")
+            : pick(language, "Todavía no estás en ningún club. Crea uno o únete con un código y arrancamos.", "You are not in any community yet. Create one or join with a code and let's get going.", "Aínda non estás en ningunha comunidade. Crea unha ou únete cun código e arrincamos.")}
         </p>
 
         <div className={`community-picker-grid${loading && communities.length === 0 ? " is-loading" : ""}`}>
@@ -215,7 +215,7 @@ export const CommunitiesPickerPage = ({
             </button>
           ) : (
             <button type="button" className="btn btn-primary" onClick={() => setCreateOpen((v) => !v)}>
-              <Icon name="plus" /> {pick(language, "Crear comunidad", "Create community", "Crear comunidade")}
+              <Icon name="plus" /> {pick(language, "Crear club", "Create community", "Crear comunidade")}
             </button>
           )}
 
@@ -223,7 +223,7 @@ export const CommunitiesPickerPage = ({
             <button type="button" className="btn" onClick={() => setCreateOpen((v) => !v)}>
               <Icon name="plus" /> {createOpen
                 ? pick(language, "Cerrar creación", "Close create", "Pechar creación")
-                : pick(language, "Nueva comunidad", "New community", "Nova comunidade")}
+                : pick(language, "Nuevo club", "New community", "Nova comunidade")}
             </button>
           ) : null}
           <button type="button" className="btn" onClick={() => navigate(`/join${location.search}`)} disabled={loading}>

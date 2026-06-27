@@ -56,7 +56,7 @@ export const TopicBlock = ({ topic, posts }: TopicBlockProps) => {
         </div>
       </div>
       <p className="topic-summary">{intro}</p>
-      <p className="topic-meta">{pick(language, "Publicaciones en este tema", "Posts in this topic", "Publicacións neste tema")}: {posts.length}</p>
+      <p className="topic-meta">{pick(language, "Libros en este tema", "Posts in this topic", "Publicacións neste tema")}: {posts.length}</p>
 
       {latest ? (
         <p className="topic-last-update">{pick(language, "Última actualización", "Last update", "Última actualización")}: {formatNewsDate(extractNewsDate(latest))}</p>

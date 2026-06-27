@@ -36,7 +36,7 @@ export const InvitePage = ({ isLoggedIn, onPreviewCommunity, onConfirmCommunity,
         setError(
           pick(
             language,
-            "No pudimos abrir esta invitación. Pide un código nuevo al admin.",
+            "No pudimos abrir esta invitación. Pide un código nuevo a quien lleva el club.",
             "We couldn't open this invite. Ask an admin for a new code.",
             "Non puidemos abrir esta invitación. Pídelle un código novo ao admin."
           )
@@ -82,7 +82,7 @@ export const InvitePage = ({ isLoggedIn, onPreviewCommunity, onConfirmCommunity,
           </>
         ) : community ? (
           <>
-            <h2>{pick(language, "Tienes invitación a Wee", "You have a Wee invite", "Tes invitación a Wee")}</h2>
+            <h2>{pick(language, "Tienes invitación a un club de Wee", "You have a Wee invite", "Tes invitación a Wee")}</h2>
             <article className="invite-preview-card">
               <div className="invite-preview-head">
                 <div className="invite-avatar">
@@ -95,7 +95,7 @@ export const InvitePage = ({ isLoggedIn, onPreviewCommunity, onConfirmCommunity,
                 <div>
                   <p className="invite-kicker">
                     {community.inviter?.alias
-                      ? pick(language, `${community.inviter.alias} te ha invitado a su comunidad`, `${community.inviter.alias} invited you to their community`, `${community.inviter.alias} convidoute á súa comunidade`)
+                      ? pick(language, `${community.inviter.alias} te ha invitado a su club de lectura`, `${community.inviter.alias} invited you to their community`, `${community.inviter.alias} convidoute á súa comunidade`)
                       : pick(language, "Tienes una invitación pendiente", "You have an invite waiting", "Tes unha invitación pendente")}
                   </p>
                   <h3>{community.name}</h3>

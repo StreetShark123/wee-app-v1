@@ -6,10 +6,13 @@ import { CommunityLoadingScreen } from "./components/CommunityLoadingScreen";
 import { Icon } from "./components/Icon";
 import { PageTransition } from "./components/PageTransition";
 import { ShareLinkModal } from "./components/ShareLinkModal";
+import { AddBookModal } from "./components/AddBookModal";
+import type { BookDraft } from "./lib/bookSearch";
+import { createClubBook, listClubBooks, type ClubBook, type MemberBook } from "./lib/communityApi";
 import { Toast } from "./components/Toast";
 import { useAppData } from "./lib/appData";
 import { classifyPost } from "./lib/classify";
-import { I18nContext, normalizeLanguage, pick } from "./lib/i18n";
+import { I18nContext, pick } from "./lib/i18n";
 import { deriveTitleFromUrl, displayTitle, isUnusableTitle } from "./lib/presentation";
 import { enrichUrl } from "./lib/enrich";
 import { NotificationsContext, type AppNotification } from "./lib/notifications";
@@ -23,6 +26,7 @@ import { RequireAuth } from "./pages/RequireAuth";
 
 const AuthPage = lazy(async () => ({ default: (await import("./pages/AuthPage")).AuthPage }));
 const HomePage = lazy(async () => ({ default: (await import("./pages/HomePage")).HomePage }));
+const BookDetailPage = lazy(async () => ({ default: (await import("./pages/BookDetailPage")).BookDetailPage }));
 const TopicPage = lazy(async () => ({ default: (await import("./pages/TopicPage")).TopicPage }));
 const PostDetailPage = lazy(async () => ({ default: (await import("./pages/PostDetailPage")).PostDetailPage }));
 const SharePage = lazy(async () => ({ default: (await import("./pages/SharePage")).SharePage }));
@@ -70,7 +74,6 @@ const AppRoutes = () => {
     removeUser,
     updateUserAvatar,
     updateUserAlias,
-    updateUserLanguage,
     updatePostPrimaryTopic,
     filterPosts,
     updatePreferences,
@@ -83,28 +86,18 @@ const AppRoutes = () => {
 
   const [toast, setToast] = useState<string | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [bookModalOpen, setBookModalOpen] = useState(false);
+  const [books, setBooks] = useState<ClubBook[]>([]);
+  const [memberBooks, setMemberBooks] = useState<MemberBook[]>([]);
+  const [booksLoading, setBooksLoading] = useState(false);
   const [notificationsReadAt, setNotificationsReadAt] = useState(0);
   const [myCommunities, setMyCommunities] = useState<Array<{ community_id: string; name: string; description?: string; role: "admin" | "member" }>>([]);
   const [communitiesLoading, setCommunitiesLoading] = useState(false);
   const [autoEnteringDefaultCommunity, setAutoEnteringDefaultCommunity] = useState(false);
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(true);
   const autoEnterAttempts = useRef<Set<string>>(new Set());
-  const [guestLanguage, setGuestLanguage] = useState<AppLanguage>(() => {
-    try {
-      return normalizeLanguage(localStorage.getItem("wee:guest-language") ?? undefined);
-    } catch {
-      return "es";
-    }
-  });
-  const language = normalizeLanguage(activeUser?.language ?? guestLanguage);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("wee:guest-language", guestLanguage);
-    } catch {
-      // ignore storage restrictions
-    }
-  }, [guestLanguage]);
+  // App en español único (de momento): el selector de idioma se ha retirado.
+  const language: AppLanguage = "es";
 
   useEffect(() => {
     trackPageView(location.pathname);
@@ -114,6 +107,29 @@ const AppRoutes = () => {
     if (!activeUser) return;
     void loadCommunityOverview().catch(() => undefined);
   }, [activeUser, loadCommunityOverview]);
+
+  const reloadBooks = useCallback(async () => {
+    if (!activeUser) {
+      setBooks([]);
+      setMemberBooks([]);
+      return;
+    }
+    setBooksLoading(true);
+    try {
+      const data = await listClubBooks();
+      setBooks(data.books);
+      setMemberBooks(data.memberBooks);
+    } catch {
+      setBooks([]);
+      setMemberBooks([]);
+    } finally {
+      setBooksLoading(false);
+    }
+  }, [activeUser]);
+
+  useEffect(() => {
+    void reloadBooks();
+  }, [reloadBooks]);
 
   const reloadMyCommunities = useCallback(async () => {
     if (!globalSession) {
@@ -204,7 +220,7 @@ const AppRoutes = () => {
             ...post,
             status: "collapsed" as const,
             title: pick(language, "Contenido moderado", "Moderated content"),
-            text: pick(language, "Este post fue moderado por administración.", "This post was moderated by admins."),
+            text: pick(language, "Este libro fue moderado por administración.", "This post was moderated by admins."),
             previewTitle: undefined,
             previewDescription: undefined,
             previewImageUrl: undefined,
@@ -337,7 +353,7 @@ const AppRoutes = () => {
     const userId = activeUser.id;
     await removeUser(userId);
     logout();
-    showToast(pick(language, "Tus datos se han eliminado.", "Your data has been deleted.", "Elimináronse os teus datos."));
+    showToast(pick(language, "Tus datos se han borrado del club.", "Your data has been deleted.", "Elimináronse os teus datos."));
   };
 
   const findDuplicatePost = (url: string) => {
@@ -389,7 +405,7 @@ const AppRoutes = () => {
     url: string,
     options?: { forceTopic?: string }
   ): Promise<{ mode: "created" | "merged" | "penalized"; message: string; debugBreakdown?: unknown; topicDebug?: unknown }> => {
-    if (!activeUser) return { mode: "created", message: pick(language, "Entra para compartir links.", "Sign in to share links.") };
+    if (!activeUser) return { mode: "created", message: pick(language, "Entra para recomendar libros.", "Sign in to share links.") };
     const canonical = canonicalizeUrl(url);
     const existing = findDuplicatePost(url);
     const debugMode = new URLSearchParams(window.location.search).get("debug") === "1";
@@ -435,8 +451,8 @@ const AppRoutes = () => {
       return {
         mode: sameUserDuplicate ? "penalized" : "merged",
         message: sameUserDuplicate
-          ? pick(language, "Ese link ya lo habías compartido. Lo dejamos en el mismo hilo para mantener orden y contexto.", "You already shared this link. We keep it in the same thread to avoid duplicates and keep context.")
-          : pick(language, `Ese link ya existía: lo sumamos al mismo hilo (${contributorUserIds.length} colaboradores).`, `This link already existed: merged into the same thread (${contributorUserIds.length} contributors).`)
+          ? pick(language, "Ese libro ya lo habías recomendado. Lo dejamos en el mismo hilo para mantener orden y contexto.", "You already shared this link. We keep it in the same thread to avoid duplicates and keep context.")
+          : pick(language, `Ese libro ya estaba en el club: lo sumamos al mismo hilo (${contributorUserIds.length} colaboradores).`, `This link already existed: merged into the same thread (${contributorUserIds.length} contributors).`)
       };
     }
 
@@ -473,7 +489,7 @@ const AppRoutes = () => {
       };
     }
     const safeMetadataTitle = metadata.title && !isUnusableTitle(metadata.title) ? metadata.title : undefined;
-    const derivedTitle = safeMetadataTitle ?? deriveTitleFromUrl(url) ?? pick(language, "Noticia compartida", "Shared post");
+    const derivedTitle = safeMetadataTitle ?? deriveTitleFromUrl(url) ?? pick(language, "Libro recomendado", "Shared post");
     const description = metadata.description;
     const contentHash = await sha256Hex(normalizeSpace(`${derivedTitle ?? ""} ${description ?? ""}`));
     const duplicateByContent = findDuplicateByContentHash(contentHash);
@@ -513,7 +529,7 @@ const AppRoutes = () => {
         mode: sameUserDuplicate ? "penalized" : "merged",
         message: pick(
           language,
-          `Ese contenido ya estaba en otro enlace. Lo unimos al mismo hilo (${contributorUserIds.length} colaboradores).`,
+          `Ese libro ya estaba en otro enlace. Lo unimos al mismo hilo (${contributorUserIds.length} colaboradores).`,
           `This content already existed under another link. Merged into the same thread (${contributorUserIds.length} contributors).`
         )
       };
@@ -526,7 +542,7 @@ const AppRoutes = () => {
         mode: "created",
         message: pick(
           language,
-          `Vas demasiado rápido publicando. Espera ${retry} y vuelve a intentarlo.`,
+          `Vas demasiado rápido recomendando. Espera ${retry} y vuelve a intentarlo.`,
           `You're posting too fast. Wait ${retry} and try again.`
         )
       };
@@ -688,7 +704,7 @@ const AppRoutes = () => {
       };
     }
     let post = posts.find((entry) => entry.id === postId);
-    if (!post) return { ok: false, message: pick(language, "No encontramos esta noticia.", "We could not find this post.") };
+    if (!post) return { ok: false, message: pick(language, "No encontramos este libro.", "We could not find this post.") };
 
     let opened = (post.openedByUserIds ?? []).includes(activeUser.id) || hasSourceOpenedSession(activeUser.id, postId);
     if (!opened) {
@@ -733,7 +749,7 @@ const AppRoutes = () => {
       };
     }
     const post = posts.find((entry) => entry.id === postId);
-    if (!post) return { ok: false, message: pick(language, "No encontramos esta noticia.", "We could not find this post.") };
+    if (!post) return { ok: false, message: pick(language, "No encontramos este libro.", "We could not find this post.") };
     const clean = text.trim().slice(0, 320);
     if (!clean) return { ok: false, message: pick(language, "Escribe algo antes de enviar.", "Write something before sending.") };
 
@@ -761,7 +777,7 @@ const AppRoutes = () => {
   ): Promise<{ ok: boolean; message: string; post?: (typeof posts)[number] }> => {
     if (!activeUser) return { ok: false, message: pick(language, "Entra para valorar comentarios.", "Sign in to rate comments.") };
     const post = posts.find((entry) => entry.id === postId);
-    if (!post) return { ok: false, message: pick(language, "No encontramos esta noticia.", "We could not find this post.") };
+    if (!post) return { ok: false, message: pick(language, "No encontramos este libro.", "We could not find this post.") };
 
     const comments = post.comments ?? [];
     const target = comments.find((item) => item.id === commentId);
@@ -821,19 +837,19 @@ const AppRoutes = () => {
       return { ok: false, message: pick(language, "Esta acción es solo para admin.", "This action is admin-only.") };
     }
     const post = posts.find((entry) => entry.id === postId);
-    if (!post) return { ok: false, message: pick(language, "No encontramos esta noticia.", "We could not find this post.") };
+    if (!post) return { ok: false, message: pick(language, "No encontramos este libro.", "We could not find this post.") };
     if (post.userId !== activeUser.id) {
       return {
         ok: false,
         message: pick(
           language,
-          "Con el SQL v2 actual, solo puedes eliminar noticias propias.",
+          "Con el SQL v2 actual, solo puedes eliminar libros propios.",
           "With current SQL v2, you can only delete your own posts."
         )
       };
     }
     await removePost(postId);
-    return { ok: true, message: pick(language, "Noticia eliminada.", "Post deleted.") };
+    return { ok: true, message: pick(language, "Libro eliminado.", "Post deleted.") };
   };
 
   const onReportPost = async (postId: string, reason: string): Promise<{ ok: boolean; message: string }> => {
@@ -844,11 +860,11 @@ const AppRoutes = () => {
     }
     try {
       await reportPostById(postId, activeUser.id, cleanReason);
-      return { ok: true, message: pick(language, "Reporte enviado. Gracias por cuidar la comunidad.", "Report sent. Thanks for helping the community.") };
+      return { ok: true, message: pick(language, "Reporte enviado. Gracias por cuidar el club.", "Report sent. Thanks for helping the community.") };
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
       if (message.toLowerCase().includes("duplicate")) {
-        return { ok: false, message: pick(language, "Ya habías reportado esta publicación.", "You already reported this post.") };
+        return { ok: false, message: pick(language, "Ya habías reportado este libro.", "You already reported this post.") };
       }
       return { ok: false, message: pick(language, "No pudimos enviar el reporte ahora.", "Could not send report right now.") };
     }
@@ -863,7 +879,7 @@ const AppRoutes = () => {
       return { ok: false, message: pick(language, "Esta acción es solo para admin.", "This action is admin-only.") };
     }
     const post = posts.find((entry) => entry.id === postId);
-    if (!post) return { ok: false, message: pick(language, "No encontramos esta noticia.", "We could not find this post.") };
+    if (!post) return { ok: false, message: pick(language, "No encontramos este libro.", "We could not find this post.") };
     const trimmedReason = reason.trim().slice(0, 220);
     const moderated = {
       ...post,
@@ -877,10 +893,10 @@ const AppRoutes = () => {
       ok: true,
       message:
         status === "active"
-          ? pick(language, "Publicación reactivada.", "Post reactivated.")
+          ? pick(language, "Libro reactivado.", "Post reactivated.")
           : status === "collapsed"
-            ? pick(language, "Publicación colapsada.", "Post collapsed.")
-            : pick(language, "Publicación retirada.", "Post removed.")
+            ? pick(language, "Libro colapsado.", "Post collapsed.")
+            : pick(language, "Libro retirado.", "Post removed.")
     };
   };
 
@@ -895,19 +911,19 @@ const AppRoutes = () => {
       return { ok: false, message: pick(language, "Tema no válido.", "Invalid topic.") };
     }
     const post = posts.find((entry) => entry.id === postId);
-    if (!post) return { ok: false, message: pick(language, "No encontramos esta noticia.", "We could not find this post.") };
+    if (!post) return { ok: false, message: pick(language, "No encontramos este libro.", "We could not find this post.") };
     if (post.userId !== activeUser.id) {
       return {
         ok: false,
         message: pick(
           language,
-          "Con el SQL v2 actual, solo puedes editar temas de noticias propias.",
+          "Con el SQL v2 actual, solo puedes editar temas de libros propios.",
           "With current SQL v2, you can only edit topics on your own posts."
         )
       };
     }
     await updatePostPrimaryTopic(postId, nextTopic);
-    return { ok: true, message: pick(language, "Tema de noticia actualizado.", "Post topic updated.") };
+    return { ok: true, message: pick(language, "Tema del libro actualizado.", "Post topic updated.") };
   };
 
   const onAddPostTopic = async (
@@ -919,7 +935,7 @@ const AppRoutes = () => {
     }
     const post = posts.find((entry) => entry.id === postId);
     if (!post) {
-      return { ok: false, message: pick(language, "No encontramos esta noticia.", "We could not find this post.") };
+      return { ok: false, message: pick(language, "No encontramos este libro.", "We could not find this post.") };
     }
     const nextTopic = normalizeSpace(nextTopicRaw).replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").slice(0, 36);
     if (!nextTopic) {
@@ -933,7 +949,7 @@ const AppRoutes = () => {
         ok: false,
         message: pick(
           language,
-          "Con el SQL v2 actual, solo puedes añadir temas en noticias propias.",
+          "Con el SQL v2 actual, solo puedes añadir temas en libros propios.",
           "With current SQL v2, you can only add topics on your own posts."
         )
       };
@@ -946,7 +962,7 @@ const AppRoutes = () => {
         ? post.rationale
         : [...post.rationale, `Tema añadido por usuarios: ${nextTopic}`]
     });
-    return { ok: true, message: pick(language, "Tema añadido a la noticia.", "Topic added to post.") };
+    return { ok: true, message: pick(language, "Tema añadido al libro.", "Topic added to post.") };
   };
 
   const onAdminRenameTopic = async (
@@ -1006,6 +1022,25 @@ const AppRoutes = () => {
   const showToast = (message: string): void => {
     setToast(message);
     window.setTimeout(() => setToast(null), 1800);
+  };
+
+  // Alta de libro en el club activo. Va por la edge function community-api
+  // (/books/create, service_role), que inserta en `books` con community_id.
+  const onAddBook = async (book: BookDraft): Promise<void> => {
+    if (!selectedCommunity) throw new Error("Entra en un club antes de añadir libros.");
+    const { book: created } = await createClubBook({
+      isbn: book.isbn,
+      title: book.title,
+      author: book.author,
+      coverUrl: book.coverUrl,
+      description: book.description,
+      publishedYear: book.publishedYear,
+      pageCount: book.pageCount,
+      source: book.source,
+      manuallyEdited: book.manuallyEdited
+    });
+    await reloadBooks();
+    showToast(`"${created.title}" añadido al club.`);
   };
 
   if (showLoadingOverlay) {
@@ -1124,7 +1159,6 @@ const AppRoutes = () => {
                   onRegister={async (username, password, email) => {
                     await registerGlobal(username, password, email);
                   }}
-                  onChangeLanguage={setGuestLanguage}
                 />
               </PageTransition>
             )
@@ -1155,7 +1189,6 @@ const AppRoutes = () => {
                   onRegister={async (username, password, email) => {
                     await registerGlobal(username, password, email);
                   }}
-                  onChangeLanguage={setGuestLanguage}
                 />
               </PageTransition>
             )
@@ -1223,15 +1256,27 @@ const AppRoutes = () => {
               <PageTransition>
                 <HomePage
                   activeUser={activeUser as NonNullable<typeof activeUser>}
-                  users={users}
-                  posts={postsForViewer}
-                  preferences={preferences}
-                  filterPosts={filterPosts}
-                  userQualityValueById={userQualityValueById}
-                  userInfluenceAuraById={userInfluenceAuraById}
-                  userCommunityStatsById={userCommunityStatsById}
-                  onOpenShareModal={() => setShareModalOpen(true)}
+                  books={books}
+                  memberBooks={memberBooks}
+                  booksLoading={booksLoading}
+                  onOpenAddBook={() => setBookModalOpen(true)}
                   onLogout={logoutGlobal}
+                />
+              </PageTransition>
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/book/:bookId"
+          element={
+            <RequireAuth activeUser={activeUser} redirectPath={globalSession ? "/communities" : "/login"}>
+              <PageTransition>
+                <BookDetailPage
+                  activeUser={activeUser as NonNullable<typeof activeUser>}
+                  onOpenAddBook={() => setBookModalOpen(true)}
+                  onLogout={logoutGlobal}
+                  onBooksChanged={reloadBooks}
                 />
               </PageTransition>
             </RequireAuth>
@@ -1360,7 +1405,6 @@ const AppRoutes = () => {
                   activeUser={activeUser as NonNullable<typeof activeUser>}
                   preferences={preferences}
                   knownTopics={knownTopics}
-                  onUpdateLanguage={updateUserLanguage}
                   onSave={updatePreferences}
                   onExport={onExport}
                   onImport={onImport}
@@ -1406,9 +1450,9 @@ const AppRoutes = () => {
           <button
             type="button"
             className="mobile-share-fab"
-            onClick={() => setShareModalOpen(true)}
-            aria-label={pick(language, "Compartir link", "Share link", "Compartir ligazón")}
-            title={pick(language, "Compartir link", "Share link", "Compartir ligazón")}
+            onClick={() => setBookModalOpen(true)}
+            aria-label={pick(language, "Añadir un libro", "Add a book", "Engadir un libro")}
+            title={pick(language, "Añadir un libro", "Add a book", "Engadir un libro")}
           >
             <Icon name="plus" size={18} />
           </button>
@@ -1419,6 +1463,12 @@ const AppRoutes = () => {
           onClose={() => setShareModalOpen(false)}
           onShareUrl={onShareUrl}
           getDuplicatePreview={getDuplicatePreview}
+          onToast={showToast}
+        />
+        <AddBookModal
+          open={bookModalOpen}
+          onClose={() => setBookModalOpen(false)}
+          onAddBook={onAddBook}
           onToast={showToast}
         />
         {activeUser ? <AppFooter /> : null}

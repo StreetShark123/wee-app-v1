@@ -343,3 +343,155 @@ export const updateCommunityProfile = async (payload: {
     avatar_url: payload.avatarDataUrl,
     language: payload.language
   });
+
+// ───────────────────────────── Club de lectura: libros ─────────────────────────
+export type BookSourceTag = "google_books" | "open_library" | "manual";
+export type BookStatus = "proposed" | "reading" | "finished";
+export type BookFeatured = "gold" | "silver";
+
+export interface ClubBook {
+  id: string;
+  communityId: string;
+  addedBy?: string;
+  isbn?: string;
+  title: string;
+  author?: string;
+  coverUrl?: string;
+  description?: string;
+  publishedYear?: number;
+  pageCount?: number;
+  totalChapters?: number;
+  source: BookSourceTag;
+  manuallyEdited: boolean;
+  status: BookStatus;
+  featured?: BookFeatured;
+  createdAt: number;
+}
+
+export interface MemberBook {
+  bookId: string;
+  userId: string;
+  shelf: "want" | "reading" | "finished";
+  chaptersDone: number;
+  rating?: number;
+  review?: string;
+  finishedAt?: number;
+  updatedAt: number;
+}
+
+export interface NewBookPayload {
+  isbn?: string | null;
+  title: string;
+  author?: string | null;
+  coverUrl?: string | null;
+  description?: string | null;
+  publishedYear?: number | null;
+  pageCount?: number | null;
+  totalChapters?: number | null;
+  source: BookSourceTag;
+  manuallyEdited: boolean;
+}
+
+export const listClubBooks = async (): Promise<{ books: ClubBook[]; memberBooks: MemberBook[] }> =>
+  request<{ books: ClubBook[]; memberBooks: MemberBook[] }>("/books/list", {});
+
+export const createClubBook = async (book: NewBookPayload): Promise<{ book: ClubBook }> =>
+  request<{ book: ClubBook }>("/books/create", { book });
+
+export interface BookComment {
+  id: string;
+  userId: string;
+  alias: string;
+  text: string;
+  createdAt: number;
+}
+
+export interface BookMemberProgress extends MemberBook {
+  alias: string;
+}
+
+export interface ChapterNote {
+  id: string;
+  chapterId?: string;
+  userId?: string;
+  alias: string;
+  kind: "note" | "reference";
+  text: string;
+  createdAt: number;
+}
+
+export interface BookChapter {
+  id: string;
+  idx: number;
+  title: string;
+  doneByMe: boolean;
+  completedCount: number;
+  notes: ChapterNote[];
+}
+
+export interface BookDetail {
+  book: ClubBook;
+  comments: BookComment[];
+  members: BookMemberProgress[];
+  myMember: BookMemberProgress | null;
+  chapters: BookChapter[];
+}
+
+export const getClubBook = async (bookId: string): Promise<BookDetail> =>
+  request<BookDetail>("/books/get", { book_id: bookId });
+
+export const addBookComment = async (bookId: string, text: string): Promise<{ comment: BookComment }> =>
+  request<{ comment: BookComment }>("/books/comment", { book_id: bookId, text });
+
+export const setBookProgress = async (
+  bookId: string,
+  chaptersDone: number,
+  shelf?: MemberBook["shelf"]
+): Promise<{ myMember: MemberBook; bookStatus: BookStatus }> =>
+  request<{ myMember: MemberBook; bookStatus: BookStatus }>("/books/progress", {
+    book_id: bookId,
+    chapters_done: chaptersDone,
+    ...(shelf ? { shelf } : {})
+  });
+
+export const finishBook = async (
+  bookId: string,
+  rating?: number,
+  review?: string
+): Promise<{ myMember: MemberBook; bookStatus: BookStatus }> =>
+  request<{ myMember: MemberBook; bookStatus: BookStatus }>("/books/finish", {
+    book_id: bookId,
+    ...(rating ? { rating } : {}),
+    ...(review ? { review } : {})
+  });
+
+export const setBookChapters = async (bookId: string, totalChapters: number): Promise<{ book: ClubBook }> =>
+  request<{ book: ClubBook }>("/books/set_chapters", { book_id: bookId, total_chapters: totalChapters });
+
+export const setBookChaptersList = async (
+  bookId: string,
+  chapters: string[]
+): Promise<{ chapters: BookChapter[]; bookStatus: BookStatus }> =>
+  request<{ chapters: BookChapter[]; bookStatus: BookStatus }>("/chapters/set", { book_id: bookId, chapters });
+
+export const toggleChapter = async (
+  chapterId: string,
+  done: boolean
+): Promise<{ chapterId: string; done: boolean; myMember: MemberBook; bookStatus: BookStatus }> =>
+  request<{ chapterId: string; done: boolean; myMember: MemberBook; bookStatus: BookStatus }>("/chapters/toggle", {
+    chapter_id: chapterId,
+    done
+  });
+
+export const addChapterNote = async (
+  chapterId: string,
+  text: string,
+  kind: "note" | "reference" = "note"
+): Promise<{ note: ChapterNote }> =>
+  request<{ note: ChapterNote }>("/chapters/note/add", { chapter_id: chapterId, text, kind });
+
+export const setBookFeatured = async (
+  bookId: string,
+  featured: BookFeatured | null
+): Promise<{ book: ClubBook }> =>
+  request<{ book: ClubBook }>("/books/feature", { book_id: bookId, featured });

@@ -162,7 +162,7 @@ export const TopicPage = ({
           <h2><Icon name="tag" /> {pick(language, "Hilo", "Thread", "Fío")}: {formatTopicLabel(topic)}</h2>
           <div className="topic-head-meta">
             <div className="topic-head-kpis">
-              <span className="badge">{topicPosts.length} {pick(language, "noticias", "posts", "novas")}</span>
+              <span className="badge">{topicPosts.length} {pick(language, "libros", "posts", "novas")}</span>
               <span className="badge">{totalComments} {pick(language, "comentarios", "comments", "comentarios")}</span>
               <span className={`badge aura-health ${averageAuraClass}`}>
                 <Icon name="spark" size={12} /> {pick(language, "Aura media", "Avg Aura", "Aura media")} {averageAura}
@@ -179,14 +179,14 @@ export const TopicPage = ({
           </div>
         </div>
         <p className="section-intro topic-section-intro">
-          {pick(language, "Timeline del tema + chat: todo en contexto y sin perderte.", "Topic timeline + chat: all in context, no getting lost.", "Timeline do tema + chat: todo en contexto e sen perderte.")}
+          {pick(language, "Timeline de las lecturas + debate: todo en contexto y sin perderte.", "Topic timeline + chat: all in context, no getting lost.", "Timeline do tema + chat: todo en contexto e sen perderte.")}
         </p>
         <form className="detail-actions topic-share-row" onSubmit={submitShareInTopic}>
           <input
             type="url"
             value={shareUrl}
             onChange={(event) => setShareUrl(event.target.value)}
-            placeholder={pick(language, "Añadir noticia a este tema (pega URL)", "Add post to this topic (paste URL)", "Engadir nova a este tema (pega URL)")}
+            placeholder={pick(language, "Añadir un libro a este tema (pega el enlace)", "Add post to this topic (paste URL)", "Engadir nova a este tema (pega URL)")}
             required
             disabled={sharing}
           />
@@ -194,7 +194,7 @@ export const TopicPage = ({
             <Icon name="plus" />{" "}
             {sharing ? (
               <>
-                {pick(language, "Procesando noticia", "Processing post", "Procesando nova")}
+                {pick(language, "Procesando libro", "Processing post", "Procesando nova")}
                 <span className="loading-dots" aria-hidden="true" />
               </>
             ) : (
@@ -242,8 +242,8 @@ export const TopicPage = ({
         ) : null}
         {topicPosts.length === 0 ? (
           <article className="empty-state">
-            <h3>{pick(language, "Aún no hay publicaciones en este hilo", "No posts in this thread yet", "Aínda non hai publicacións neste fío")}</h3>
-            <p>{pick(language, "Comparte la primera noticia y lo arrancamos.", "Share the first post and kick it off.", "Comparte a primeira nova e arrincámolo.")}</p>
+            <h3>{pick(language, "Aún no hay libros en este hilo", "No posts in this thread yet", "Aínda non hai publicacións neste fío")}</h3>
+            <p>{pick(language, "Recomienda el primer libro y lo arrancamos.", "Share the first post and kick it off.", "Comparte a primeira nova e arrincámolo.")}</p>
           </article>
         ) : (
           <div className="topic-forum-layout">
@@ -260,7 +260,7 @@ export const TopicPage = ({
                       <span className="timeline-dot" />
                       <span className="timeline-date">{formatNewsDate(eventDate)}</span>
                     </div>
-                    <div className="timeline-card timeline-comment-cue" title={pick(language, "Pasa por aquí para comentar este punto", "Hover here to comment on this point", "Pasa por aquí para comentar este punto")}>
+                    <div className="timeline-card timeline-comment-cue" title={pick(language, "Pasa por aquí para comentar este libro", "Hover here to comment on this point", "Pasa por aquí para comentar este punto")}>
                       <p className="timeline-score">
                         <span className="timeline-score-pill"><Icon name="timeline" size={14} /> {pick(language, "Relevancia", "Relevance", "Relevancia")} {Math.round(forumScore)}</span>
                         <span className="timeline-score-pill"><Icon name="spark" size={13} /> {pick(language, "Aura media", "Avg Aura", "Aura media")} {averageAura}</span>
@@ -279,7 +279,7 @@ export const TopicPage = ({
 
             <aside className="topic-chat-column">
               <div className="topic-chat-head">
-                <h3><Icon name="comment" size={14} /> {pick(language, "Chat del tema", "Topic chat", "Chat do tema")}</h3>
+                <h3><Icon name="comment" size={14} /> {pick(language, "Debate del tema", "Topic chat", "Chat do tema")}</h3>
                 <span className="badge">
                   {selectedPostComments.length}/{topicChat.length}
                 </span>
@@ -289,7 +289,7 @@ export const TopicPage = ({
                   <input
                     value={chatDraft}
                     onChange={(event) => setChatDraft(event.target.value)}
-                    placeholder={pick(language, "Añade contexto al hilo...", "Add context to the thread...", "Engade contexto ao fío...")}
+                    placeholder={pick(language, "Añade contexto al debate...", "Add context to the thread...", "Engade contexto ao fío...")}
                     disabled={!selectedPost || !activeUserId || chatBusy}
                   />
                   <EmojiMenu
@@ -311,13 +311,13 @@ export const TopicPage = ({
               <div className="topic-chat-list">
                 {!selectedPost ? (
                   <article className="empty-state">
-                    <h3>{pick(language, "Elige una noticia", "Pick a post", "Escolle unha nova")}</h3>
-                    <p>{pick(language, "Pasa o haz clic en una tarjeta del timeline para abrir su conversación.", "Hover or click a timeline card to open its conversation.", "Pasa ou fai clic nunha tarxeta do timeline para abrir a súa conversa.")}</p>
+                    <h3>{pick(language, "Elige un libro", "Pick a post", "Escolle unha nova")}</h3>
+                    <p>{pick(language, "Pasa o haz clic en una tarjeta del timeline para abrir su debate.", "Hover or click a timeline card to open its conversation.", "Pasa ou fai clic nunha tarxeta do timeline para abrir a súa conversa.")}</p>
                   </article>
                 ) : topicChat.length === 0 ? (
                   <article className="empty-state">
                     <h3>{pick(language, "Aún sin comentarios", "No comments yet", "Aínda sen comentarios")}</h3>
-                    <p>{pick(language, "Selecciona una noticia del timeline y abre conversación.", "Select a timeline post and start the conversation.", "Selecciona unha nova do timeline e abre conversa.")}</p>
+                    <p>{pick(language, "Selecciona un libro del timeline y abre el debate.", "Select a timeline post and start the conversation.", "Selecciona unha nova do timeline e abre conversa.")}</p>
                   </article>
                 ) : (
                   <article
@@ -331,7 +331,7 @@ export const TopicPage = ({
                     >
                       <span className="topic-thread-bubble-label">
                         <Icon name="comment" size={13} />
-                        {pick(language, "Conversación de esta noticia", "Conversation for this post", "Conversa desta nova")}
+                        {pick(language, "Debate de este libro", "Conversation for this post", "Conversa desta nova")}
                       </span>
                       <span className="topic-thread-bubble-meta">
                         {selectedPostComments.length === 0
@@ -367,8 +367,8 @@ export const TopicPage = ({
                       </div>
                     ) : (
                       <article className="empty-state">
-                            <h3>{pick(language, "Este punto del hilo está vacío", "This thread point is empty", "Este punto do fío está baleiro")}</h3>
-                        <p>{pick(language, "Deja el primer comentario y abrimos conversación.", "Drop the first comment and start the conversation.", "Deixa o primeiro comentario e abrimos conversa.")}</p>
+                            <h3>{pick(language, "Este libro aún no tiene debate", "This thread point is empty", "Este punto do fío está baleiro")}</h3>
+                        <p>{pick(language, "Deja el primer comentario y abrimos el debate.", "Drop the first comment and start the conversation.", "Deixa o primeiro comentario e abrimos conversa.")}</p>
                       </article>
                     )}
 

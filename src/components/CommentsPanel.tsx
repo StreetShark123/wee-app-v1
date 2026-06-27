@@ -121,7 +121,7 @@ export const CommentsPanel = ({
           <input
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder={pick(language, "Añade contexto, corrige un dato o pasa una fuente...", "Add context, fix a detail or share a source...", "Engade contexto, corrixe un dato ou pasa unha fonte...")}
+            placeholder={pick(language, "Comparte tu opinión, comenta un pasaje o pasa una fuente...", "Add context, fix a detail or share a source...", "Engade contexto, corrixe un dato ou pasa unha fonte...")}
             maxLength={320}
             disabled={!activeUserId || busy}
           />
@@ -145,7 +145,7 @@ export const CommentsPanel = ({
         {sortedComments.length === 0 ? (
           <article className="empty-state">
             <h3>{pick(language, "Aún no hay comentarios", "No comments yet", "Aínda non hai comentarios")}</h3>
-            <p>{pick(language, "Sé la primera persona en dejar contexto aquí.", "Be the first one to add context here.", "Sé a primeira persoa en deixar contexto aquí.")}</p>
+            <p>{pick(language, "Sé la primera persona en abrir el debate aquí.", "Be the first one to add context here.", "Sé a primeira persoa en deixar contexto aquí.")}</p>
           </article>
         ) : (
           sortedComments.slice(0, compact ? 3 : 12).map((comment) => {

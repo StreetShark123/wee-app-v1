@@ -132,7 +132,7 @@ export const PostDetailModal = ({
             </div>
 
             <p className="topic-intro">{topicIntro(current.topics)}</p>
-            {current.text ? <p className="post-text">{current.text}</p> : <p className="post-text">{pick(language, "Sin extracto adicional.", "No extra excerpt.", "Sen extracto adicional.")}</p>}
+            {current.text ? <p className="post-text">{current.text}</p> : <p className="post-text">{pick(language, "Sin sinopsis adicional.", "No extra excerpt.", "Sen extracto adicional.")}</p>}
 
             <ul className="rationale">
               {current.rationale.slice(0, 4).map((line) => (
@@ -160,23 +160,23 @@ export const PostDetailModal = ({
                     window.open(current.url, "_blank", "noopener,noreferrer");
                     setJustOpenedExternal(true);
                     setShowSourceVoteHint(false);
-                    onToast(pick(language, "Fuente abierta. Cuando vuelvas, valórala si te encaja.", "Source opened. Rate it when you're back.", "Fonte aberta. Cando volvas, valóraa se che encaixa."));
+                    onToast(pick(language, "Enlace abierto. Cuando vuelvas, valóralo si te encaja.", "Source opened. Rate it when you're back.", "Fonte aberta. Cando volvas, valóraa se che encaixa."));
                   }}
                 >
-                  {pick(language, "Abrir fuente", "Open source", "Abrir fonte")}
+                  {pick(language, "Abrir el enlace", "Open source", "Abrir fonte")}
                 </button>
               ) : (
-                <span className="hint">{pick(language, "No hay URL externa para esta noticia.", "This post has no external URL.", "Esta nova non ten URL externa.")}</span>
+                <span className="hint">{pick(language, "No hay enlace externo para este libro.", "This post has no external URL.", "Esta nova non ten URL externa.")}</span>
               )}
             </div>
 
             {current.url ? (
               <section className="rating-box">
-                <h3>{pick(language, "¿Te sirvió esta noticia?", "Was this post useful?", "Serviuche esta nova?")}</h3>
+                <h3>{pick(language, "¿Te sirvió este libro?", "Was this post useful?", "Serviuche esta nova?")}</h3>
                 <p className="hint">
-                  {pick(language, "Tu valoración ayuda al grupo a ordenar mejor lo útil.", "Your rating helps the group prioritize useful content.", "A túa valoración axuda ao grupo a ordenar mellor o útil.")}
+                  {pick(language, "Tu valoración ayuda al club a ordenar mejor lo que merece la pena leer.", "Your rating helps the group prioritize useful content.", "A túa valoración axuda ao grupo a ordenar mellor o útil.")}
                 </p>
-                <p className="hint">{pick(language, "Para valorarla, visita primero la fuente.", "To rate it, visit the source first.", "Para valorala, visita primeiro a fonte.")}</p>
+                <p className="hint">{pick(language, "Para valorarlo, abre primero el enlace.", "To rate it, visit the source first.", "Para valorala, visita primeiro a fonte.")}</p>
                 <div className="rating-actions">
                   <button
                     type="button"
@@ -186,7 +186,7 @@ export const PostDetailModal = ({
                       if (!current || !activeUserId) return;
                       if (!canRate) {
                         setShowSourceVoteHint(true);
-                        onToast(pick(language, "Primero abre la fuente y después valora.", "Open the source first, then rate."));
+                        onToast(pick(language, "Primero abre el enlace y después valora.", "Open the source first, then rate."));
                         return;
                       }
                       setRatingBusy(true);
@@ -221,7 +221,7 @@ export const PostDetailModal = ({
                       if (!current || !activeUserId) return;
                       if (!canRate) {
                         setShowSourceVoteHint(true);
-                        onToast(pick(language, "Primero abre la fuente y después valora.", "Open the source first, then rate."));
+                        onToast(pick(language, "Primero abre el enlace y después valora.", "Open the source first, then rate."));
                         return;
                       }
                       setRatingBusy(true);
@@ -250,9 +250,9 @@ export const PostDetailModal = ({
                   </button>
                 </div>
                 {showSourceVoteHint && !canRate ? (
-                  <p className="warning">{pick(language, "Visita la fuente antes de valorarla.", "Visit the source before rating it.", "Visita a fonte antes de valorala.")}</p>
+                  <p className="warning">{pick(language, "Abre el enlace antes de valorarlo.", "Visit the source before rating it.", "Visita a fonte antes de valorala.")}</p>
                 ) : null}
-                {justOpenedExternal ? <p className="hint">{pick(language, "Gracias por revisar la fuente antes de votar.", "Thanks for checking the source before voting.", "Grazas por revisar a fonte antes de votar.")}</p> : null}
+                {justOpenedExternal ? <p className="hint">{pick(language, "Gracias por revisar el enlace antes de votar.", "Thanks for checking the source before voting.", "Grazas por revisar a fonte antes de votar.")}</p> : null}
               </section>
             ) : null}
 
@@ -267,7 +267,7 @@ export const PostDetailModal = ({
             />
 
             <section className="related-block">
-              <h3>{pick(language, "Noticias relacionadas", "Related posts", "Novas relacionadas")}</h3>
+              <h3>{pick(language, "Libros relacionados", "Related posts", "Novas relacionadas")}</h3>
               <div className="related-list">
                 {related.map((item) => (
                   <button key={item.id} type="button" className="related-item" onClick={() => setCurrent(item)}>

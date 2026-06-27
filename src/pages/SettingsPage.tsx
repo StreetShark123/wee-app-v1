@@ -1,15 +1,14 @@
 import { useEffect, useState } from "react";
 import { Icon } from "../components/Icon";
-import { normalizeLanguage, pick, useI18n } from "../lib/i18n";
+import { pick, useI18n } from "../lib/i18n";
 import { TopBar } from "../components/TopBar";
 import { checkSupabaseConnection, hasSupabaseConfig } from "../lib/backend/supabase";
-import type { AppLanguage, User, UserPreferences } from "../lib/types";
+import type { User, UserPreferences } from "../lib/types";
 
 interface SettingsPageProps {
   activeUser: User;
   preferences: UserPreferences | null;
   knownTopics: string[];
-  onUpdateLanguage: (userId: string, language: AppLanguage) => Promise<void>;
   onSave: (prefs: UserPreferences) => Promise<void>;
   onExport: () => Promise<void>;
   onImport: (file: File) => Promise<void>;
@@ -30,7 +29,6 @@ export const SettingsPage = ({
   activeUser,
   preferences,
   knownTopics,
-  onUpdateLanguage,
   onSave,
   onExport,
   onImport,
@@ -45,15 +43,10 @@ export const SettingsPage = ({
   const [topicInput, setTopicInput] = useState("");
   const [domainInput, setDomainInput] = useState("");
   const [keywordInput, setKeywordInput] = useState("");
-  const [selectedLanguage, setSelectedLanguage] = useState<AppLanguage>(normalizeLanguage(activeUser.language));
   const [noiseMode, setNoiseMode] = useState<"open" | "balanced" | "strict">("balanced");
   const [message, setMessage] = useState<string | null>(null);
   const [backendStatus, setBackendStatus] = useState<string | null>(null);
   const [checkingBackend, setCheckingBackend] = useState(false);
-
-  useEffect(() => {
-    setSelectedLanguage(normalizeLanguage(activeUser.language));
-  }, [activeUser.language]);
 
   useEffect(() => {
     if (!preferences) return;
@@ -90,23 +83,6 @@ export const SettingsPage = ({
           `No pudimos guardar ajustes: ${detail}`,
           `Couldn't save settings: ${detail}`,
           `Non puidemos gardar axustes: ${detail}`
-        )
-      );
-    }
-  };
-
-  const saveLanguage = async () => {
-    try {
-      await onUpdateLanguage(activeUser.id, selectedLanguage);
-      setMessage(pick(language, "Idioma actualizado.", "Language updated.", "Idioma actualizado."));
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : "unknown_error";
-      setMessage(
-        pick(
-          language,
-          `No pudimos actualizar el idioma: ${detail}`,
-          `Couldn't update language: ${detail}`,
-          `Non puidemos actualizar o idioma: ${detail}`
         )
       );
     }
@@ -189,7 +165,7 @@ export const SettingsPage = ({
       <section className="page-section">
         <h2><Icon name="settings" /> {pick(language, "Ajustes", "Settings", "Axustes")}</h2>
         <p className="section-intro">
-          {pick(language, "Déjalo a tu gusto: qué quieres ver y cuánto ruido filtrar.", "Tune it your way: what you want to see and how much noise to filter.", "Déixao ao teu gusto: que queres ver e canto ruído filtrar.")}
+          {pick(language, "Déjalo a tu gusto: qué lecturas quieres ver y cuánto ruido filtrar.", "Tune it your way: what you want to see and how much noise to filter.", "Déixao ao teu gusto: que queres ver e canto ruído filtrar.")}
         </p>
 
         <div className="settings-grid">
@@ -213,7 +189,7 @@ export const SettingsPage = ({
                 })}
               </div>
             ) : (
-              <p className="hint">{pick(language, "Aún no hay temas detectados. Comparte unas noticias y aparecerán aquí.", "No topics yet. Share a few posts and they'll show up here.", "Aínda non hai temas detectados. Comparte unhas novas e aparecerán aquí.")}</p>
+              <p className="hint">{pick(language, "Aún no hay temas detectados. Añade unos libros y aparecerán aquí.", "No topics yet. Share a few posts and they'll show up here.", "Aínda non hai temas detectados. Comparte unhas novas e aparecerán aquí.")}</p>
             )}
 
             <div className="settings-inline-add">
@@ -229,22 +205,7 @@ export const SettingsPage = ({
           </article>
 
           <article className="settings-card">
-            <h3><Icon name="user" /> {pick(language, "Idioma de la app", "App language", "Idioma da app")}</h3>
-            <p className="hint">{pick(language, "Elige el idioma en el que quieres usar Wee.", "Choose the language you want to use Wee in.", "Escolle o idioma no que queres usar Wee.")}</p>
-            <div className="settings-inline-add">
-              <select value={selectedLanguage} onChange={(event) => setSelectedLanguage(event.target.value as AppLanguage)}>
-                <option value="es">Español</option>
-                <option value="en">English</option>
-                <option value="gl">Galego</option>
-              </select>
-              <button type="button" className="btn" onClick={() => void saveLanguage()}>
-                {pick(language, "Aplicar", "Apply", "Aplicar")}
-              </button>
-            </div>
-          </article>
-
-          <article className="settings-card">
-            <h3><Icon name="bolt" /> {pick(language, "Ruido del feed", "Feed noise", "Ruído do feed")}</h3>
+            <h3><Icon name="bolt" /> {pick(language, "Ruido de las lecturas", "Feed noise", "Ruído do feed")}</h3>
             <p className="hint">{pick(language, "Elige un modo rápido y luego lo ajustas fino debajo.", "Pick a quick mode and fine-tune it below.", "Escolle un modo rápido e logo axústalo fino debaixo.")}</p>
             <div className="settings-modes">
               <button
@@ -401,15 +362,15 @@ export const SettingsPage = ({
           <p className="hint">
             {pick(
               language,
-              "Wee guarda perfiles, noticias y votos en Supabase para que toda la comunidad comparta el mismo espacio.",
+              "Wee guarda perfiles, libros y votos en Supabase para que todo el club comparta el mismo espacio.",
               "Wee stores profiles, posts, and votes in Supabase so the whole community shares the same space.",
               "Wee garda perfís, novas e votos en Supabase para que toda a comunidade comparta o mesmo espazo."
             )}
           </p>
           <ul className="rules-list">
             <li>{pick(language, "Acceso/portabilidad: exporta tu copia JSON.", "Access/portability: export your JSON copy.", "Acceso/portabilidade: exporta a túa copia JSON.")}</li>
-            <li>{pick(language, "Rectificación: edita alias/foto y publicaciones.", "Rectification: edit alias/photo and posts.", "Rectificación: edita alias/foto e publicacións.")}</li>
-            <li>{pick(language, "Supresión: elimina tu cuenta y tus datos de comunidad.", "Erasure: delete your account and community data.", "Supresión: elimina a túa conta e os teus datos da comunidade.")}</li>
+            <li>{pick(language, "Rectificación: edita alias/foto y tus libros.", "Rectification: edit alias/photo and posts.", "Rectificación: edita alias/foto e publicacións.")}</li>
+            <li>{pick(language, "Supresión: elimina tu cuenta y tus datos del club.", "Erasure: delete your account and community data.", "Supresión: elimina a túa conta e os teus datos da comunidade.")}</li>
           </ul>
           <button
             type="button"
@@ -418,7 +379,7 @@ export const SettingsPage = ({
               const okDelete = window.confirm(
                 pick(
                   language,
-                  "Esto eliminará tu cuenta y tus datos asociados en la comunidad. ¿Continuar?",
+                  "Esto eliminará tu cuenta y tus datos asociados en el club. ¿Continuar?",
                   "This will delete your account and your related community data. Continue?",
                   "Isto eliminará a túa conta e os teus datos asociados na comunidade. Continuar?"
                 )

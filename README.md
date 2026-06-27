@@ -73,12 +73,6 @@ Documentación de auditoría UX/UI:
 - `docs/ux_audit/design_rules.md`
 - `docs/ux_audit/backlog.md`
 
-Reporte rápido de AURA (desde export JSON):
-
-```bash
-npm run aura:report -- --input ./export.json --limit 30 --format csv --output ./aura_report.csv
-```
-
 ## Rutas principales
 
 - `/#/login`
@@ -115,29 +109,6 @@ Para mejorar el scraping en producción, Wee usa una Edge Function de Supabase (
 
 - Guía paso a paso: [docs/SUPABASE_UNFURL.md](docs/SUPABASE_UNFURL.md)
 - SQL cache: [docs/sql/supabase_unfurl_cache_v1.sql](docs/sql/supabase_unfurl_cache_v1.sql)
-
-## AURA ruleset v2 (feature flag)
-
-- `VITE_AURA_RULESET_VERSION=v1|v2` (default `v1`)
-- Runtime config centralizada: `config/aura_runtime_v2.json`
-- Debug de indexado: añade `?debug=1` en la URL para obtener breakdown completo en la respuesta de publicación.
-- Documentación:
-  - [docs/aura_audit.md](docs/aura_audit.md)
-  - [docs/aura_rules_v2.md](docs/aura_rules_v2.md)
-  - [docs/aura_system_review.md](docs/aura_system_review.md)
-
-## Topic ruleset v2 (feature flag)
-
-- `VITE_TOPIC_RULESET_VERSION=v1|v2` (default `v1`)
-- Config versionable:
-  - `config/topics_v2.json`
-  - `config/topic_conflicts_v2.json`
-  - `config/site_profiles_v2.json`
-- Auditoría y reglas:
-  - [docs/topic_audit.md](docs/topic_audit.md)
-  - [docs/topic_rules_v2.md](docs/topic_rules_v2.md)
-- Migración SQL (campos topic v2):
-  - [supabase/sql/topic_v3.sql](supabase/sql/topic_v3.sql)
 
 ## Supabase (backend de pruebas reales)
 

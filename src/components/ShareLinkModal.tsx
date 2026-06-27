@@ -52,7 +52,7 @@ export const ShareLinkModal = ({ open, onClose, onShareUrl, getDuplicatePreview,
           ? err.message
           : pick(
               language,
-              "Ups, no se pudo publicar ahora. Prueba otra vez.",
+              "Ups, no se pudo añadir al club ahora. Prueba otra vez.",
               "Oops, couldn't post right now. Try again.",
               "Ups, non se puido publicar agora. Proba outra vez."
             )
@@ -88,8 +88,8 @@ export const ShareLinkModal = ({ open, onClose, onShareUrl, getDuplicatePreview,
           >
             <header className="modal-head">
               <div>
-                <h2 id="share-link-title">{pick(language, "Comparte un link", "Share a link", "Comparte unha ligazón")}</h2>
-                <p>{pick(language, "Pásalo por Wee y se queda en su tema, con contexto y sin duplicados.", "Share it through Wee so it stays in the right topic with context and no duplicates.", "Pásao por Wee e queda no seu tema, con contexto e sen duplicados.")}</p>
+                <h2 id="share-link-title">{pick(language, "Recomienda un libro", "Share a link", "Comparte unha ligazón")}</h2>
+                <p>{pick(language, "Añádelo a Wee y se queda en su tema, con contexto y sin duplicados.", "Share it through Wee so it stays in the right topic with context and no duplicates.", "Pásao por Wee e queda no seu tema, con contexto e sen duplicados.")}</p>
               </div>
               <button type="button" className="btn" onClick={onClose}>
                 {pick(language, "Cerrar", "Close", "Pechar")}
@@ -114,27 +114,27 @@ export const ShareLinkModal = ({ open, onClose, onShareUrl, getDuplicatePreview,
                   {duplicateState.sameUser
                     ? pick(
                         language,
-                        `Este enlace ya está en tu historial. Lo sumaremos al mismo hilo para mantenerlo ordenado. Colaboradores: ${duplicateState.contributors} · envíos: ${duplicateState.totalShares}.`,
+                        `Este libro ya está en tu historial. Lo sumaremos al mismo hilo para mantenerlo ordenado. Colaboradores: ${duplicateState.contributors} · envíos: ${duplicateState.totalShares}.`,
                         `This link is already in your history. We'll merge it into the same thread to keep things tidy. Contributors: ${duplicateState.contributors} · shares: ${duplicateState.totalShares}.`,
                         `Esta ligazón xa está no teu historial. Sumarémola ao mesmo fío para mantelo ordenado. Colaboradores: ${duplicateState.contributors} · envíos: ${duplicateState.totalShares}.`
                       )
-                    : pick(language, `Ese link ya existe: va al hilo actual (${duplicateState.contributors} colaboradores, ${duplicateState.totalShares} envíos).`, `This link already exists: we'll merge it into the current thread (${duplicateState.contributors} contributors, ${duplicateState.totalShares} shares).`, `Esa ligazón xa existe: vai ao fío actual (${duplicateState.contributors} colaboradores, ${duplicateState.totalShares} envíos).`)}
+                    : pick(language, `Ese libro ya existe: va al hilo actual (${duplicateState.contributors} colaboradores, ${duplicateState.totalShares} envíos).`, `This link already exists: we'll merge it into the current thread (${duplicateState.contributors} contributors, ${duplicateState.totalShares} shares).`, `Esa ligazón xa existe: vai ao fío actual (${duplicateState.contributors} colaboradores, ${duplicateState.totalShares} envíos).`)}
                 </p>
               ) : null}
 
               {!duplicateState.exists && url.trim() ? (
-                <p className="hint">{pick(language, "Tip rápido: si lo compartes aquí primero, el debate queda ordenado en su hilo.", "Quick tip: share it here first and the discussion stays tidy in-thread.", "Consello rápido: se o compartes aquí primeiro, o debate queda ordenado no seu fío.")}</p>
+                <p className="hint">{pick(language, "Tip rápido: si lo recomiendas aquí primero, el debate del libro queda ordenado en su hilo.", "Quick tip: share it here first and the discussion stays tidy in-thread.", "Consello rápido: se o compartes aquí primeiro, o debate queda ordenado no seu fío.")}</p>
               ) : null}
 
               <button type="submit" className="btn btn-primary" disabled={submitting}>
                 <Icon name="link" />{" "}
                 {submitting ? (
                   <>
-                    {pick(language, "Procesando noticia", "Processing post", "Procesando nova")}
+                    {pick(language, "Añadiendo el libro", "Processing post", "Procesando nova")}
                     <span className="loading-dots" aria-hidden="true" />
                   </>
                 ) : (
-                  pick(language, "Publicar", "Post", "Publicar")
+                  pick(language, "Añadir al club", "Post", "Publicar")
                 )}
               </button>
             </form>

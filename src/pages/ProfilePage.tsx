@@ -90,7 +90,7 @@ export const ProfilePage = ({
             <Avatar user={profileUser} size={74} />
             <div>
               <h2>{profileUser.alias}</h2>
-              <p>{pick(language, `${userPosts.length} noticias compartidas`, `${userPosts.length} shared posts`, `${userPosts.length} novas compartidas`)}</p>
+              <p>{pick(language, `${userPosts.length} libros compartidos`, `${userPosts.length} shared posts`, `${userPosts.length} novas compartidas`)}</p>
             </div>
           </div>
           {canSeeScores && communityStats ? (
@@ -198,7 +198,7 @@ export const ProfilePage = ({
 
           <article className="settings-card profile-posts-card">
             <div className="section-head">
-              <h3><Icon name="news" /> {pick(language, "Publicaciones", "Posts", "Publicacións")}</h3>
+              <h3><Icon name="news" /> {pick(language, "Libros", "Posts", "Publicacións")}</h3>
               {isOwnProfile ? (
                 <Link to={`/profile/${profileUser.id}/posts`} className="link-btn">
                   <Icon name="news" /> {pick(language, "Gestionar", "Manage", "Xestionar")}
@@ -207,7 +207,7 @@ export const ProfilePage = ({
             </div>
             {userPosts.length === 0 ? (
               <p className="hint">
-                {pick(language, "Este perfil todavía no ha compartido noticias.", "This profile has not shared posts yet.", "Este perfil aínda non compartiu novas.")}
+                {pick(language, "Este perfil todavía no ha compartido libros.", "This profile has not shared posts yet.", "Este perfil aínda non compartiu novas.")}
               </p>
             ) : (
               <div className="post-grid">
@@ -260,7 +260,7 @@ export const ProfilePage = ({
                 type="button"
                 className="btn"
                 onClick={async () => {
-                  const okDelete = window.confirm(pick(language, "¿Eliminar este usuario de la comunidad?", "Remove this user from the community?", "Eliminar este usuario da comunidade?"));
+                  const okDelete = window.confirm(pick(language, "¿Eliminar este usuario del club?", "Remove this user from the community?", "Eliminar este usuario da comunidade?"));
                   if (!okDelete) return;
                   const result = await onDeleteUser(profileUser.id);
                   onToast(result.message);

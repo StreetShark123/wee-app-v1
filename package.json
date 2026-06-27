@@ -11,9 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "design:lint": "node scripts/design_lint.mjs",
-    "check": "npm run typecheck && npm run test && npm run design:lint",
-    "aura:report": "node scripts/aura_report.mjs",
-    "topics:recompute:v2": "node scripts/recompute_topics_v2.mjs"
+    "check": "npm run typecheck && npm run test && npm run design:lint"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",

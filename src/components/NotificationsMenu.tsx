@@ -64,7 +64,7 @@ export const NotificationsMenu = () => {
                   >
                     <span className="notification-item-title">
                       {notification.type === "post_comment"
-                        ? pick(language, `${notification.actorAlias} comentó tu noticia`, `${notification.actorAlias} commented on your post`, `${notification.actorAlias} comentou a túa nova`)
+                        ? pick(language, `${notification.actorAlias} comentó tu libro`, `${notification.actorAlias} commented on your post`, `${notification.actorAlias} comentou a túa nova`)
                         : notification.vote === -1
                           ? pick(language, `${notification.actorAlias} bajó el Aura`, `${notification.actorAlias} lowered Aura`, `${notification.actorAlias} baixou a Aura`)
                           : pick(language, `${notification.actorAlias} subió el Aura`, `${notification.actorAlias} raised Aura`, `${notification.actorAlias} subiu a Aura`)}

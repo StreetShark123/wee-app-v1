@@ -13,6 +13,7 @@ const ALLOWED_INLINE_STYLE_FILES = new Set([
   "src/components/PostCard.tsx",
   "src/pages/PostDetailPage.tsx",
   "src/pages/HomePage.tsx",
+  "src/pages/BookDetailPage.tsx",
   "src/pages/ProfilePage.tsx",
   "src/pages/SettingsPage.tsx"
 ]);

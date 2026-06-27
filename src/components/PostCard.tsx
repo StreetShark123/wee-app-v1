@@ -28,7 +28,7 @@ export const PostCard = ({ post, canDelete = false, onDelete, onOpenDetail, comp
   const auraHealthClass =
     post.interestScore >= 75 ? "aura-health-good" : post.interestScore >= 50 ? "aura-health-warn" : "aura-health-bad";
   const snippet = post.status === "collapsed"
-    ? pick(language, "Contenido oculto por moderación.", "Content hidden by moderation.", "Contido oculto por moderación.")
+    ? pick(language, "Libro oculto por moderación.", "Content hidden by moderation.", "Contido oculto por moderación.")
     : (post.text ?? "").trim();
   const auraWhy = post.rationale.slice(0, 3);
   const deleteTooltip = pick(language, "Clica aquí para eliminar", "Click here to delete", "Clica aquí para eliminar");
