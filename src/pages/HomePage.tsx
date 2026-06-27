@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BookCard } from "../components/BookCard";
 import { BookGridSkeleton } from "../components/Skeletons";
@@ -52,6 +52,8 @@ export const HomePage = ({
     [memberBooks]
   );
 
+  const openBook = useCallback((entry: ClubBook) => navigate(`/book/${entry.id}`), [navigate]);
+
   const featuredRank = (book: (typeof books)[number]): number =>
     book.featured === "gold" ? 0 : book.featured === "silver" ? 1 : 2;
   const visibleBooks = useMemo(
@@ -88,7 +90,7 @@ export const HomePage = ({
         </div>
         <div className="book-grid">
           {list.map((book) => (
-            <BookCard key={book.id} book={book} member={memberByBookId.get(book.id)} onOpen={(entry) => navigate(`/book/${entry.id}`)} />
+            <BookCard key={book.id} book={book} member={memberByBookId.get(book.id)} onOpen={openBook} />
           ))}
         </div>
       </section>

@@ -254,12 +254,18 @@ const AppRoutes = () => {
     return () => window.removeEventListener("focus", onFocus);
   }, [reloadNotifications]);
 
-  const markAllNotificationsAsRead = (): void => {
+  const markAllNotificationsAsRead = useCallback((): void => {
     if (!activeUser) return;
     setUnreadNotifications(0);
     setNotifications((prev) => prev.map((n) => ({ ...n, readAt: n.readAt ?? Date.now() })));
     void markNotificationsRead().catch(() => undefined);
-  };
+  }, [activeUser]);
+
+  const i18nValue = useMemo(() => ({ language }), [language]);
+  const notificationsValue = useMemo(
+    () => ({ notifications, unreadCount: unreadNotifications, markAllAsRead: markAllNotificationsAsRead }),
+    [notifications, unreadNotifications, markAllNotificationsAsRead]
+  );
 
   const onExport = async (): Promise<void> => {
     const data = await exportJson();
@@ -349,7 +355,7 @@ const AppRoutes = () => {
 
   if (showLoadingOverlay) {
     return (
-      <I18nContext.Provider value={{ language }}>
+      <I18nContext.Provider value={i18nValue}>
         <NotificationsContext.Provider
           value={{
             notifications: [],
@@ -398,7 +404,7 @@ const AppRoutes = () => {
                 "O backend respondeu cun erro raro. Mira os logs de Supabase para máis detalle."
               );
     return (
-      <I18nContext.Provider value={{ language }}>
+      <I18nContext.Provider value={i18nValue}>
         <NotificationsContext.Provider
           value={{
             notifications: [],
@@ -416,14 +422,8 @@ const AppRoutes = () => {
   }
 
   return (
-    <I18nContext.Provider value={{ language }}>
-      <NotificationsContext.Provider
-        value={{
-          notifications,
-          unreadCount: unreadNotifications,
-          markAllAsRead: markAllNotificationsAsRead
-        }}
-      >
+    <I18nContext.Provider value={i18nValue}>
+      <NotificationsContext.Provider value={notificationsValue}>
         <Suspense
           fallback={
             <CommunityLoadingScreen

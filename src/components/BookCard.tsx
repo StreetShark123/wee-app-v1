@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 import type { ClubBook, MemberBook } from "../lib/communityApi";
 import { pick, useI18n } from "../lib/i18n";
 import { Icon } from "./Icon";
@@ -21,7 +21,7 @@ const timeAgo = (ms: number, language: "es" | "en" | "gl"): string => {
   return pick(language, `hace ${months} mes`, `${months}mo ago`, `hai ${months} mes`);
 };
 
-export const BookCard = ({ book, member, onOpen }: BookCardProps) => {
+export const BookCard = memo(({ book, member, onOpen }: BookCardProps) => {
   const { language } = useI18n();
   // Indicador sutil de "tú lo estás leyendo" (sin texto redundante).
   const mine = !!member && (member.shelf === "reading" || member.shelf === "finished" || member.chaptersDone > 0);
@@ -74,4 +74,5 @@ export const BookCard = ({ book, member, onOpen }: BookCardProps) => {
       </span>
     </button>
   );
-};
+});
+BookCard.displayName = "BookCard";

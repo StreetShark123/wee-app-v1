@@ -281,12 +281,10 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const handleAddNote = async (chapterId: string, text: string, kind: NoteKind, imageUrl?: string) => {
     const { note } = await addChapterNote(chapterId, text, kind, imageUrl);
     patch((d) => ({ ...d, chapters: d.chapters.map((c) => (c.id === chapterId ? { ...c, notes: [...c.notes, note] } : c)) }));
-    onBooksChanged();
   };
   const handleReply = async (parentId: string, text: string) => {
     const { comment } = await addBookComment(book.id, text, { parentId });
     patch((d) => ({ ...d, comments: [...d.comments, comment] }));
-    onBooksChanged();
   };
   const handleAddComment = (text: string, chapterId?: string) =>
     run(async () => {
@@ -296,11 +294,10 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const handleEditComment = async (commentId: string, text: string) => {
     await updateComment(commentId, text);
     patch((d) => ({ ...d, comments: d.comments.map((c) => (c.id === commentId ? { ...c, text } : c)) }));
-    onBooksChanged();
   };
   const handleDeleteComment = (commentId: string) => {
     patch((d) => ({ ...d, comments: d.comments.filter((c) => c.id !== commentId && c.parentId !== commentId) }));
-    void deleteComment(commentId).then(onBooksChanged).catch(() => void load());
+    void deleteComment(commentId).catch(() => void load());
   };
   const handleFinish = () =>
     run(async () => {

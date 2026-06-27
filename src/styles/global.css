@@ -984,6 +984,7 @@ textarea {
   background: #0f192e;
   color: var(--ink-0);
   min-height: var(--control-height);
+  font-size: max(16px, 1rem);   /* evita el auto-zoom de iOS al enfocar campos */
   transition: border-color var(--motion-fast) var(--ease-standard), box-shadow var(--motion-fast) var(--ease-standard), background-color var(--motion-fast) var(--ease-standard);
 }
 
@@ -4267,4 +4268,44 @@ textarea:focus-visible {
 .note-media-yt .note-media-tag {
   position: absolute; left: 6px; bottom: 6px; font-size: 0.66rem; letter-spacing: 0.03em;
   background: rgb(0 0 0 / 70%); color: #fff; padding: 1px 6px; border-radius: 4px;
+}
+
+/* ───────── Revisión móvil 2026-06: visibilidad + táctil ───────── */
+
+/* AddBookModal: el buscador usa .input-icon que no tenía CSS (icono solapaba el input) */
+.input-icon { position: relative; display: flex; align-items: center; width: 100%; }
+.input-icon > svg { position: absolute; left: 10px; opacity: 0.65; pointer-events: none; }
+.input-icon > input { padding-left: 32px; }
+
+/* Reacciones: celdas táctiles ≥40px (antes ~26px → toques erróneos) */
+.reaction-emoji { min-width: 40px; min-height: 40px; display: inline-grid; place-items: center; }
+
+/* Acciones de comentario: más alto y con más separación táctil */
+.comment-reply-btn { min-height: 36px; padding: 4px 10px; }
+.comment-actions { gap: 8px; row-gap: 8px; }
+
+/* Triggers del header a ≥40px en móvil (antes 34px) */
+@media (max-width: 800px) {
+  .user-menu-trigger, .notification-trigger { min-height: 40px; }
+  /* el buscador del header no fuerza 280px en móviles grandes (evita overflow 768–800px) */
+  .topbar-search { min-width: 0; }
+  /* dropdown de notificaciones anclado al viewport desde 800px, no solo 640px */
+  .notification-dropdown {
+    position: fixed;
+    top: 4.6rem;
+    left: 0.5rem;
+    right: 0.5rem;
+    width: auto;
+    max-width: none;
+    max-height: 72vh;
+  }
+}
+
+/* El scroll del dropdown no arrastra el fondo */
+.notification-list { overscroll-behavior: contain; }
+
+/* ProfilePage/Auth: alias-row no se aprieta en pantallas estrechas */
+@media (max-width: 420px) {
+  .alias-row { grid-template-columns: 1fr auto; }
+  .alias-row .btn[type="submit"], .alias-row .btn-primary { grid-column: 1 / -1; }
 }
