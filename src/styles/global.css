@@ -5707,3 +5707,16 @@ textarea:focus-visible {
 .book-member-row { display: flex; justify-content: space-between; gap: 10px; }
 .book-member-rating { color: var(--accent-amber); margin-right: 6px; letter-spacing: 1px; }
 .book-member-review { margin: 0; font-size: 0.85rem; color: var(--ink-1); line-height: 1.4; }
+
+/* Fix: texto de capítulos NO leídos legible (el botón heredaba color negro) */
+.chapter-head { color: var(--ink-0); }
+.chapter-title { color: var(--ink-0); }
+.chapter-notes-locked {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: var(--ink-1);
+  font-style: italic;
+}

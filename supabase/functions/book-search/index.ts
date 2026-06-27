@@ -179,6 +179,37 @@ const searchOpenLibrary = async (
   return (data.docs ?? []).map(openLibraryToResult).filter((e): e is BookResult => e !== null);
 };
 
+// ───────────────────────────── Cache (Supabase) ─────────────────────────────
+// Guardamos resultados por búsqueda para no repetir llamadas a Google/Open Library.
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const cacheDb = SUPABASE_URL && SERVICE_ROLE ? createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } }) : null;
+const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 días
+
+const cacheKeyFor = (isbn: string, q: string, maxResults: number): string =>
+  `${isbn ? `isbn:${isbn}` : `q:${q.toLowerCase()}`}|n:${maxResults}`;
+
+const readCache = async (key: string): Promise<{ results: BookResult[]; engine: string } | null> => {
+  if (!cacheDb) return null;
+  const { data, error } = await cacheDb
+    .from("book_search_cache")
+    .select("results,engine,fetched_at")
+    .eq("cache_key", key)
+    .maybeSingle();
+  if (error || !data) return null;
+  if (Date.now() - Date.parse(data.fetched_at) > CACHE_TTL_MS) return null;
+  return { results: data.results as BookResult[], engine: data.engine as string };
+};
+
+const writeCache = async (key: string, results: BookResult[], engine: string): Promise<void> => {
+  if (!cacheDb || results.length === 0) return; // no cacheamos búsquedas vacías
+  await cacheDb
+    .from("book_search_cache")
+    .upsert({ cache_key: key, results, engine, fetched_at: new Date().toISOString() }, { onConflict: "cache_key" });
+};
+
 // ───────────────────────────── Handler ─────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -202,6 +233,13 @@ Deno.serve(async (req) => {
   }
   const maxResults = Math.min(Math.max(Number(body.maxResults) || 10, 1), 20);
   const apiKey = Deno.env.get("GOOGLE_BOOKS_API_KEY");
+  const cacheKey = cacheKeyFor(isbn, q, maxResults);
+
+  // 1) Cache: si hay resultados frescos, los devolvemos sin llamar a las APIs.
+  const cached = await readCache(cacheKey);
+  if (cached) {
+    return json(200, { ...cached, cached: true });
+  }
 
   try {
     // Con key: Google primero (mejores sinopsis), Open Library si falla o vacío.
@@ -209,6 +247,7 @@ Deno.serve(async (req) => {
       try {
         const googleResults = await searchGoogle(isbn ? `isbn:${isbn}` : q, maxResults, apiKey);
         if (googleResults.length > 0) {
+          await writeCache(cacheKey, googleResults, "google_books");
           return json(200, { results: googleResults, engine: "google_books" });
         }
       } catch {
@@ -216,6 +255,7 @@ Deno.serve(async (req) => {
       }
     }
     const results = await searchOpenLibrary(q, isbn, maxResults);
+    await writeCache(cacheKey, results, "open_library");
     return json(200, { results, engine: "open_library" });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

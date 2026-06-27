@@ -77,16 +77,6 @@ const TopBarInner = ({ user, communityName, onLeaveCommunity, searchValue, onSea
       ) : null}
 
       <div className="topbar-right">
-        {onOpenShare ? (
-          <button type="button" className="btn btn-primary" onClick={onOpenShare}>
-            <Icon name="plus" size={14} /> {pick(language, "Recomendar libro", "Share link", "Compartir ligazón")}
-          </button>
-        ) : (
-          <Link to="/share" className="btn btn-primary">
-            <Icon name="plus" size={14} /> {pick(language, "Recomendar libro", "Share link", "Compartir ligazón")}
-          </Link>
-        )}
-
         <NotificationsMenu />
 
         <div className="topbar-user-menu" ref={profileMenuRef}>

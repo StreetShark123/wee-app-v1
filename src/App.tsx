@@ -5,7 +5,6 @@ import { AppFooter } from "./components/AppFooter";
 import { CommunityLoadingScreen } from "./components/CommunityLoadingScreen";
 import { Icon } from "./components/Icon";
 import { PageTransition } from "./components/PageTransition";
-import { ShareLinkModal } from "./components/ShareLinkModal";
 import { AddBookModal } from "./components/AddBookModal";
 import type { BookDraft } from "./lib/bookSearch";
 import { createClubBook, listClubBooks, type ClubBook, type MemberBook } from "./lib/communityApi";
@@ -1446,25 +1445,7 @@ const AppRoutes = () => {
         </Routes>
         </AnimatePresence>
         </Suspense>
-        {activeUser && location.pathname.startsWith("/home") ? (
-          <button
-            type="button"
-            className="mobile-share-fab"
-            onClick={() => setBookModalOpen(true)}
-            aria-label={pick(language, "Añadir un libro", "Add a book", "Engadir un libro")}
-            title={pick(language, "Añadir un libro", "Add a book", "Engadir un libro")}
-          >
-            <Icon name="plus" size={18} />
-          </button>
-        ) : null}
         <Toast message={toast} />
-        <ShareLinkModal
-          open={shareModalOpen}
-          onClose={() => setShareModalOpen(false)}
-          onShareUrl={onShareUrl}
-          getDuplicatePreview={getDuplicatePreview}
-          onToast={showToast}
-        />
         <AddBookModal
           open={bookModalOpen}
           onClose={() => setBookModalOpen(false)}

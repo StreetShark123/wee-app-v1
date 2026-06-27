@@ -261,6 +261,16 @@ Cada fase termina verde en `npm run check` (typecheck + test + design:lint).
 - ⏳ Sigue aplazado: hilos de comentarios en notas, upload de imágenes (Storage),
   auditoría CSS integral.
 
+### Fase 5.9 — Cache de búsqueda + ajustes de ficha — ✅ HECHA 2026-06-27
+- **Cache de book-search** (`book_search_cache`, TTL 30 días): la edge function consulta
+  cache antes de llamar a Google/Open Library; respuesta marca `cached:true`. Menos
+  llamadas externas y más rápido. Verificado (2ª llamada cacheada).
+- **Notas de capítulo solo visibles tras leerlo** (`doneByMe`) — anti-spoiler; si hay
+  notas y no lo has leído, muestra "N nota(s) — léelo para verlas".
+- **Fix**: texto de capítulos no leídos era negro (el `<button>` heredaba color) → `--ink-0`.
+- **Un solo botón "Añadir libro"** (el del hero): quitado el botón "Recomendar libro" del
+  TopBar, el FAB flotante y el `ShareLinkModal` legacy de App.
+
 ### Fase 6 — Limpieza de legado de noticias (EN CURSO)
 - ✅ Borrados 7 archivos muertos (0 referencias): `IconGallery`, `AppSkeleton`,
   `TopicBlock`, `FiltersBar`, `PostDetailModal`, `LoginPage`, `InviteRedirectPage`.

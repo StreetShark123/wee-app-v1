@@ -72,32 +72,41 @@ export const ChapterTimeline = ({ chapters, busy, onToggle, onAddNote }: Chapter
               </span>
             </button>
 
-            {chapter.notes.length > 0 ? (
-              <ul className="chapter-notes">
-                {chapter.notes.map((note) => (
-                  <li key={note.id} className={`chapter-note chapter-note-${note.kind}`}>
-                    <div className="chapter-note-head">
-                      <span className="chapter-note-kind">
-                        {note.kind === "reference"
-                          ? pick(language, "Referencia", "Reference", "Referencia")
-                          : pick(language, "Nota", "Note", "Nota")}
-                      </span>
-                      <span className="chapter-note-by">{note.alias}</span>
-                    </div>
-                    {note.text ? (
-                      <p className="chapter-note-text"><Linkify text={note.text} /></p>
-                    ) : null}
-                    {note.imageUrl ? (
-                      <a href={note.imageUrl} target="_blank" rel="noopener noreferrer nofollow" className="chapter-note-image">
-                        <img src={note.imageUrl} alt="" loading="lazy" />
-                      </a>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
+            {/* Anotaciones: solo visibles tras leer el capítulo (anti-spoiler). */}
+            {!chapter.doneByMe ? (
+              chapter.notes.length > 0 ? (
+                <p className="chapter-notes-locked">
+                  <Icon name="eyeOff" size={12} /> {pick(language, `${chapter.notes.length} nota(s) — léelo para verlas`, `${chapter.notes.length} note(s) — read it to see them`, `${chapter.notes.length} nota(s) — leo para velas`)}
+                </p>
+              ) : null
+            ) : (
+              <>
+                {chapter.notes.length > 0 ? (
+                  <ul className="chapter-notes">
+                    {chapter.notes.map((note) => (
+                      <li key={note.id} className={`chapter-note chapter-note-${note.kind}`}>
+                        <div className="chapter-note-head">
+                          <span className="chapter-note-kind">
+                            {note.kind === "reference"
+                              ? pick(language, "Referencia", "Reference", "Referencia")
+                              : pick(language, "Nota", "Note", "Nota")}
+                          </span>
+                          <span className="chapter-note-by">{note.alias}</span>
+                        </div>
+                        {note.text ? (
+                          <p className="chapter-note-text"><Linkify text={note.text} /></p>
+                        ) : null}
+                        {note.imageUrl ? (
+                          <a href={note.imageUrl} target="_blank" rel="noopener noreferrer nofollow" className="chapter-note-image">
+                            <img src={note.imageUrl} alt="" loading="lazy" />
+                          </a>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
 
-            {openFor === chapter.id ? (
+                {openFor === chapter.id ? (
               <div className="chapter-note-form">
                 <div className="chapter-note-kinds">
                   <button type="button" className={`btn chapter-kind${noteKind === "note" ? " is-on" : ""}`} onClick={() => setNoteKind("note")}>
@@ -151,6 +160,8 @@ export const ChapterTimeline = ({ chapters, busy, onToggle, onAddNote }: Chapter
               >
                 <Icon name="plus" size={12} /> {pick(language, "Añadir nota", "Add note", "Engadir nota")}
               </button>
+                )}
+              </>
             )}
           </div>
         </li>
