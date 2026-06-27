@@ -77,6 +77,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const [edit, setEdit] = useState({ title: "", author: "", coverUrl: "", description: "" });
   const [targetCh, setTargetCh] = useState("");
   const [targetDate, setTargetDate] = useState("");
+  const [minutesPerDay, setMinutesPerDay] = useState(30);
 
   const load = useCallback(async () => {
     if (!bookId) return;
@@ -225,6 +226,22 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const hasCadence = book.status === "reading" && (book.targetChapter || book.targetDate);
   const readChapterIds = new Set(chapters.filter((c) => c.doneByMe).map((c) => c.id));
   const chapterLabelById = new Map(chapters.map((c, i) => [c.id, `${i + 1}`]));
+
+  // ── Cálculo de cadencia (estimación de páginas + ritmo por minutos/día) ──
+  const MIN_PER_PAGE = 2; // ~2 min por página de prosa
+  const totalChapters = chapters.length || book.totalChapters || 0;
+  const knownPages = !!book.pageCount && totalChapters > 0;
+  const pagesPerChapter = knownPages ? (book.pageCount as number) / totalChapters : 18;
+  const targetChNum = Number(targetCh) || 0;
+  const pagesToTarget = targetChNum > 0 ? Math.round(pagesPerChapter * targetChNum) : 0;
+  const pagesPerDay = Math.max(1, minutesPerDay / MIN_PER_PAGE);
+  const daysFromPace = pagesToTarget > 0 ? Math.max(1, Math.ceil(pagesToTarget / pagesPerDay)) : 0;
+  const isoDate = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+  const suggestedDate = daysFromPace > 0 ? isoDate(Date.now() + daysFromPace * 86400000) : "";
+  const daysUntilTarget = targetDate ? Math.max(1, Math.ceil((new Date(`${targetDate}T23:59:59`).getTime() - Date.now()) / 86400000)) : 0;
+  const impliedMinPerDay = daysUntilTarget > 0 && pagesToTarget > 0 ? Math.round((pagesToTarget / daysUntilTarget) * MIN_PER_PAGE) : 0;
+  const paceLabel = (m: number): string =>
+    m <= 0 ? "" : m < 20 ? pick(language, "relajado", "relaxed", "relaxado") : m <= 45 ? pick(language, "cómodo", "comfy", "cómodo") : m <= 90 ? pick(language, "exigente", "demanding", "esixente") : pick(language, "muy intenso", "very intense", "moi intenso");
 
   // Marcar capítulo: optimista e instantáneo (no bloquea ni recarga).
   const handleToggle = (chapterId: string, done: boolean) => {
@@ -430,18 +447,59 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               </button>
             </div>
 
-            {/* C1: cadencia (meta de lectura) */}
+            {/* C1: cadencia inteligente (meta de lectura) */}
             <div className="book-manage book-cadence-edit">
-              <span className="hint"><Icon name="target" size={13} /> {pick(language, "Cadencia (meta de lectura):", "Cadence (reading goal):", "Cadencia (meta de lectura):")}</span>
+              <span className="hint"><Icon name="target" size={13} /> {pick(language, "Cadencia (meta de lectura)", "Cadence (reading goal)", "Cadencia (meta de lectura)")}</span>
+
               <label className="book-chapter-set">
-                {pick(language, "Hasta el capítulo", "Through chapter", "Ata o capítulo")}
-                <input type="number" min={0} value={targetCh} onChange={(event) => setTargetCh(event.target.value)} />
+                {pick(language, "Leer hasta", "Read through", "Ler ata")}
+                {chapters.length > 0 ? (
+                  <select value={targetCh} onChange={(event) => setTargetCh(event.target.value)} className="settings-select">
+                    <option value="">{pick(language, "elige capítulo", "pick a chapter", "escolle capítulo")}</option>
+                    {chapters.map((c, i) => (
+                      <option key={c.id} value={i + 1}>{pick(language, `Capítulo ${i + 1}`, `Chapter ${i + 1}`, `Capítulo ${i + 1}`)}{c.title && !/^cap[íi]tulo/i.test(c.title) ? ` · ${c.title}` : ""}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input type="number" min={0} value={targetCh} onChange={(event) => setTargetCh(event.target.value)} placeholder={pick(language, "nº capítulo", "chapter #", "nº capítulo")} />
+                )}
               </label>
+              {targetChNum > 0 && knownPages ? (
+                <p className="hint cadence-pages">{pick(language, `≈ ${pagesToTarget} páginas hasta ahí`, `≈ ${pagesToTarget} pages to there`, `≈ ${pagesToTarget} páxinas ata aí`)}</p>
+              ) : null}
+
+              <div className="cadence-pace">
+                <label className="book-chapter-set">
+                  {pick(language, "Quiero leer", "I want to read", "Quero ler")}
+                  <input type="number" min={5} step={5} value={minutesPerDay} onChange={(event) => setMinutesPerDay(Math.max(5, Number(event.target.value) || 0))} />
+                  {pick(language, "min/día", "min/day", "min/día")}
+                </label>
+                {targetChNum > 0 ? (
+                  <p className="hint cadence-estimate">
+                    {pick(language, `A ese ritmo (~${Math.round(pagesPerDay)} pág/día) llegarías en ~${daysFromPace} días`, `At that pace (~${Math.round(pagesPerDay)} pg/day) you'd arrive in ~${daysFromPace} days`, `A ese ritmo chegarías en ~${daysFromPace} días`)}
+                    {suggestedDate ? (
+                      <>
+                        {" "}({suggestedDate}){" "}
+                        <button type="button" className="link-btn" onClick={() => setTargetDate(suggestedDate)}>{pick(language, "usar esa fecha", "use that date", "usar esa data")}</button>
+                      </>
+                    ) : null}
+                  </p>
+                ) : (
+                  <p className="hint">{pick(language, "Elige un capítulo objetivo para estimar.", "Pick a target chapter to estimate.", "Escolle un capítulo obxectivo para estimar.")}</p>
+                )}
+              </div>
+
               <label className="book-chapter-set">
                 {pick(language, "Para la fecha", "By date", "Para a data")}
                 <input type="date" value={targetDate} onChange={(event) => setTargetDate(event.target.value)} />
               </label>
-              <button type="button" className="btn" disabled={busy} onClick={handleSetTarget}>
+              {targetDate && impliedMinPerDay > 0 ? (
+                <p className={`hint cadence-check${impliedMinPerDay > 90 ? " is-intense" : ""}`}>
+                  {pick(language, `Para esa fecha: ~${impliedMinPerDay} min/día (${paceLabel(impliedMinPerDay)})`, `By that date: ~${impliedMinPerDay} min/day (${paceLabel(impliedMinPerDay)})`, `Para esa data: ~${impliedMinPerDay} min/día (${paceLabel(impliedMinPerDay)})`)}
+                </p>
+              ) : null}
+
+              <button type="button" className="btn btn-primary" disabled={busy || targetChNum < 1} onClick={handleSetTarget}>
                 {pick(language, "Fijar cadencia", "Set cadence", "Fixar cadencia")}
               </button>
             </div>
