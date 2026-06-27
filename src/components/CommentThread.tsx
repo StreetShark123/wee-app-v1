@@ -4,8 +4,7 @@ import { pick, useI18n } from "../lib/i18n";
 import { Icon } from "./Icon";
 import { Linkify } from "./Linkify";
 import { MentionTextarea } from "./MentionTextarea";
-
-const PRESET_EMOJIS = ["👍", "❤️", "🔥", "😍", "🤔", "💡", "😂", "😮", "😢", "👏", "🙌", "💯", "📖", "🤯", "✨", "🥲"];
+import { ReactionPicker } from "./ReactionPicker";
 
 interface CommentThreadProps {
   comments: BookComment[];
@@ -45,7 +44,6 @@ const CommentItem = ({
   const { language } = useI18n();
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyText, setReplyText] = useState("");
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editText, setEditText] = useState(comment.text);
@@ -123,28 +121,7 @@ const CommentItem = ({
             <span aria-hidden="true">{r.emoji}</span> <span className="reaction-count">{r.count}</span>
           </button>
         ))}
-        <div className="reaction-add">
-          <button type="button" className="reaction-chip reaction-add-btn" aria-label={pick(language, "Añadir reacción", "Add reaction", "Engadir reacción")} aria-expanded={pickerOpen} onClick={() => setPickerOpen((v) => !v)}>
-            <Icon name="heart" size={13} /> <span aria-hidden="true">+</span>
-          </button>
-          {pickerOpen ? (
-            <div className="reaction-picker" role="menu">
-              {PRESET_EMOJIS.map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  className="reaction-emoji"
-                  onClick={() => {
-                    onReact(comment.id, e);
-                    setPickerOpen(false);
-                  }}
-                >
-                  {e}
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
+        <ReactionPicker onPick={(e) => onReact(comment.id, e)} />
         <button type="button" className="comment-reply-btn" onClick={() => setReplyOpen((v) => !v)}>
           {pick(language, "Responder", "Reply", "Responder")}
         </button>

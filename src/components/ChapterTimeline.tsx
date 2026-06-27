@@ -5,6 +5,7 @@ import { pick, useI18n } from "../lib/i18n";
 import type { AppLanguage } from "../lib/types";
 import { Icon } from "./Icon";
 import { Linkify } from "./Linkify";
+import { ReactionPicker } from "./ReactionPicker";
 
 interface ChapterTimelineProps {
   chapters: BookChapter[];
@@ -17,8 +18,6 @@ interface ChapterTimelineProps {
   onViewNoteThread?: (rootId: string) => void;
   onReactNote?: (noteId: string, emoji: string) => void;
 }
-
-const NOTE_EMOJIS = ["👍", "❤️", "🔥", "🤔", "💡", "😍", "👏", "📖", "✨", "🙌", "😂", "🤯"];
 
 const YT_RE = /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/i;
 const IMG_RE = /\.(jpe?g|png|gif|webp|svg|avif)(\?.*)?$/i;
@@ -124,7 +123,6 @@ const NoteCard = ({
   onViewThread?: () => void;
   onReact?: (emoji: string) => void;
 }) => {
-  const [pickerOpen, setPickerOpen] = useState(false);
   const media = mediaUrlsOf(note);
   const hasThread = !!threadCount && threadCount > 0;
   const reactions = note.reactions ?? [];
@@ -154,20 +152,7 @@ const NoteCard = ({
               <span aria-hidden="true">{r.emoji}</span> <span className="reaction-count">{r.count}</span>
             </button>
           ))}
-          {onReact ? (
-            <div className="reaction-add">
-              <button type="button" className="reaction-chip reaction-add-btn" aria-expanded={pickerOpen} aria-label={pick(language, "Añadir reacción", "Add reaction", "Engadir reacción")} onClick={() => setPickerOpen((v) => !v)}>
-                <Icon name="heart" size={12} /> <span aria-hidden="true">+</span>
-              </button>
-              {pickerOpen ? (
-                <div className="reaction-picker" role="menu">
-                  {NOTE_EMOJIS.map((e) => (
-                    <button key={e} type="button" className="reaction-emoji" onClick={() => { onReact(e); setPickerOpen(false); }}>{e}</button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          ) : null}
+          {onReact ? <ReactionPicker onPick={onReact} /> : null}
         </div>
       ) : null}
 
