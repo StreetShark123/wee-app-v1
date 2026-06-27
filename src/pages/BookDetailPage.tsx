@@ -14,6 +14,7 @@ import {
   addChapterNote,
   completeAllChapters,
   reactComment,
+  reactNote,
   updateComment,
   deleteComment,
   deleteBook,
@@ -294,6 +295,19 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const handleViewNoteThread = (rootId: string) => {
     setFocusComment(rootId);
     setFocusTick((t) => t + 1);
+  };
+  // Reacción a una anotación: optimista en su nota, sin recargar la ficha.
+  const handleReactNote = (noteId: string, emoji: string) => {
+    const apply = (reactionsOf: (n: ChapterNote) => CommentReaction[]) =>
+      setDetail((prev) =>
+        prev
+          ? { ...prev, chapters: prev.chapters.map((c) => ({ ...c, notes: c.notes.map((n) => (n.id === noteId ? { ...n, reactions: reactionsOf(n) } : n)) })) }
+          : prev
+      );
+    apply((n) => toggleReactionLocal(n.reactions ?? [], emoji));
+    void reactNote(noteId, emoji)
+      .then(({ reactions }) => apply(() => reactions))
+      .catch(() => void load());
   };
 
   // ── Cálculo de cadencia (estimación de páginas + ritmo por minutos/día) ──
@@ -708,12 +722,12 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                   <p className="chapter-alldone"><Icon name="check" /> {pick(language, "Has leído todos los capítulos.", "You've read every chapter.", "Liches todos os capítulos.")}</p>
                   <details className="chapter-collapsed">
                     <summary>{pick(language, `Ver los ${total} capítulos`, `Show the ${total} chapters`, `Ver os ${total} capítulos`)}</summary>
-                    <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} onCommentNote={handleCommentNote} noteThreadById={noteThreadById} onViewNoteThread={handleViewNoteThread} />
+                    <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} onCommentNote={handleCommentNote} noteThreadById={noteThreadById} onViewNoteThread={handleViewNoteThread} onReactNote={handleReactNote} />
                   </details>
                 </>
               ) : (
                 <>
-                  <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} onCommentNote={handleCommentNote} noteThreadById={noteThreadById} onViewNoteThread={handleViewNoteThread} />
+                  <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} onCommentNote={handleCommentNote} noteThreadById={noteThreadById} onViewNoteThread={handleViewNoteThread} onReactNote={handleReactNote} />
                   <button type="button" className="btn chapter-mark-all" disabled={busy} onClick={() => handleCompleteAll(true)}>
                     <Icon name="check" /> {pick(language, "Marcar todo como leído", "Mark all as read", "Marcar todo como lido")}
                   </button>

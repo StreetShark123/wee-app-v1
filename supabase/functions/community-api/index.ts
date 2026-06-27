@@ -1803,7 +1803,8 @@ const handlers = {
 
     const votes = await voteSummary(auth.community.id, bookId, auth.user.id);
     const commentIds = (commentsRes.data ?? []).map((r: Record<string, any>) => r.id);
-    const [memberCountRes, reactionsRes] = await Promise.all([
+    const noteIds = (notesRes.data ?? []).map((r: Record<string, any>) => r.id);
+    const [memberCountRes, reactionsRes, noteReactionsRes] = await Promise.all([
       db
         .from("community_users")
         .select("id", { count: "exact", head: true })
@@ -1811,6 +1812,9 @@ const handlers = {
         .eq("status", "active"),
       commentIds.length > 0
         ? db.from("comment_reactions").select("comment_id,user_id,emoji").in("comment_id", commentIds)
+        : Promise.resolve({ data: [], error: null } as const),
+      noteIds.length > 0
+        ? db.from("note_reactions").select("note_id,user_id,emoji").in("note_id", noteIds)
         : Promise.resolve({ data: [], error: null } as const)
     ]);
     const activeMemberCount = memberCountRes.count ?? 0;
@@ -1821,6 +1825,17 @@ const handlers = {
       e.count += 1;
       if (r.user_id === auth.user.id) e.mine = true;
     });
+    // Adjuntar reacciones a cada anotación (las refs viven también en `chapters`).
+    const reactionsByNote: Record<string, Record<string, { emoji: string; count: number; mine: boolean }>> = {};
+    (noteReactionsRes.data ?? []).forEach((r: Record<string, any>) => {
+      const byEmoji = (reactionsByNote[r.note_id] = reactionsByNote[r.note_id] ?? {});
+      const e = (byEmoji[r.emoji] = byEmoji[r.emoji] ?? { emoji: r.emoji, count: 0, mine: false });
+      e.count += 1;
+      if (r.user_id === auth.user.id) e.mine = true;
+    });
+    Object.values(notesByChapter).forEach((arr) => arr.forEach((n: Record<string, any>) => {
+      n.reactions = Object.values(reactionsByNote[n.id] ?? {});
+    }));
     return json(200, {
       activeMemberCount,
       clubMembers: Array.from(aliasMap, ([id, alias]) => ({ id, alias })),
@@ -2007,6 +2022,49 @@ const handlers = {
       if (r.user_id === auth.user.id) e.mine = true;
     });
     return json(200, { commentId, reactions: Object.values(byEmoji) });
+  },
+
+  // Reacción emoji a una ANOTACIÓN (toggle). Mismo modelo que comentarios.
+  "/chapters/note/react": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const noteId = String(body.note_id ?? "").trim();
+    const emoji = String(body.emoji ?? "").trim().slice(0, 16);
+    if (!noteId) return bad("note_id required");
+    if (!emoji) return bad("emoji required");
+
+    const nRes = await db
+      .from("chapter_notes")
+      .select("id")
+      .eq("community_id", auth.community.id)
+      .eq("id", noteId)
+      .maybeSingle();
+    if (nRes.error || !nRes.data) return json(404, { message: "Note not found" });
+
+    const existing = await db
+      .from("note_reactions")
+      .select("emoji")
+      .eq("note_id", noteId)
+      .eq("user_id", auth.user.id)
+      .eq("emoji", emoji)
+      .maybeSingle();
+    if (existing.data) {
+      await db.from("note_reactions").delete().eq("note_id", noteId).eq("user_id", auth.user.id).eq("emoji", emoji);
+    } else {
+      await db.from("note_reactions").upsert(
+        { community_id: auth.community.id, note_id: noteId, user_id: auth.user.id, emoji, created_at: nowIso() },
+        { onConflict: "note_id,user_id,emoji" }
+      );
+    }
+    const all = await db.from("note_reactions").select("emoji,user_id").eq("note_id", noteId);
+    const byEmoji: Record<string, { emoji: string; count: number; mine: boolean }> = {};
+    (all.data ?? []).forEach((r: Record<string, any>) => {
+      const e = (byEmoji[r.emoji] = byEmoji[r.emoji] ?? { emoji: r.emoji, count: 0, mine: false });
+      e.count += 1;
+      if (r.user_id === auth.user.id) e.mine = true;
+    });
+    return json(200, { noteId, reactions: Object.values(byEmoji) });
   },
 
   // Editar tu propio comentario.

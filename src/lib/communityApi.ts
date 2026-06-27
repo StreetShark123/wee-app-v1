@@ -457,6 +457,7 @@ export interface ChapterNote {
   text: string;
   imageUrl?: string;
   createdAt: number;
+  reactions?: CommentReaction[];
 }
 
 export interface BookChapter {
@@ -515,6 +516,12 @@ export const reactComment = async (
   emoji: string
 ): Promise<{ commentId: string; reactions: CommentReaction[] }> =>
   request<{ commentId: string; reactions: CommentReaction[] }>("/comments/react", { comment_id: commentId, emoji });
+
+export const reactNote = async (
+  noteId: string,
+  emoji: string
+): Promise<{ noteId: string; reactions: CommentReaction[] }> =>
+  request<{ noteId: string; reactions: CommentReaction[] }>("/chapters/note/react", { note_id: noteId, emoji });
 
 export const updateComment = async (commentId: string, text: string): Promise<{ id: string; text: string; editedAt?: number }> =>
   request<{ id: string; text: string; editedAt?: number }>("/comments/update", { comment_id: commentId, text });
