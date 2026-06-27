@@ -17,6 +17,7 @@ export const MentionTextarea = ({ value, onChange, members, placeholder, rows = 
   const ref = useRef<HTMLTextAreaElement | null>(null);
   const [query, setQuery] = useState<string | null>(null);
   const [caret, setCaret] = useState(0);
+  const [active, setActive] = useState(0);
 
   // Detecta si se está escribiendo un @token justo antes del cursor.
   const refresh = (text: string, pos: number) => {
@@ -39,6 +40,8 @@ export const MentionTextarea = ({ value, onChange, members, placeholder, rows = 
           })
           .slice(0, 6)
       : [];
+  const activeIdx = suggestions.length > 0 ? Math.min(active, suggestions.length - 1) : 0;
+  const open = query !== null && suggestions.length > 0;
 
   const pick = (alias: string) => {
     const text = value;
@@ -65,21 +68,49 @@ export const MentionTextarea = ({ value, onChange, members, placeholder, rows = 
         value={value}
         placeholder={placeholder}
         autoFocus={autoFocus}
+        role="combobox"
+        aria-expanded={open}
+        aria-controls="mention-listbox"
+        aria-activedescendant={open ? `mention-opt-${activeIdx}` : undefined}
         onChange={(event) => {
           onChange(event.target.value);
+          setActive(0);
           refresh(event.target.value, event.target.selectionStart ?? event.target.value.length);
         }}
+        onKeyDown={(event) => {
+          if (!open) return;
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            setActive((a) => (a + 1) % suggestions.length);
+          } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            setActive((a) => (a - 1 + suggestions.length) % suggestions.length);
+          } else if (event.key === "Enter" || event.key === "Tab") {
+            event.preventDefault();
+            pick(suggestions[activeIdx].alias);
+          } else if (event.key === "Escape") {
+            event.preventDefault();
+            setQuery(null);
+          }
+        }}
         onKeyUp={(event) => {
+          // Las flechas ya se gestionan en keydown; no recalcular con ellas.
+          if (["ArrowDown", "ArrowUp", "Enter", "Tab", "Escape"].includes(event.key)) return;
           const el = event.currentTarget;
           refresh(el.value, el.selectionStart ?? el.value.length);
         }}
-        onBlur={() => window.setTimeout(() => setQuery(null), 120)}
+        onBlur={() => window.setTimeout(() => setQuery(null), 150)}
       />
-      {query !== null && suggestions.length > 0 ? (
-        <ul className="mention-list" role="listbox">
-          {suggestions.map((m) => (
-            <li key={m.id}>
-              <button type="button" className="mention-option" onMouseDown={(e) => e.preventDefault()} onClick={() => pick(m.alias)}>
+      {open ? (
+        <ul className="mention-list" role="listbox" id="mention-listbox">
+          {suggestions.map((m, i) => (
+            <li key={m.id} role="option" id={`mention-opt-${i}`} aria-selected={i === activeIdx}>
+              <button
+                type="button"
+                className={`mention-option${i === activeIdx ? " is-active" : ""}`}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => pick(m.alias)}
+              >
                 @{m.alias}
               </button>
             </li>

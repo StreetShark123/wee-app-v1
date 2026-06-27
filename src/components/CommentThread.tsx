@@ -223,7 +223,7 @@ export const CommentThread = ({ comments, members, activeUserId, readChapterIds,
       <li key={root.id} className="comment-root">
         {note ? (
           <div className="comment-note-header">
-            <span className="comment-note-header-label">{pick(language, `Sobre la anotación de ${note.alias}`, `On ${note.alias}'s note`, `Sobre a anotación de ${note.alias}`)}</span>
+            <span className="comment-note-header-label">{pick(language, `Sobre la nota de ${note.alias}`, `On ${note.alias}'s note`, `Sobre a nota de ${note.alias}`)}</span>
             {note.text ? <p className="comment-note-header-text">«{note.text}»</p> : null}
           </div>
         ) : null}

@@ -287,12 +287,12 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, onToggle, onAddN
                 </span>
               </div>
 
-              {/* Anotaciones colapsables (tus notas siempre; las de otros tras leer). */}
+              {/* Notas colapsables (tus notas siempre; las de otros tras leer). */}
               {visibleNotes.length > 0 ? (
                 <div className="chapter-notes-block">
                   <button type="button" className="chapter-notes-toggle" onClick={() => toggleCollapsed(chapter.id)} aria-expanded={!isCollapsed}>
                     <span className={`chapter-notes-caret${isCollapsed ? " is-collapsed" : ""}`} aria-hidden="true">▾</span>
-                    {pick(language, `Anotaciones (${visibleNotes.length})`, `Notes (${visibleNotes.length})`, `Anotacións (${visibleNotes.length})`)}
+                    {pick(language, `Notas (${visibleNotes.length})`, `Notes (${visibleNotes.length})`, `Notas (${visibleNotes.length})`)}
                   </button>
                   {!isCollapsed ? (
                     <ul className="chapter-notes">
@@ -348,7 +348,7 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, onToggle, onAddN
                         ? pick(language, "Obra/autor citado + enlace (Wikipedia, etc.)", "Cited work/author + link (Wikipedia, etc.)", "Obra/autor citado + ligazón")
                         : noteKind === "prompt"
                           ? pick(language, "Pregunta para debatir este capítulo...", "A question to discuss this chapter...", "Pregunta para debater este capítulo...")
-                          : pick(language, "Anotación sobre este capítulo... (pega enlaces: vídeo, imagen, web)", "A note about this chapter... (paste links: video, image, web)", "Anotación sobre este capítulo... (pega ligazóns)")
+                          : pick(language, "Nota sobre este capítulo... (pega enlaces: vídeo, imagen, web)", "A note about this chapter... (paste links: video, image, web)", "Nota sobre este capítulo... (pega ligazóns)")
                     }
                   />
                   <label className="chapter-note-image-field">

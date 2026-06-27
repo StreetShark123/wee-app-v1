@@ -288,7 +288,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const readChapterIds = new Set(chapters.filter((c) => c.doneByMe).map((c) => c.id));
   const chapterLabelById = new Map(chapters.map((c, i) => [c.id, `${i + 1}`]));
   const noteById = new Map(chapters.flatMap((c) => c.notes.map((n) => [n.id, { alias: n.alias, text: n.text }] as const)));
-  // Hilos por anotación: noteId → { rootId del 1er hilo, nº TOTAL de comentarios de
+  // Hilos por nota: noteId → { rootId del 1er hilo, nº TOTAL de comentarios de
   // todos los hilos sobre esa nota (roots + respuestas) para que "Ver hilo · N" no deje
   // hilos huérfanos sin contar.
   const noteThreadById = (() => {
@@ -308,7 +308,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     setFocusComment(rootId);
     setFocusTick((t) => t + 1);
   };
-  // Reacción a una anotación: optimista en su nota, sin recargar la ficha.
+  // Reacción a una nota: optimista en su nota, sin recargar la ficha.
   const handleReactNote = (noteId: string, emoji: string) => {
     const apply = (reactionsOf: (n: ChapterNote) => CommentReaction[]) =>
       setDetail((prev) =>
@@ -408,7 +408,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
       setFocusComment(comment.id);
       setFocusTick((t) => t + 1);
     });
-  // Crear hilo sobre una nota: el comentario quedará encabezado por esa anotación.
+  // Crear hilo sobre una nota: el comentario quedará encabezado por esa nota.
   const handleCommentNote = (chapterId: string, note: ChapterNote) => {
     setPendingNote({ id: note.id, alias: note.alias, text: note.text, chapterId });
     setCommentChapter(chapterId);
@@ -900,7 +900,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
             {pendingNote ? (
               <div className="composer-note-ref">
                 <span className="composer-note-ref-text">
-                  <Icon name="spark" size={12} /> {pick(language, `Hilo sobre la anotación de ${pendingNote.alias}`, `Thread on ${pendingNote.alias}'s note`, `Fío sobre a anotación de ${pendingNote.alias}`)}
+                  <Icon name="spark" size={12} /> {pick(language, `Hilo sobre la nota de ${pendingNote.alias}`, `Thread on ${pendingNote.alias}'s note`, `Fío sobre a nota de ${pendingNote.alias}`)}
                   {pendingNote.text ? <em> «{pendingNote.text.slice(0, 60)}{pendingNote.text.length > 60 ? "…" : ""}»</em> : null}
                 </span>
                 <button type="button" className="composer-note-ref-x" onClick={() => setPendingNote(null)} aria-label={pick(language, "Quitar", "Remove", "Quitar")}>×</button>
@@ -912,7 +912,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               members={clubMembers}
               rows={2}
               placeholder={pendingNote
-                ? pick(language, "Abre el hilo sobre esta anotación...", "Start the thread about this note...", "Abre o fío sobre esta anotación...")
+                ? pick(language, "Abre el hilo sobre esta nota...", "Start the thread about this note...", "Abre o fío sobre esta nota...")
                 : pick(language, "Comenta. Usa @nombre para mencionar. Sin spoilers 👀", "Comment. Use @name to mention. No spoilers 👀", "Comenta. Usa @nome para mencionar. Sen spoilers 👀")}
             />
             <div className="book-comment-foot">
@@ -932,7 +932,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               </button>
             </div>
             {commentChapter || pendingNote ? (
-              <p className="hint comment-chapter-warn">{pick(language, "Solo lo verán quienes hayan leído ese capítulo.", "Only members who've read that chapter will see it.", "Só o verán quen lese ese capítulo.")}</p>
+              <p className="hint comment-chapter-warn">{pick(language, "Solo lo verán quienes hayan leído ese capítulo. Si mencionas a alguien que aún no ha llegado, lo verá cuando lo lea.", "Only members who've read that chapter will see it. If you mention someone who isn't there yet, they'll see it when they read it.", "Só o verán quen lese ese capítulo. Se mencionas a alguén que aínda non chegou, verao cando o lea.")}</p>
             ) : null}
           </form>
           {comments.length === 0 ? (

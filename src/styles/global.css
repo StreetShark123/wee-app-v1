@@ -4503,3 +4503,6 @@ textarea:focus-visible {
 /* Subtítulos del panel de gestión (Datos del libro / Gestión de la lectura) */
 .edit-subhead { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-1); margin: 4px 0 8px; font-weight: 700; }
 .edit-subhead-spaced { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+
+/* Item activo del autocompletado @ (navegación por teclado) */
+.mention-option.is-active { background: color-mix(in srgb, var(--brand) 22%, transparent); color: var(--brand-strong); }
