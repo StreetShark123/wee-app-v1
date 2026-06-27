@@ -366,7 +366,15 @@ export interface ClubBook {
   status: BookStatus;
   featured?: BookFeatured;
   votes?: BookVotes;
+  stats?: BookStats;
   createdAt: number;
+}
+
+export interface BookStats {
+  avgRating: number | null;
+  ratingCount: number;
+  readers: number;
+  lastActivityAt: number | null;
 }
 
 export type BookVote = "yes" | "no" | "later";

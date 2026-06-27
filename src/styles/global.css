@@ -3937,3 +3937,15 @@ textarea:focus-visible {
 .sk-cover-lg { width: 96px; height: 144px; border-radius: var(--radius-md); flex: 0 0 auto; }
 .sk-meta { display: flex; flex-direction: column; gap: 9px; flex: 1; }
 .sk-rows { display: flex; flex-direction: column; gap: 9px; margin-top: 12px; }
+
+/* A1: datos por estantería en la card */
+.book-card-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.74rem;
+  color: var(--ink-1);
+  margin-top: 2px;
+}
+.book-card-rating { color: var(--accent-amber); font-weight: 700; }
+.book-card-stat-sub { color: var(--ink-1); }

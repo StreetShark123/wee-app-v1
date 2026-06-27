@@ -1619,9 +1619,8 @@ const handlers = {
         .order("created_at", { ascending: false }),
       db
         .from("member_books")
-        .select("*")
-        .eq("community_id", auth.community.id)
-        .eq("user_id", auth.user.id),
+        .select("book_id,user_id,shelf,chapters_done,rating,review,finished_at,updated_at")
+        .eq("community_id", auth.community.id),
       db
         .from("book_votes")
         .select("book_id,user_id,vote")
@@ -1640,12 +1639,34 @@ const handlers = {
       if (row.user_id === auth.user.id) v.myVote = row.vote;
     });
 
+    // Estadísticas agregadas por libro (nota media, lectores activos, última actividad).
+    const statsByBook: Record<string, { ratings: number[]; readers: number; lastActivityAt: number }> = {};
+    const allMembers = memberRes.data ?? [];
+    allMembers.forEach((row: Record<string, any>) => {
+      const s = (statsByBook[row.book_id] = statsByBook[row.book_id] ?? { ratings: [], readers: 0, lastActivityAt: 0 });
+      if (typeof row.rating === "number") s.ratings.push(row.rating);
+      if (row.shelf === "reading" || row.shelf === "finished" || Number(row.chapters_done ?? 0) > 0) s.readers += 1;
+      s.lastActivityAt = Math.max(s.lastActivityAt, toMillis(row.updated_at));
+    });
+
     return json(200, {
-      books: (booksRes.data ?? []).map((row) => ({
-        ...rowToBook(row as Record<string, any>),
-        votes: voteByBook[(row as Record<string, any>).id] ?? { yes: 0, no: 0, later: 0, myVote: null }
-      })),
-      memberBooks: (memberRes.data ?? []).map((row) => rowToMemberBook(row as Record<string, any>))
+      books: (booksRes.data ?? []).map((row) => {
+        const id = (row as Record<string, any>).id;
+        const s = statsByBook[id];
+        return {
+          ...rowToBook(row as Record<string, any>),
+          votes: voteByBook[id] ?? { yes: 0, no: 0, later: 0, myVote: null },
+          stats: {
+            avgRating: s && s.ratings.length > 0 ? Math.round((s.ratings.reduce((a, b) => a + b, 0) / s.ratings.length) * 10) / 10 : null,
+            ratingCount: s ? s.ratings.length : 0,
+            readers: s ? s.readers : 0,
+            lastActivityAt: s && s.lastActivityAt > 0 ? s.lastActivityAt : null
+          }
+        };
+      }),
+      memberBooks: allMembers
+        .filter((row: Record<string, any>) => row.user_id === auth.user.id)
+        .map((row: Record<string, any>) => rowToMemberBook(row))
     });
   },
 
