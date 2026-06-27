@@ -389,3 +389,16 @@ el club al que te invitan.
    más fluido) · 3. **A1** (datos por estantería) · 4. **A5 + B2 + B1** (ficha: edición
    admin separada, destructivo seguro, votación transparente) · 5. **D (comentarios)** ·
    6. **C (buenas prácticas)** empezando por C4 galería, C2 prompts, C1 cadencia.
+
+### Estado de ejecución del roadmap (2026-06-27)
+- ✅ **A1** datos por estantería · **A2** espacio hero · **A3** skeletons + caché ·
+  **A4** quitar tag estado · **A5** edición admin agrupada · **A6** breadcrumb volver.
+- ✅ **B1** quórum de votación · **B2** redefinir capítulos seguro · **B5** (contraste,
+  táctil, aria, 3 estanterías). Pendientes B3 (unificar copy estado) + B4 (a11y picker/aria-live).
+- ✅ **D1** reacciones emoji · **D2 (hilos)** respuestas con threads.
+  ⏳ Pendiente **D2 (notificaciones)** + **D3** (@menciones + sistema de notificaciones
+  sano, reusando el shell de NotificationsMenu) + **D4** (comentarios anclados a capítulo,
+  anti-spoiler).
+- ⏳ **C** (buenas prácticas) sin empezar: prioridad C4 galería de leídos, C2 preguntas de
+  debate, C1 cadencia, C3 "por qué lo propongo", C5 quórum configurable, C6 "para más
+  adelante", C7 facilitador.
