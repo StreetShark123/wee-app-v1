@@ -402,3 +402,11 @@ el club al que te invitan.
 - ⏳ **C** (buenas prácticas) sin empezar: prioridad C4 galería de leídos, C2 preguntas de
   debate, C1 cadencia, C3 "por qué lo propongo", C5 quórum configurable, C6 "para más
   adelante", C7 facilitador.
+
+### Actualización (2026-06-27, cont.)
+- ✅ **D2/D3** @menciones + sistema de notificaciones (tabla `notifications`, parseo
+  @alias + respuesta-a-tu-comentario; NotificationsMenu reescrito; refresco on focus).
+- ✅ **C2** preguntas de debate (chapter_notes kind='prompt', anti-spoiler heredado).
+- ⏳ Quedan: **D4** (comentarios anclados a capítulo), **B3/B4** (copy estado + a11y),
+  **C1** cadencia, **C3** "por qué lo propongo", **C4** galería de leídos, **C5** quórum
+  configurable, **C6** "para más adelante", **C7** facilitador.
