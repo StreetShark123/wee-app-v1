@@ -4,7 +4,7 @@ import { pick, useI18n } from "../lib/i18n";
 import { Icon } from "./Icon";
 import { Linkify } from "./Linkify";
 
-const PRESET_EMOJIS = ["👍", "❤️", "🔥", "🤔", "💡", "😂"];
+const PRESET_EMOJIS = ["👍", "❤️", "🔥", "😍", "🤔", "💡", "😂", "😮", "😢", "👏", "🙌", "💯", "📖", "🤯", "✨", "🥲"];
 
 interface CommentThreadProps {
   comments: BookComment[];
@@ -56,28 +56,28 @@ const CommentItem = ({
       <div className="comment-actions">
         {comment.reactions.map((r) => (
           <button
-            key={r.emoji}
+            key={`${r.emoji}-${r.count}-${r.mine ? 1 : 0}`}
             type="button"
-            className={`reaction-chip${r.mine ? " is-mine" : ""}`}
-            disabled={busy}
+            className={`reaction-chip reaction-pop${r.mine ? " is-mine" : ""}`}
             onClick={() => onReact(comment.id, r.emoji)}
-            aria-label={`${r.emoji} ${r.count}`}
+            aria-pressed={r.mine}
+            aria-label={pick(language, `${r.emoji}, ${r.count}${r.mine ? ", tu reacción" : ""}`, `${r.emoji}, ${r.count}${r.mine ? ", your reaction" : ""}`, `${r.emoji}, ${r.count}`)}
+            title={r.mine ? pick(language, "Quitar tu reacción", "Remove your reaction", "Quitar a túa reacción") : pick(language, "Reaccionar", "React", "Reaccionar")}
           >
-            <span aria-hidden="true">{r.emoji}</span> {r.count}
+            <span aria-hidden="true">{r.emoji}</span> <span className="reaction-count">{r.count}</span>
           </button>
         ))}
         <div className="reaction-add">
-          <button type="button" className="reaction-chip reaction-add-btn" disabled={busy} aria-label={pick(language, "Reaccionar", "React", "Reaccionar")} onClick={() => setPickerOpen((v) => !v)}>
-            <Icon name="heart" size={13} />
+          <button type="button" className="reaction-chip reaction-add-btn" aria-label={pick(language, "Añadir reacción", "Add reaction", "Engadir reacción")} aria-expanded={pickerOpen} onClick={() => setPickerOpen((v) => !v)}>
+            <Icon name="heart" size={13} /> <span aria-hidden="true">+</span>
           </button>
           {pickerOpen ? (
-            <div className="reaction-picker">
+            <div className="reaction-picker" role="menu">
               {PRESET_EMOJIS.map((e) => (
                 <button
                   key={e}
                   type="button"
                   className="reaction-emoji"
-                  disabled={busy}
                   onClick={() => {
                     onReact(comment.id, e);
                     setPickerOpen(false);

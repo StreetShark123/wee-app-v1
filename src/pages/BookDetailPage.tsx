@@ -24,6 +24,7 @@ import {
   type BookDetail,
   type BookStatus,
   type BookVote,
+  type CommentReaction,
   type NoteKind
 } from "../lib/communityApi";
 import type { User } from "../lib/types";
@@ -39,6 +40,17 @@ const statusLabel = (status: string, language: "es" | "en" | "gl"): string => {
   if (status === "reading") return pick(language, "En lectura", "Reading", "En lectura");
   if (status === "finished") return pick(language, "Leído por el club", "Read by the club", "Lido polo club");
   return pick(language, "Propuesto", "Proposed", "Proposto");
+};
+
+// Toggle local optimista de una reacción: clic en la tuya la quita; clic en otra suma +1.
+const toggleReactionLocal = (reactions: CommentReaction[], emoji: string): CommentReaction[] => {
+  const existing = reactions.find((r) => r.emoji === emoji);
+  if (!existing) return [...reactions, { emoji, count: 1, mine: true }];
+  if (existing.mine) {
+    const count = existing.count - 1;
+    return count <= 0 ? reactions.filter((r) => r.emoji !== emoji) : reactions.map((r) => (r.emoji === emoji ? { ...r, count, mine: false } : r));
+  }
+  return reactions.map((r) => (r.emoji === emoji ? { ...r, count: r.count + 1, mine: true } : r));
 };
 
 export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksChanged }: BookDetailPageProps) => {
@@ -170,7 +182,23 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     await addBookComment(book.id, text, parentId);
     await afterMutation();
   };
-  const handleReact = (commentId: string, emoji: string) => run(() => reactComment(commentId, emoji));
+  // Reacción optimista: actualiza solo ese comentario al instante (sin recargar la ficha).
+  const handleReact = (commentId: string, emoji: string) => {
+    setDetail((prev) =>
+      prev
+        ? { ...prev, comments: prev.comments.map((c) => (c.id === commentId ? { ...c, reactions: toggleReactionLocal(c.reactions, emoji) } : c)) }
+        : prev
+    );
+    void reactComment(commentId, emoji)
+      .then(({ reactions }) => {
+        setDetail((prev) =>
+          prev ? { ...prev, comments: prev.comments.map((c) => (c.id === commentId ? { ...c, reactions } : c)) } : prev
+        );
+      })
+      .catch(() => {
+        void load(); // si falla, recupera el estado real
+      });
+  };
   const confirmReset = (): boolean =>
     chapters.length === 0 ||
     window.confirm(

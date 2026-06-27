@@ -4024,3 +4024,25 @@ textarea:focus-visible {
 .chapter-note-prompt { border-color: var(--accent-cyan); background: color-mix(in srgb, var(--accent-cyan) 8%, transparent); }
 .chapter-note-prompt .chapter-note-kind { color: var(--accent-cyan); }
 .chapter-note-prompt .chapter-note-text { font-weight: 500; }
+
+/* Reacciones: picker más grande + pop al reaccionar + feedback táctil */
+.reaction-picker {
+  flex-wrap: wrap;
+  max-width: 232px;
+  gap: 1px;
+  border-radius: var(--radius-md);
+}
+.reaction-emoji { font-size: 1.15rem; padding: 4px 5px; }
+
+.reaction-chip { transition: transform 120ms var(--ease-standard), background 120ms var(--ease-standard), border-color 120ms var(--ease-standard); }
+.reaction-chip:active { transform: scale(0.9); }
+.reaction-chip.is-mine { font-weight: 700; }
+.reaction-count { font-variant-numeric: tabular-nums; }
+
+@keyframes reaction-pop {
+  0% { transform: scale(0.7); }
+  55% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+.reaction-pop { animation: reaction-pop 220ms var(--ease-emphasized); }
+@media (prefers-reduced-motion: reduce) { .reaction-pop { animation: none; } }
