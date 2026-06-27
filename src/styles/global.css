@@ -4190,3 +4190,33 @@ textarea:focus-visible {
 }
 .shelf-empty-title { font-weight: 600; font-size: 0.92rem; color: var(--ink-1); }
 .shelf-empty-hint { font-size: 0.82rem; color: var(--ink-1); }
+
+/* Lectores: barra mini (sustituye "2/11") + enlace al perfil */
+.book-member-link { display: flex; justify-content: space-between; gap: 10px; align-items: center; text-decoration: none; color: inherit; }
+.book-member-link:hover strong, .book-member-link:hover > span:first-child { color: var(--brand-strong); }
+.book-member-link > span:first-child { transition: color var(--motion-fast) var(--ease-standard); }
+.member-mini-bar { display: inline-block; width: 72px; height: 7px; border-radius: 999px; background: var(--panel-1); overflow: hidden; }
+.member-mini-fill { display: block; height: 100%; background: var(--brand); border-radius: 999px; }
+
+/* Perfil público: lecturas */
+.profile-reads-sub { margin: 12px 0 8px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-1); }
+.profile-book-list { display: flex; flex-direction: column; gap: 8px; }
+.profile-book {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--panel-0);
+  text-decoration: none;
+  color: var(--ink-0);
+  transition: border-color var(--motion-fast) var(--ease-standard);
+}
+.profile-book:hover { border-color: var(--brand); }
+.profile-book-cover { width: 38px; height: 56px; flex: 0 0 auto; object-fit: cover; border-radius: 5px; background: var(--panel-1); }
+.profile-book-cover-empty { display: grid; place-items: center; color: var(--ink-1); }
+.profile-book-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.profile-book-rating { color: var(--accent-amber); letter-spacing: 1px; font-size: 0.85rem; }
+.profile-book-review { font-size: 0.82rem; color: var(--ink-1); line-height: 1.4; }
+.profile-no-reads { margin-top: 6px; }

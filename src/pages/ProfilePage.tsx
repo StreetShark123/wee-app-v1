@@ -5,6 +5,7 @@ import { Icon } from "../components/Icon";
 import { pick, useI18n } from "../lib/i18n";
 import { generateAlias } from "../lib/aliasGenerator";
 import { TopBar } from "../components/TopBar";
+import { getUserProfile, type UserProfile } from "../lib/communityApi";
 import type { User } from "../lib/types";
 
 interface ProfilePageProps {
@@ -44,10 +45,27 @@ export const ProfilePage = ({
   const profileUser = users.find((user) => user.id === userId) ?? activeUser;
   const isOwnProfile = profileUser.id === activeUser.id;
   const [aliasInput, setAliasInput] = useState(profileUser.alias);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     setAliasInput(profileUser.alias);
   }, [profileUser.alias]);
+
+  useEffect(() => {
+    let active = true;
+    setProfile(null);
+    void getUserProfile(userId)
+      .then((data) => {
+        if (active) setProfile(data);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [userId]);
+
+  const finishedBooks = profile?.books.filter((b) => b.shelf === "finished") ?? [];
+  const readingBooks = profile?.books.filter((b) => b.shelf === "reading") ?? [];
 
   const canManageUser = activeUser.role === "admin" && !isOwnProfile;
   const isTargetAdmin = (profileUser.role ?? "member") === "admin";
@@ -130,6 +148,55 @@ export const ProfilePage = ({
               </form>
             ) : null}
           </div>
+
+          {profile && profile.books.length > 0 ? (
+            <article className="settings-card profile-reads">
+              <div className="section-head">
+                <h3><Icon name="book" /> {pick(language, "Lecturas", "Reading", "Lecturas")}</h3>
+                <span className="hint">
+                  {profile.finishedCount} {pick(language, "leídos", "read", "lidos")}
+                  {profile.avgRating != null ? ` · ★ ${profile.avgRating}` : ""}
+                </span>
+              </div>
+
+              {readingBooks.length > 0 ? (
+                <>
+                  <h4 className="profile-reads-sub">{pick(language, "Leyendo ahora", "Reading now", "Lendo agora")}</h4>
+                  <div className="profile-book-list">
+                    {readingBooks.map((b) => (
+                      <Link key={b.bookId} to={`/book/${b.bookId}`} className="profile-book">
+                        {b.coverUrl ? <img className="profile-book-cover" src={b.coverUrl} alt="" loading="lazy" /> : <span className="profile-book-cover profile-book-cover-empty"><Icon name="book" size={14} /></span>}
+                        <span className="profile-book-meta">
+                          <strong>{b.title}</strong>
+                          {b.totalChapters ? <span className="hint">{b.chaptersDone}/{b.totalChapters} {pick(language, "cap.", "ch.", "cap.")}</span> : null}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+
+              {finishedBooks.length > 0 ? (
+                <>
+                  <h4 className="profile-reads-sub">{pick(language, "Leídos", "Read", "Lidos")}</h4>
+                  <div className="profile-book-list">
+                    {finishedBooks.map((b) => (
+                      <Link key={b.bookId} to={`/book/${b.bookId}`} className="profile-book">
+                        {b.coverUrl ? <img className="profile-book-cover" src={b.coverUrl} alt="" loading="lazy" /> : <span className="profile-book-cover profile-book-cover-empty"><Icon name="book" size={14} /></span>}
+                        <span className="profile-book-meta">
+                          <strong>{b.title}</strong>
+                          {b.rating ? <span className="profile-book-rating">{"★".repeat(b.rating)}</span> : null}
+                          {b.review ? <span className="profile-book-review">{b.review}</span> : null}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+            </article>
+          ) : profile ? (
+            <p className="hint profile-no-reads">{pick(language, "Aún no ha leído nada en el club.", "Hasn't read anything in the club yet.", "Aínda non leu nada no club.")}</p>
+          ) : null}
 
           <div className="profile-actions">
             {isOwnProfile ? (

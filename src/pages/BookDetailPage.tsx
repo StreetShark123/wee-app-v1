@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ChapterTimeline } from "../components/ChapterTimeline";
 import { Icon } from "../components/Icon";
 import { TopBar } from "../components/TopBar";
@@ -681,7 +681,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
             <ul className="book-members">
               {members.map((member) => (
                 <li key={member.userId} className="book-member">
-                  <div className="book-member-row">
+                  <Link to={`/profile/${member.userId}`} className="book-member-row book-member-link">
                     <span>{member.alias}</span>
                     <span className="book-member-state">
                       {member.shelf === "finished" ? (
@@ -690,12 +690,14 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                           {pick(language, "Terminado", "Finished", "Rematado")}
                         </>
                       ) : total > 0 ? (
-                        `${member.chaptersDone}/${total}`
+                        <span className="member-mini-bar" aria-label={`${Math.round((member.chaptersDone / total) * 100)}%`}>
+                          <span className="member-mini-fill" style={{ width: `${Math.min(100, Math.round((member.chaptersDone / total) * 100))}%` }} />
+                        </span>
                       ) : (
                         pick(language, "Leyendo", "Reading", "Lendo")
                       )}
                     </span>
-                  </div>
+                  </Link>
                   {book.status === "finished" && member.review ? (
                     <p className="book-member-review">{member.review}</p>
                   ) : null}

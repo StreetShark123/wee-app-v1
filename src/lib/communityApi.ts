@@ -524,6 +524,29 @@ export const markNotificationsRead = async (): Promise<void> => {
   await request<{ ok: true }>("/notifications/read", {});
 };
 
+export interface UserProfileBook {
+  bookId: string;
+  title: string;
+  coverUrl?: string;
+  shelf: "want" | "reading" | "finished";
+  chaptersDone: number;
+  totalChapters?: number;
+  rating?: number;
+  review?: string;
+  finishedAt?: number;
+  updatedAt: number;
+}
+
+export interface UserProfile {
+  user: { id: string; alias: string; avatarUrl?: string; role: string };
+  finishedCount: number;
+  avgRating: number | null;
+  books: UserProfileBook[];
+}
+
+export const getUserProfile = async (userId: string): Promise<UserProfile> =>
+  request<UserProfile>("/users/profile", { user_id: userId });
+
 export const setBookProgress = async (
   bookId: string,
   chaptersDone: number,

@@ -2580,6 +2580,66 @@ const handlers = {
       .eq("user_id", auth.user.id)
       .is("read_at", null);
     return json(200, { ok: true });
+  },
+
+  // Perfil público de un miembro: su actividad de lectura en el club.
+  "/users/profile": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const userId = String(body.user_id ?? "").trim() || auth.user.id;
+
+    const [userRes, roleRes, memberRes] = await Promise.all([
+      db.from("community_users").select("id,alias,avatar_url").eq("community_id", auth.community.id).eq("id", userId).maybeSingle(),
+      db.from("community_user_roles").select("role").eq("community_id", auth.community.id).eq("user_id", userId).maybeSingle(),
+      db
+        .from("member_books")
+        .select("book_id,shelf,chapters_done,rating,review,finished_at,updated_at")
+        .eq("community_id", auth.community.id)
+        .eq("user_id", userId)
+    ]);
+    if (userRes.error || !userRes.data) return json(404, { message: "User not found" });
+
+    const member = memberRes.data ?? [];
+    const bookIds = unique(member.map((m: Record<string, any>) => m.book_id));
+    const booksRes = bookIds.length > 0
+      ? await db.from("books").select("id,title,cover_url,total_chapters,status").eq("community_id", auth.community.id).in("id", bookIds)
+      : { data: [], error: null } as const;
+    const bookById = new Map((booksRes.data ?? []).map((b: Record<string, any>) => [b.id, b]));
+
+    const items = member
+      .map((m: Record<string, any>) => {
+        const b = bookById.get(m.book_id);
+        if (!b) return null;
+        return {
+          bookId: m.book_id,
+          title: b.title,
+          coverUrl: b.cover_url ?? undefined,
+          shelf: m.shelf,
+          chaptersDone: Number(m.chapters_done ?? 0),
+          totalChapters: b.total_chapters ?? undefined,
+          rating: m.rating ?? undefined,
+          review: m.review ?? undefined,
+          finishedAt: m.finished_at ? toMillis(m.finished_at) : undefined,
+          updatedAt: toMillis(m.updated_at)
+        };
+      })
+      .filter(Boolean)
+      .sort((a: Record<string, any>, b: Record<string, any>) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
+
+    const finishedItems = items.filter((i: Record<string, any>) => i.shelf === "finished");
+    const ratings = finishedItems.map((i: Record<string, any>) => i.rating).filter((r: number) => typeof r === "number");
+    return json(200, {
+      user: {
+        id: userRes.data.id,
+        alias: userRes.data.alias,
+        avatarUrl: userRes.data.avatar_url ?? undefined,
+        role: (roleRes.data?.role as string) ?? "member"
+      },
+      finishedCount: finishedItems.length,
+      avgRating: ratings.length > 0 ? Math.round((ratings.reduce((x: number, y: number) => x + y, 0) / ratings.length) * 10) / 10 : null,
+      books: items
+    });
   }
 } as const;
 
