@@ -2,30 +2,38 @@ import { useState } from "react";
 import type { BookChapter } from "../lib/communityApi";
 import { pick, useI18n } from "../lib/i18n";
 import { Icon } from "./Icon";
+import { Linkify } from "./Linkify";
 
 interface ChapterTimelineProps {
   chapters: BookChapter[];
   busy: boolean;
   onToggle: (chapterId: string, done: boolean) => void;
-  onAddNote: (chapterId: string, text: string, kind: "note" | "reference") => Promise<void>;
+  onAddNote: (chapterId: string, text: string, kind: "note" | "reference", imageUrl?: string) => Promise<void>;
 }
 
 export const ChapterTimeline = ({ chapters, busy, onToggle, onAddNote }: ChapterTimelineProps) => {
   const { language } = useI18n();
   const [openFor, setOpenFor] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
+  const [noteImage, setNoteImage] = useState("");
   const [noteKind, setNoteKind] = useState<"note" | "reference">("note");
   const [saving, setSaving] = useState(false);
 
+  const resetForm = () => {
+    setNoteText("");
+    setNoteImage("");
+    setNoteKind("note");
+    setOpenFor(null);
+  };
+
   const submitNote = async (chapterId: string) => {
-    const clean = noteText.trim();
-    if (!clean || saving) return;
+    const cleanText = noteText.trim();
+    const cleanImage = noteImage.trim();
+    if ((!cleanText && !cleanImage) || saving) return;
     setSaving(true);
     try {
-      await onAddNote(chapterId, clean, noteKind);
-      setNoteText("");
-      setOpenFor(null);
-      setNoteKind("note");
+      await onAddNote(chapterId, cleanText, noteKind, cleanImage || undefined);
+      resetForm();
     } finally {
       setSaving(false);
     }
@@ -40,35 +48,50 @@ export const ChapterTimeline = ({ chapters, busy, onToggle, onAddNote }: Chapter
             className="chapter-check"
             disabled={busy}
             aria-pressed={chapter.doneByMe}
-            aria-label={chapter.title}
+            aria-label={pick(language, `Marcar "${chapter.title}" como leído`, `Mark "${chapter.title}" as read`, `Marcar "${chapter.title}" como lido`)}
             onClick={() => onToggle(chapter.id, !chapter.doneByMe)}
           >
-            {chapter.doneByMe ? <Icon name="check" size={14} /> : <span className="chapter-dot" aria-hidden="true" />}
+            <Icon name="check" size={16} />
           </button>
 
           <div className="chapter-body">
-            <div className="chapter-head">
-              <span className="chapter-title">
-                <span className="chapter-num">{chapter.idx + 1}</span> {chapter.title}
+            <button
+              type="button"
+              className="chapter-head"
+              disabled={busy}
+              onClick={() => onToggle(chapter.id, !chapter.doneByMe)}
+            >
+              <span className="chapter-title">{chapter.title}</span>
+              <span className="chapter-meta">
+                {chapter.doneByMe ? <span className="chapter-done-tag">{pick(language, "Leído", "Read", "Lido")}</span> : null}
+                {chapter.completedCount > 0 ? (
+                  <span className="chapter-count" title={pick(language, "Miembros que lo leyeron", "Members who read it", "Membros que o leron")}>
+                    <Icon name="users" size={12} /> {chapter.completedCount}
+                  </span>
+                ) : null}
               </span>
-              {chapter.completedCount > 0 ? (
-                <span className="chapter-count" title={pick(language, "Miembros que lo completaron", "Members who finished it", "Membros que o completaron")}>
-                  <Icon name="users" size={12} /> {chapter.completedCount}
-                </span>
-              ) : null}
-            </div>
+            </button>
 
             {chapter.notes.length > 0 ? (
               <ul className="chapter-notes">
                 {chapter.notes.map((note) => (
                   <li key={note.id} className={`chapter-note chapter-note-${note.kind}`}>
-                    <span className="chapter-note-kind">
-                      {note.kind === "reference"
-                        ? pick(language, "Ref.", "Ref.", "Ref.")
-                        : pick(language, "Nota", "Note", "Nota")}
-                    </span>
-                    <span className="chapter-note-text">{note.text}</span>
-                    <span className="chapter-note-by">{note.alias}</span>
+                    <div className="chapter-note-head">
+                      <span className="chapter-note-kind">
+                        {note.kind === "reference"
+                          ? pick(language, "Referencia", "Reference", "Referencia")
+                          : pick(language, "Nota", "Note", "Nota")}
+                      </span>
+                      <span className="chapter-note-by">{note.alias}</span>
+                    </div>
+                    {note.text ? (
+                      <p className="chapter-note-text"><Linkify text={note.text} /></p>
+                    ) : null}
+                    {note.imageUrl ? (
+                      <a href={note.imageUrl} target="_blank" rel="noopener noreferrer nofollow" className="chapter-note-image">
+                        <img src={note.imageUrl} alt="" loading="lazy" />
+                      </a>
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -77,18 +100,10 @@ export const ChapterTimeline = ({ chapters, busy, onToggle, onAddNote }: Chapter
             {openFor === chapter.id ? (
               <div className="chapter-note-form">
                 <div className="chapter-note-kinds">
-                  <button
-                    type="button"
-                    className={`btn chapter-kind${noteKind === "note" ? " is-on" : ""}`}
-                    onClick={() => setNoteKind("note")}
-                  >
+                  <button type="button" className={`btn chapter-kind${noteKind === "note" ? " is-on" : ""}`} onClick={() => setNoteKind("note")}>
                     {pick(language, "Nota", "Note", "Nota")}
                   </button>
-                  <button
-                    type="button"
-                    className={`btn chapter-kind${noteKind === "reference" ? " is-on" : ""}`}
-                    onClick={() => setNoteKind("reference")}
-                  >
+                  <button type="button" className={`btn chapter-kind${noteKind === "reference" ? " is-on" : ""}`} onClick={() => setNoteKind("reference")}>
                     {pick(language, "Referencia", "Reference", "Referencia")}
                   </button>
                 </div>
@@ -98,21 +113,30 @@ export const ChapterTimeline = ({ chapters, busy, onToggle, onAddNote }: Chapter
                   onChange={(event) => setNoteText(event.target.value)}
                   placeholder={
                     noteKind === "reference"
-                      ? pick(language, "Obra/autor que se menciona aquí...", "Work/author mentioned here...", "Obra/autor que se menciona aquí...")
-                      : pick(language, "Anotación sobre este capítulo...", "A note about this chapter...", "Anotación sobre este capítulo...")
+                      ? pick(language, "Obra/autor citado + enlace (Wikipedia, etc.)", "Cited work/author + link (Wikipedia, etc.)", "Obra/autor citado + ligazón")
+                      : pick(language, "Anotación sobre este capítulo... (puedes pegar enlaces)", "A note about this chapter... (you can paste links)", "Anotación sobre este capítulo...")
                   }
                 />
+                <label className="chapter-note-image-field">
+                  <Icon name="camera" size={13} />
+                  <input
+                    type="url"
+                    value={noteImage}
+                    onChange={(event) => setNoteImage(event.target.value)}
+                    placeholder={pick(language, "URL de imagen (opcional: un cuadro, un retrato...)", "Image URL (optional: a painting, a portrait...)", "URL de imaxe (opcional)")}
+                  />
+                </label>
                 <div className="chapter-note-actions">
-                  <button type="button" className="btn" onClick={() => setOpenFor(null)} disabled={saving}>
+                  <button type="button" className="btn" onClick={resetForm} disabled={saving}>
                     {pick(language, "Cancelar", "Cancel", "Cancelar")}
                   </button>
                   <button
                     type="button"
                     className="btn btn-primary"
                     onClick={() => submitNote(chapter.id)}
-                    disabled={saving || !noteText.trim()}
+                    disabled={saving || (!noteText.trim() && !noteImage.trim())}
                   >
-                    {pick(language, "Guardar", "Save", "Gardar")}
+                    {pick(language, "Guardar nota", "Save note", "Gardar nota")}
                   </button>
                 </div>
               </div>
@@ -121,12 +145,11 @@ export const ChapterTimeline = ({ chapters, busy, onToggle, onAddNote }: Chapter
                 type="button"
                 className="btn chapter-add-note"
                 onClick={() => {
+                  resetForm();
                   setOpenFor(chapter.id);
-                  setNoteText("");
-                  setNoteKind("note");
                 }}
               >
-                <Icon name="plus" size={12} /> {pick(language, "Anotación", "Annotation", "Anotación")}
+                <Icon name="plus" size={12} /> {pick(language, "Añadir nota", "Add note", "Engadir nota")}
               </button>
             )}
           </div>

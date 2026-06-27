@@ -232,6 +232,20 @@ Cada fase termina verde en `npm run check` (typecheck + test + design:lint).
   plata="Siguiente") y `HomePage` ordena destacados primero; `BookDetailPage` da
   controles de admin para marcar Principal/Secundaria. Verificado (el oro "se roba").
 
+### Fase 5.7 — Pulido de ficha de libro — ✅ HECHA 2026-06-27
+- Checks de capítulo mucho más claros (círculo → verde con tachado al leer); fila de
+  capítulo entera clicable; "Leído" + nº de lectores.
+- Capítulos: además de pegar el índice, opción **"nº de capítulos"** (obras numeradas
+  sin título → "Capítulo 1..N").
+- Notas de capítulo: **imagen opcional** (`chapter_notes.image_url`) + **enlaces**
+  auto-clicables (`Linkify`). Botón "Añadir nota". Endpoint note/add y /books/get
+  devuelven `imageUrl`.
+- **Editar libro** (`/books/update`, adder/admin): portada (URL), título, autor,
+  sinopsis — para cuando Google falla. Verificado end-to-end.
+- Sección "Quién lo está leyendo" (marcar capítulo = apareces como lector).
+- ⏳ APLAZADO (subfeatures grandes): hilos de comentarios DENTRO de cada nota;
+  subir imágenes (hoy es por URL, no upload a Storage); auditoría CSS completa.
+
 ### Fase 6 — Limpieza de legado de noticias (EN CURSO)
 - ✅ Borrados 7 archivos muertos (0 referencias): `IconGallery`, `AppSkeleton`,
   `TopicBlock`, `FiltersBar`, `PostDetailModal`, `LoginPage`, `InviteRedirectPage`.

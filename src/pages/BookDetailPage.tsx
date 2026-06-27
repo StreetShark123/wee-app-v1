@@ -13,6 +13,7 @@ import {
   setBookChaptersList,
   setBookFeatured,
   toggleChapter,
+  updateBook,
   type BookDetail
 } from "../lib/communityApi";
 import type { User } from "../lib/types";
@@ -39,8 +40,11 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [chaptersRaw, setChaptersRaw] = useState("");
+  const [numberInput, setNumberInput] = useState(0);
   const [ratingInput, setRatingInput] = useState(0);
   const [commentText, setCommentText] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
+  const [edit, setEdit] = useState({ title: "", author: "", coverUrl: "", description: "" });
 
   const load = useCallback(async () => {
     if (!bookId) return;
@@ -112,12 +116,27 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const canSetChapters = book.addedBy === activeUser.id || activeUser.role === "admin";
   const isAdmin = activeUser.role === "admin";
   const handleFeature = (featured: "gold" | "silver" | null) => run(() => setBookFeatured(book.id, featured));
+  const openEdit = () => {
+    setEdit({ title: book.title, author: book.author ?? "", coverUrl: book.coverUrl ?? "", description: book.description ?? "" });
+    setEditOpen(true);
+  };
+  const handleSaveEdit = () => {
+    void run(async () => {
+      await updateBook(book.id, {
+        title: edit.title.trim() || book.title,
+        author: edit.author.trim() || null,
+        coverUrl: edit.coverUrl.trim() || null,
+        description: edit.description.trim() || null
+      });
+      setEditOpen(false);
+    });
+  };
   const progressPct = total > 0 ? Math.min(100, Math.round((doneCount / total) * 100)) : 0;
   const parsedPreview = parseChapterList(chaptersRaw);
 
   const handleToggle = (chapterId: string, done: boolean) => run(() => toggleChapter(chapterId, done));
-  const handleAddNote = async (chapterId: string, text: string, kind: "note" | "reference") => {
-    await addChapterNote(chapterId, text, kind);
+  const handleAddNote = async (chapterId: string, text: string, kind: "note" | "reference", imageUrl?: string) => {
+    await addChapterNote(chapterId, text, kind, imageUrl);
     await afterMutation();
   };
   const handleCreateChapters = () => {
@@ -127,6 +146,13 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
       await setBookChaptersList(book.id, titles);
       setChaptersRaw("");
     });
+  };
+  const handleCreateNumbered = (count: number) => {
+    if (count < 1) return;
+    const titles = Array.from({ length: Math.min(400, count) }, (_, i) =>
+      pick(language, `Capítulo ${i + 1}`, `Chapter ${i + 1}`, `Capítulo ${i + 1}`)
+    );
+    void run(() => setBookChaptersList(book.id, titles));
   };
 
   return (
@@ -172,8 +198,47 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                 </button>
               </div>
             ) : null}
+            {canSetChapters && !editOpen ? (
+              <button type="button" className="btn book-edit-toggle" onClick={openEdit}>
+                <Icon name="pencil" size={13} /> {pick(language, "Editar libro / portada", "Edit book / cover", "Editar libro / portada")}
+              </button>
+            ) : null}
           </div>
         </section>
+
+        {editOpen ? (
+          <section className="page-section book-edit-form">
+            <div className="section-head">
+              <h2><Icon name="pencil" /> {pick(language, "Editar libro", "Edit book", "Editar libro")}</h2>
+            </div>
+            <p className="hint">{pick(language, "Si Google no trae la portada correcta, pega aquí la URL de una imagen.", "If Google's cover is wrong, paste an image URL here.", "Se Google non trae a portada correcta, pega aquí o URL dunha imaxe.")}</p>
+            <label className="form-field">
+              {pick(language, "Título", "Title", "Título")}
+              <input value={edit.title} onChange={(event) => setEdit((prev) => ({ ...prev, title: event.target.value }))} />
+            </label>
+            <label className="form-field">
+              {pick(language, "Autor", "Author", "Autor")}
+              <input value={edit.author} onChange={(event) => setEdit((prev) => ({ ...prev, author: event.target.value }))} />
+            </label>
+            <label className="form-field">
+              {pick(language, "URL de la portada", "Cover image URL", "URL da portada")}
+              <input type="url" value={edit.coverUrl} onChange={(event) => setEdit((prev) => ({ ...prev, coverUrl: event.target.value }))} placeholder="https://..." />
+            </label>
+            {edit.coverUrl.trim() ? <img className="book-edit-preview" src={edit.coverUrl} alt="" /> : null}
+            <label className="form-field">
+              {pick(language, "Sinopsis", "Description", "Sinopse")}
+              <textarea rows={3} value={edit.description} onChange={(event) => setEdit((prev) => ({ ...prev, description: event.target.value }))} />
+            </label>
+            <div className="auth-entry-actions">
+              <button type="button" className="btn" onClick={() => setEditOpen(false)} disabled={busy}>
+                {pick(language, "Cancelar", "Cancel", "Cancelar")}
+              </button>
+              <button type="button" className="btn btn-primary" onClick={handleSaveEdit} disabled={busy}>
+                <Icon name="check" /> {pick(language, "Guardar cambios", "Save changes", "Gardar cambios")}
+              </button>
+            </div>
+          </section>
+        ) : null}
 
         {/* Seguimiento de lectura por capítulos */}
         <section className="page-section">
@@ -238,6 +303,20 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               <button type="button" className="btn btn-primary" disabled={busy || parsedPreview.length === 0} onClick={handleCreateChapters}>
                 <Icon name="check" /> {pick(language, `Crear ${parsedPreview.length} capítulos`, `Create ${parsedPreview.length} chapters`, `Crear ${parsedPreview.length} capítulos`)}
               </button>
+
+              <div className="chapter-or">{pick(language, "o, si no tienen título:", "or, if they have no titles:", "ou, se non teñen título:")}</div>
+              <label className="book-chapter-set">
+                {pick(language, "Nº de capítulos", "Number of chapters", "Nº de capítulos")}
+                <input
+                  type="number"
+                  min={1}
+                  value={numberInput || ""}
+                  onChange={(event) => setNumberInput(Math.max(0, Number(event.target.value) || 0))}
+                />
+                <button type="button" className="btn" disabled={busy || numberInput < 1} onClick={() => handleCreateNumbered(numberInput)}>
+                  {pick(language, "Crear numerados", "Create numbered", "Crear numerados")}
+                </button>
+              </label>
             </div>
           ) : (
             <p className="hint">{pick(language, "Quien añadió el libro aún no ha definido los capítulos.", "Whoever added the book hasn't set the chapters yet.", "Quen engadiu o libro aínda non definiu os capítulos.")}</p>
@@ -272,10 +351,11 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
         {/* Progreso del club */}
         <section className="page-section">
           <div className="section-head">
-            <h2><Icon name="users" /> {pick(language, "El club", "The club", "O club")}</h2>
+            <h2><Icon name="users" /> {pick(language, "Quién lo está leyendo", "Who's reading it", "Quen o está lendo")}</h2>
+            {members.length > 0 ? <span className="book-progress-label">{members.length}</span> : null}
           </div>
           {members.length === 0 ? (
-            <p className="hint">{pick(language, "Nadie ha empezado todavía.", "Nobody has started yet.", "Ninguén empezou aínda.")}</p>
+            <p className="hint">{pick(language, "Aún nadie. Marca un capítulo y aparecerás aquí.", "Nobody yet. Check a chapter and you'll show up here.", "Aínda ninguén. Marca un capítulo e aparecerás aquí.")}</p>
           ) : (
             <ul className="book-members">
               {members.map((member) => (

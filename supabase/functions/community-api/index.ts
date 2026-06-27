@@ -1689,7 +1689,7 @@ const handlers = {
         .eq("book_id", bookId),
       db
         .from("chapter_notes")
-        .select("id,chapter_id,user_id,kind,text,created_at")
+        .select("id,chapter_id,user_id,kind,text,image_url,created_at")
         .eq("community_id", auth.community.id)
         .eq("book_id", bookId)
         .order("created_at", { ascending: true }),
@@ -1721,6 +1721,7 @@ const handlers = {
         alias: aliasMap.get(row.user_id) ?? "—",
         kind: row.kind ?? "note",
         text: row.text,
+        imageUrl: row.image_url ?? undefined,
         createdAt: toMillis(row.created_at)
       });
     });
@@ -2018,7 +2019,8 @@ const handlers = {
     const chapterId = String(body.chapter_id ?? "").trim();
     const text = String(body.text ?? "").trim().slice(0, 4000);
     if (!chapterId) return bad("chapter_id required");
-    if (!text) return bad("text required");
+    const imageUrl = body.image_url ? String(body.image_url).trim().slice(0, 1000) : null;
+    if (!text && !imageUrl) return bad("text or image required");
     const kind = body.kind === "reference" ? "reference" : "note";
 
     const chapterRes = await db
@@ -2037,9 +2039,10 @@ const handlers = {
         chapter_id: chapterId,
         user_id: auth.user.id,
         kind,
-        text
+        text,
+        image_url: imageUrl
       })
-      .select("id,chapter_id,user_id,kind,text,created_at")
+      .select("id,chapter_id,user_id,kind,text,image_url,created_at")
       .single();
     if (ins.error) return json(400, { message: ins.error.message });
     return json(200, {
@@ -2050,6 +2053,7 @@ const handlers = {
         alias: auth.user.alias,
         kind: ins.data.kind ?? "note",
         text: ins.data.text,
+        imageUrl: ins.data.image_url ?? undefined,
         createdAt: toMillis(ins.data.created_at)
       }
     });
@@ -2086,6 +2090,48 @@ const handlers = {
     const upd = await db
       .from("books")
       .update({ featured })
+      .eq("community_id", auth.community.id)
+      .eq("id", bookId)
+      .select("*")
+      .single();
+    if (upd.error) return json(400, { message: upd.error.message });
+    return json(200, { book: rowToBook(upd.data as Record<string, any>) });
+  },
+
+  // Edita metadata del libro (portada, título, autor, sinopsis…). Adder o admin.
+  "/books/update": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    if (!bookId) return bad("book_id required");
+
+    const bookRes = await db
+      .from("books")
+      .select("id,added_by")
+      .eq("community_id", auth.community.id)
+      .eq("id", bookId)
+      .maybeSingle();
+    if (bookRes.error || !bookRes.data) return json(404, { message: "Book not found" });
+    if (bookRes.data.added_by !== auth.user.id && auth.role !== "admin") {
+      return json(403, { message: "Only the member who added the book (or an admin) can edit it" });
+    }
+
+    const patch: Record<string, any> = { manually_edited: true };
+    if (body.title !== undefined) {
+      const title = String(body.title ?? "").trim().slice(0, 300);
+      if (!title) return bad("title cannot be empty");
+      patch.title = title;
+    }
+    if (body.author !== undefined) patch.author = body.author ? String(body.author).trim().slice(0, 200) : null;
+    if (body.coverUrl !== undefined) patch.cover_url = body.coverUrl ? String(body.coverUrl).trim().slice(0, 1000) : null;
+    if (body.description !== undefined) patch.description = body.description ? String(body.description).trim().slice(0, 4000) : null;
+    if (body.publishedYear !== undefined) patch.published_year = Number.isFinite(Number(body.publishedYear)) ? Number(body.publishedYear) : null;
+    if (body.pageCount !== undefined) patch.page_count = Number.isFinite(Number(body.pageCount)) ? Number(body.pageCount) : null;
+
+    const upd = await db
+      .from("books")
+      .update(patch)
       .eq("community_id", auth.community.id)
       .eq("id", bookId)
       .select("*")

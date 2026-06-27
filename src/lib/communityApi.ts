@@ -417,6 +417,7 @@ export interface ChapterNote {
   alias: string;
   kind: "note" | "reference";
   text: string;
+  imageUrl?: string;
   createdAt: number;
 }
 
@@ -486,9 +487,27 @@ export const toggleChapter = async (
 export const addChapterNote = async (
   chapterId: string,
   text: string,
-  kind: "note" | "reference" = "note"
+  kind: "note" | "reference" = "note",
+  imageUrl?: string
 ): Promise<{ note: ChapterNote }> =>
-  request<{ note: ChapterNote }>("/chapters/note/add", { chapter_id: chapterId, text, kind });
+  request<{ note: ChapterNote }>("/chapters/note/add", {
+    chapter_id: chapterId,
+    text,
+    kind,
+    ...(imageUrl ? { image_url: imageUrl } : {})
+  });
+
+export interface BookEditPatch {
+  title?: string;
+  author?: string | null;
+  coverUrl?: string | null;
+  description?: string | null;
+  publishedYear?: number | null;
+  pageCount?: number | null;
+}
+
+export const updateBook = async (bookId: string, patch: BookEditPatch): Promise<{ book: ClubBook }> =>
+  request<{ book: ClubBook }>("/books/update", { book_id: bookId, ...patch });
 
 export const setBookFeatured = async (
   bookId: string,

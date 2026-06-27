@@ -5514,3 +5514,115 @@ textarea:focus-visible {
   width: 100%;
   max-width: 300px;
 }
+
+/* ─────────── Capítulos v2: checks claros + notas con media + edición ─────────── */
+.chapter-check {
+  width: 28px;
+  height: 28px;
+  left: -15px;
+  border: 2px solid var(--line);
+  background: var(--panel-1);
+  color: transparent;            /* check invisible hasta marcar */
+  cursor: pointer;
+  transition: background var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard);
+}
+
+.chapter-check:hover:not(:disabled) {
+  border-color: var(--success);
+  color: color-mix(in srgb, var(--success) 40%, transparent);
+}
+
+.chapter-node.is-done .chapter-check {
+  background: var(--success);
+  border-color: var(--success);
+  color: #0b1a12;                /* check bien visible */
+}
+
+.chapter-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  padding: 2px 0;
+  cursor: pointer;
+}
+
+.chapter-node.is-done .chapter-title {
+  color: var(--ink-1);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--success) 60%, transparent);
+}
+
+.chapter-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.chapter-done-tag {
+  font-size: 0.64rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--success);
+  border: 1px solid var(--success);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+.chapter-note { flex-direction: column; align-items: stretch; gap: 5px; }
+
+.chapter-note-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chapter-note-text a { color: var(--brand-strong); text-decoration: underline; }
+
+.chapter-note-image {
+  display: block;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 240px;
+}
+
+.chapter-note-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.chapter-note-image-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-1);
+}
+
+.chapter-note-image-field input { flex: 1; }
+
+.chapter-or {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--ink-1);
+  margin: 4px 0;
+}
+
+.book-edit-toggle { align-self: flex-start; margin-top: 8px; }
+
+.book-edit-form .form-field { margin-bottom: 10px; }
+
+.book-edit-preview {
+  max-width: 110px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  margin: 4px 0 10px;
+}
