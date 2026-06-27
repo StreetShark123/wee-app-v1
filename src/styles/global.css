@@ -18,8 +18,21 @@
   --danger: #ff7f8f;
   --success: #67d7a7;
   --warning: #f2cb78;
+  --radius-sm: 8px;
   --radius-md: 10px;
   --radius-lg: 14px;
+  --radius-pill: 999px;
+  /* Anillo de foco único en toda la app */
+  --focus: var(--brand-strong);
+  /* Escala de espaciado coherente (sustituye los px sueltos del bloque nuevo) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  /* Tamaño base de las etiquetas/tags pequeñas */
+  --tag-font: 0.66rem;
   --control-height: 40px;
   --motion-fast: 160ms;
   --motion-base: 240ms;
@@ -166,7 +179,7 @@ h4 {
 .community-loading-ring.ring-b {
   inset: 10px;
   border-color: rgb(95 212 255 / 65%);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   animation: loading-spin-b 2.2s linear infinite;
 }
 
@@ -241,7 +254,7 @@ h4 {
   display: block;
   position: relative;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: linear-gradient(180deg, #16263f, #132239);
   border: 1px solid #2a3f63;
 }
@@ -333,7 +346,7 @@ h4 {
   place-items: center;
   width: 1.3rem;
   height: 1.3rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: #dff0ff;
   background: linear-gradient(180deg, rgb(114 181 255 / 42%), rgb(95 212 255 / 34%), rgb(176 134 255 / 28%));
   border: 1px solid rgb(139 184 239 / 72%);
@@ -351,7 +364,7 @@ h4 {
   letter-spacing: 0.12em;
   color: #b7caeb;
   border: 1px solid #42648f;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0.14rem 0.46rem;
   background: linear-gradient(180deg, rgb(20 38 64 / 82%), rgb(13 27 47 / 86%));
   box-shadow: inset 0 1px 0 rgb(130 177 238 / 16%);
@@ -398,7 +411,7 @@ h3 svg,
   gap: 0.45rem;
   border: 1px solid #3a5c89;
   background: linear-gradient(180deg, rgb(11 24 43 / 90%), rgb(10 20 36 / 84%));
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0.3rem 0.55rem;
   min-width: 280px;
   transition: border-color var(--motion-base) var(--ease-standard), box-shadow var(--motion-base) var(--ease-standard), background-color var(--motion-base) var(--ease-standard);
@@ -427,7 +440,7 @@ h3 svg,
   gap: 0.5rem;
   color: var(--ink-1);
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0.22rem 0.34rem 0.22rem 0.22rem;
   transition: border-color var(--motion-base) var(--ease-standard), background-color var(--motion-base) var(--ease-standard), color var(--motion-base) var(--ease-standard);
 }
@@ -469,7 +482,7 @@ h3 svg,
   position: relative;
   width: 36px;
   height: 36px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid #3d608e;
   background: linear-gradient(180deg, rgb(20 37 63 / 72%), rgb(13 25 44 / 68%));
   color: #dbe8ff;
@@ -491,7 +504,7 @@ h3 svg,
   right: 6px;
   width: 8px;
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: #f25a68;
   box-shadow: 0 0 0 2px rgb(10 21 38 / 95%);
 }
@@ -502,7 +515,7 @@ h3 svg,
   top: calc(100% + 0.45rem);
   width: min(92vw, 340px);
   border: 1px solid #476d9f;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   background:
     radial-gradient(160px 80px at 100% 0%, rgb(106 157 226 / 18%), transparent 72%),
     linear-gradient(180deg, rgb(17 34 58 / 95%), rgb(10 21 38 / 95%));
@@ -541,14 +554,14 @@ h3 svg,
 
 .notification-list::-webkit-scrollbar-thumb {
   background: #385881;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .notification-item {
   display: grid;
   gap: 0.16rem;
   border: 1px solid #3a5d8b;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 0.45rem 0.5rem;
   color: #d5e3fb;
   background: linear-gradient(180deg, rgb(18 34 57 / 76%), rgb(13 26 46 / 74%));
@@ -594,7 +607,7 @@ h3 svg,
   top: calc(100% + 0.45rem);
   min-width: 230px;
   border: 1px solid #476d9f;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   background:
     radial-gradient(160px 80px at 100% 0%, rgb(106 157 226 / 18%), transparent 72%),
     linear-gradient(180deg, rgb(17 34 58 / 95%), rgb(10 21 38 / 95%));
@@ -613,7 +626,7 @@ h3 svg,
   align-items: center;
   gap: 0.5rem;
   border: 1px solid #3e618f;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 0.42rem 0.45rem;
   background: linear-gradient(180deg, rgb(23 43 72 / 74%), rgb(16 30 52 / 70%));
 }
@@ -637,7 +650,7 @@ h3 svg,
   width: 100%;
   text-align: left;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 0.5rem 0.54rem;
   font-size: 0.83rem;
   color: #cedcf5;
@@ -663,7 +676,7 @@ h3 svg,
 }
 
 .avatar {
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   object-fit: cover;
   border: 1px solid #3a4b71;
 }
@@ -822,7 +835,7 @@ h3 svg,
   top: 0.3rem;
   bottom: 0.3rem;
   width: 3px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: linear-gradient(180deg, #87b6f3, #5c89cb);
 }
 
@@ -979,7 +992,7 @@ select,
 textarea {
   width: 100%;
   border: 1px solid #33476f;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 0.58rem 0.68rem;
   background: #0f192e;
   color: var(--ink-0);
@@ -1071,7 +1084,7 @@ textarea::placeholder {
 
 .post-card-compact {
   padding: 0.65rem;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
 }
 
 .post-card-compact .post-media {
@@ -1175,7 +1188,7 @@ textarea::placeholder {
 .badge,
 .chip,
 .quality {
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0.2rem 0.55rem;
   font-size: 0.76rem;
   border: 1px solid transparent;
@@ -1309,7 +1322,7 @@ textarea::placeholder {
   top: calc(100% + 6px);
   width: 250px;
   padding: 0.45rem 0.55rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid #35558b;
   background: #0f1b32;
   color: #d8e5ff;
@@ -1427,7 +1440,7 @@ textarea::placeholder {
 .delete-chip {
   width: 28px;
   height: 28px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid #7f4b61;
   background: linear-gradient(180deg, #4a2a38, #3a2230);
   color: #ffd2dd;
@@ -1569,7 +1582,7 @@ textarea::placeholder {
   width: min(840px, 100%);
   max-height: 90vh;
   overflow: auto;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   border: 1px solid #3b5a84;
   background: linear-gradient(160deg, #14223d, #101d33);
   padding: 1rem;
@@ -1826,7 +1839,7 @@ textarea::placeholder {
 .auth-card {
   background: linear-gradient(160deg, #162540, #111d35);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   padding: 1rem;
 }
 
@@ -2133,7 +2146,7 @@ textarea::placeholder {
   gap: 0.38rem;
   width: fit-content;
   border: 1px solid #3f5f8f;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0.28rem 0.58rem;
   background: rgb(19 35 60 / 88%);
   color: #d6e7ff;
@@ -2153,7 +2166,7 @@ textarea::placeholder {
   border: 1px solid #304a74;
   background: #11213c;
   color: var(--ink-0);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 0.52rem;
   display: flex;
   align-items: center;
@@ -2196,7 +2209,7 @@ textarea::placeholder {
 .profile-rank-card {
   margin-top: 0.7rem;
   border: 1px solid #3a5d8f;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: rgb(13 28 50 / 72%);
   padding: 0.6rem 0.68rem;
 }
@@ -2214,7 +2227,7 @@ textarea::placeholder {
 
 .profile-level-bar {
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: #10233f;
   border: 1px solid #2f4e7a;
   overflow: hidden;
@@ -2277,7 +2290,7 @@ textarea::placeholder {
 
 .settings-card {
   border: 1px solid #35517a;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: rgb(14 27 48 / 66%);
   padding: 0.72rem;
 }
@@ -2569,7 +2582,7 @@ textarea::placeholder {
   color: #dce9ff;
   border: 1px solid #36568b;
   padding: 0.6rem 0.8rem;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
 }
 
 button:focus-visible,
@@ -2577,7 +2590,7 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid #88b4eb;
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -2586,7 +2599,7 @@ textarea:focus-visible {
 .user-menu-item:focus-visible,
 .nav-pill:focus-visible,
 .notification-trigger:focus-visible {
-  outline: 2px solid #88b4eb;
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -2992,11 +3005,11 @@ textarea:focus-visible {
 
 .book-card-status {
   align-self: flex-start;
-  font-size: 0.66rem;
+  font-size: var(--tag-font);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 2px 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--line);
   color: var(--ink-1);
 }
@@ -3061,7 +3074,7 @@ textarea:focus-visible {
   height: 72px;
   flex: 0 0 auto;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--panel-1);
 }
 
@@ -3172,7 +3185,7 @@ textarea:focus-visible {
   display: block;
   flex: 1;
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--panel-1);
   overflow: hidden;
 }
@@ -3181,7 +3194,7 @@ textarea:focus-visible {
   display: block;
   height: 100%;
   background: var(--brand);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   transition: width var(--motion-base) var(--ease-standard);
 }
 
@@ -3224,7 +3237,7 @@ textarea:focus-visible {
   place-items: center;
   width: 30px;
   height: 30px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--panel-0);
   color: var(--ink-1);
@@ -3333,7 +3346,7 @@ textarea:focus-visible {
   height: 24px;
   display: grid;
   place-items: center;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 2px solid var(--line);
   background: var(--bg-1);
   color: var(--brand);
@@ -3349,7 +3362,7 @@ textarea:focus-visible {
 .chapter-dot {
   width: 6px;
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--ink-1);
 }
 
@@ -3408,30 +3421,26 @@ textarea:focus-visible {
   align-items: baseline;
   font-size: 0.82rem;
   padding: 5px 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--panel-0);
   border: 1px solid var(--line);
 }
 
 .chapter-note-kind {
   flex: 0 0 auto;
-  font-size: 0.6rem;
+  font-size: var(--tag-font);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 1px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--line);
   color: var(--ink-1);
   background: var(--panel-1);
 }
 
-/* Tag por tipo de contenido (paleta de la app): nota=verde, referencia=púrpura, pregunta=amarillo */
-.chapter-note-note .chapter-note-kind {
-  color: var(--success);
-  border-color: color-mix(in srgb, var(--success) 50%, var(--line));
-  background: color-mix(in srgb, var(--success) 14%, transparent);
-}
+/* Tag por tipo de contenido: nota=neutro (el verde se reserva para "leído/sí"),
+   referencia=púrpura, pregunta=amarillo. */
 .chapter-note-reference {
   border-color: color-mix(in srgb, var(--accent-violet) 40%, var(--line));
 }
@@ -3516,7 +3525,7 @@ textarea:focus-visible {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--bg-0);
 }
 
@@ -3677,7 +3686,7 @@ textarea:focus-visible {
   letter-spacing: 0.04em;
   color: var(--success);
   border: 1px solid var(--success);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 1px 7px;
 }
 
@@ -3694,7 +3703,7 @@ textarea:focus-visible {
 
 .chapter-note-image {
   display: block;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   max-width: 240px;
 }
@@ -3746,7 +3755,7 @@ textarea:focus-visible {
   font-size: 0.72rem;
   color: var(--ink-1);
   background: var(--panel-1);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 1px 8px;
 }
 
@@ -3762,7 +3771,7 @@ textarea:focus-visible {
   font-weight: 700;
   color: var(--success);
   background: color-mix(in srgb, var(--success) 18%, var(--bg-0));
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 2px 7px;
 }
 
@@ -3855,7 +3864,7 @@ textarea:focus-visible {
   height: 36px;
   max-width: 200px;
   padding: 0 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--line);
   background: var(--panel-0);
   color: var(--ink-1);
@@ -3932,7 +3941,7 @@ textarea:focus-visible {
   position: relative;
   overflow: hidden;
   background: color-mix(in srgb, var(--panel-1) 70%, var(--panel-0));
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 .sk::after {
   content: "";
@@ -3947,7 +3956,7 @@ textarea:focus-visible {
 
 .sk-book { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--panel-0); }
 .sk-cover { width: 100%; aspect-ratio: 2 / 3; border-radius: var(--radius-md); }
-.sk-line { height: 11px; border-radius: 999px; }
+.sk-line { height: 11px; border-radius: var(--radius-pill); }
 .sk-line-sm { width: 45%; }
 .sk-line-md { width: 60%; }
 .sk-line-lg { width: 80%; }
@@ -3974,8 +3983,8 @@ textarea:focus-visible {
 
 /* B1: quórum de votación */
 .vote-quorum { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
-.vote-quorum-bar { flex: 1; height: 8px; border-radius: 999px; background: var(--panel-1); overflow: hidden; }
-.vote-quorum-fill { display: block; height: 100%; background: var(--success); border-radius: 999px; transition: width var(--motion-base) var(--ease-standard); }
+.vote-quorum-bar { flex: 1; height: 8px; border-radius: var(--radius-pill); background: var(--panel-1); overflow: hidden; }
+.vote-quorum-fill { display: block; height: 100%; background: var(--success); border-radius: var(--radius-pill); transition: width var(--motion-base) var(--ease-standard); }
 .vote-quorum-label { font-size: 0.8rem; color: var(--ink-1); white-space: nowrap; }
 
 /* A5: panel de gestión (admin) dentro de Editar */
@@ -4013,7 +4022,7 @@ textarea:focus-visible {
   gap: 4px;
   font-size: 0.78rem;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--line);
   background: var(--panel-1);
   color: var(--ink-1);
@@ -4030,12 +4039,12 @@ textarea:focus-visible {
   display: flex;
   gap: 2px;
   padding: 5px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--line);
   background: var(--panel-1);
   box-shadow: 0 8px 20px rgb(4 9 22 / 35%);
 }
-.reaction-emoji { font-size: 1.1rem; line-height: 1; padding: 4px 6px; border: 0; background: transparent; border-radius: 8px; cursor: pointer; }
+.reaction-emoji { font-size: 1.1rem; line-height: 1; padding: 4px 6px; border: 0; background: transparent; border-radius: var(--radius-sm); cursor: pointer; }
 .reaction-emoji:hover { background: color-mix(in srgb, var(--brand) 18%, transparent); }
 .comment-reply-btn { font-size: 0.78rem; color: var(--ink-1); background: transparent; border: 0; cursor: pointer; padding: 2px 4px; }
 .comment-reply-btn:hover { color: var(--ink-0); }
@@ -4094,7 +4103,7 @@ textarea:focus-visible {
   border: 0;
   background: transparent;
   color: var(--ink-0);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 0.86rem;
 }
@@ -4127,12 +4136,12 @@ textarea:focus-visible {
 
 .comment-chapter-tag {
   margin-left: 8px;
-  font-size: 0.64rem;
+  font-size: var(--tag-font);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--accent-cyan);
   border: 1px solid var(--accent-cyan);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 1px 6px;
 }
 .comment-locked {
@@ -4217,8 +4226,8 @@ textarea:focus-visible {
 .book-member-link { display: flex; justify-content: space-between; gap: 10px; align-items: center; text-decoration: none; color: inherit; }
 .book-member-link:hover strong, .book-member-link:hover > span:first-child { color: var(--brand-strong); }
 .book-member-link > span:first-child { transition: color var(--motion-fast) var(--ease-standard); }
-.member-mini-bar { display: inline-block; width: 72px; height: 7px; border-radius: 999px; background: var(--panel-1); overflow: hidden; }
-.member-mini-fill { display: block; height: 100%; background: var(--brand); border-radius: 999px; }
+.member-mini-bar { display: inline-block; width: 72px; height: 7px; border-radius: var(--radius-pill); background: var(--panel-1); overflow: hidden; }
+.member-mini-fill { display: block; height: 100%; background: var(--brand); border-radius: var(--radius-pill); }
 
 /* Perfil público: lecturas */
 .profile-reads-sub { margin: 12px 0 8px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-1); }
@@ -4236,7 +4245,7 @@ textarea:focus-visible {
   transition: border-color var(--motion-fast) var(--ease-standard);
 }
 .profile-book:hover { border-color: var(--brand); }
-.profile-book-cover { width: 38px; height: 56px; flex: 0 0 auto; object-fit: cover; border-radius: 5px; background: var(--panel-1); }
+.profile-book-cover { width: 38px; height: 56px; flex: 0 0 auto; object-fit: cover; border-radius: var(--radius-sm); background: var(--panel-1); }
 .profile-book-cover-empty { display: grid; place-items: center; color: var(--ink-1); }
 .profile-book-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .profile-book-rating { color: var(--accent-amber); letter-spacing: 1px; font-size: 0.85rem; }
@@ -4252,7 +4261,7 @@ textarea:focus-visible {
 .chapter-note-text a,
 .chapter-note-text a:visited { color: var(--brand-strong); text-decoration: underline; text-underline-offset: 2px; }
 .chapter-note-text a:focus-visible,
-.note-media:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 6px; }
+.note-media:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: var(--radius-sm); }
 
 .chapter-note-media { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 
@@ -4262,20 +4271,20 @@ textarea:focus-visible {
   padding: 4px 9px;
   font-size: 0.78rem;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--panel-1);
   max-width: 100%;
 }
 .note-media-link:hover { border-color: var(--brand); }
 
-.note-media-img img { max-width: 160px; max-height: 120px; border-radius: 8px; display: block; object-fit: cover; }
+.note-media-img img { max-width: 160px; max-height: 120px; border-radius: var(--radius-sm); display: block; object-fit: cover; }
 
-.note-media-yt { position: relative; width: 200px; max-width: 100%; border-radius: 8px; overflow: hidden; }
+.note-media-yt { position: relative; width: 200px; max-width: 100%; border-radius: var(--radius-sm); overflow: hidden; }
 .note-media-yt img { width: 100%; height: 112px; object-fit: cover; display: block; }
 .note-media-yt .note-media-play {
   position: absolute; inset: 0; margin: auto; width: 40px; height: 40px;
   display: grid; place-items: center; color: #fff; font-size: 16px;
-  background: rgb(0 0 0 / 55%); border-radius: 999px;
+  background: rgb(0 0 0 / 55%); border-radius: var(--radius-pill);
 }
 .note-media-yt .note-media-tag {
   position: absolute; left: 6px; bottom: 6px; font-size: 0.66rem; letter-spacing: 0.03em;
@@ -4336,7 +4345,7 @@ textarea:focus-visible {
 .chapter-note-comment {
   display: inline-flex; align-items: center; gap: 5px;
   margin-top: 6px; padding: 3px 9px; min-height: 30px;
-  background: transparent; border: 1px solid var(--line); border-radius: 999px;
+  background: transparent; border: 1px solid var(--line); border-radius: var(--radius-pill);
   color: var(--ink-1); font-size: 0.74rem; cursor: pointer;
 }
 .chapter-note-comment:hover { border-color: var(--brand); color: var(--brand-strong); }
@@ -4390,7 +4399,7 @@ textarea:focus-visible {
 .image-lightbox-inner { display: flex; flex-direction: column; gap: 12px; max-width: 96vw; max-height: 90dvh; }
 .image-lightbox-img {
   max-width: 96vw; max-height: 78dvh; width: auto; height: auto;
-  object-fit: contain; border-radius: 8px; background: #0b1424;
+  object-fit: contain; border-radius: var(--radius-sm); background: #0b1424;
   box-shadow: 0 24px 60px rgb(0 0 0 / 55%);
 }
 .image-lightbox-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
@@ -4411,7 +4420,7 @@ textarea:focus-visible {
 .comment-group-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .comment-group-count {
   min-width: 22px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center;
-  background: var(--panel-0); border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel-0); border: 1px solid var(--line); border-radius: var(--radius-pill);
   font-size: 0.74rem; color: var(--ink-1);
 }
 .comment-group-warn { display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; color: var(--ink-1); font-weight: 500; }
@@ -4446,7 +4455,7 @@ textarea:focus-visible {
 .chapter-note-action {
   display: inline-flex; align-items: center; justify-content: center; gap: 4px;
   padding: 3px 10px; min-height: 28px;
-  background: transparent; border: 1px solid var(--line); border-radius: 999px;
+  background: transparent; border: 1px solid var(--line); border-radius: var(--radius-pill);
   color: var(--ink-1); font-size: 0.72rem; cursor: pointer; white-space: nowrap;
 }
 .chapter-note-action:hover { border-color: var(--brand); color: var(--brand-strong); }
