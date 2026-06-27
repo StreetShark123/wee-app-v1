@@ -422,3 +422,32 @@ el club al que te invitan.
 - ✅ Editar/borrar comentarios + @menciones con autocompletado + fin de recargas de ficha.
 - ✅ **C4** galería de leídos: cubierta por nota media en cards (A1) + reseñas en ficha.
 - ⏳ Pendiente menor: toggle quórum admin (C5 UI), B3/B4 (copy/a11y), revisión móvil/redundancias.
+
+### Estado FINAL (2026-06-28) — producto listo
+
+Cerrado todo el backlog del roadmap (A/B/C/D) **y** varias rondas de pulido por
+revisión multiagente. Resumen de lo que quedó en pie:
+
+- **Dominio completo**: propuesta → votación (mayoría/admin, quórum visible, "ahora no"
+  → "para más adelante") → lectura por capítulos (progreso por usuario, "marcar todo")
+  → notas por capítulo (nota/referencia/pregunta con tag de color, media YouTube/
+  imagen/enlace + **lightbox**, **reacciones emoji**, **editar/borrar** propias, **hilos
+  encabezados por la nota**) → comentarios **agrupados por capítulo y colapsados hasta
+  leerlo** (anti-spoiler), hilos 1 nivel, editar("editado")/borrar(lápida), reacciones,
+  **@menciones con teclado** + notificaciones (que llevan al comentario) → valoración +
+  reseña → estante de **leídos** + **perfil público** (leídos, nota media, reseñas).
+- **Transparencia (principio rector)**: panel "Cómo usamos tus datos" + opt-out de
+  analytics; "Roles y moderación" (qué puede/NO puede un admin); **export solo-tuyo**
+  (`/data/export_me`); reconocimiento cálido al terminar (sin gamificación).
+- **PWA instalable** (manifest standalone + service worker + iconos + botón instalar).
+- **Calidad**: CSS tokenizado (radios/foco/espaciado/tags; verde=hecho, púrpura=
+  referencia, amarillo=pregunta), picker de reacciones bottom-sheet en móvil, modal de
+  confirmación propio (`useConfirm`, fuera `window.confirm`), panel de gestión en
+  "Datos del libro" / "Gestión de la lectura", supabase-js fuera del bundle, posts
+  legacy ya no se cargan.
+
+**Pendiente (proceso/deuda menor, NO bloquea):**
+- Rama `feat/reading-clubs` **sin mergear a `main`** (a la espera de decisión de Axel).
+- i18n **gl/en a medio rellenar** (la app es solo-español hoy; cuando se activen otros
+  idiomas, barrido de cadenas).
+- Toggle admin de modo de quórum en `CommunityPage` (el backend ya lo soporta).
