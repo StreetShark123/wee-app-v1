@@ -5,8 +5,8 @@ import { EASE_STANDARD, MOTION_DURATION } from "../lib/motion";
 import { useInstallPrompt } from "../lib/useInstallPrompt";
 import { Icon } from "./Icon";
 
-const ALPHA_VERSION = "v0.1.1-alpha";
-const ALPHA_UPDATED_AT = "2026-03-04";
+const ALPHA_VERSION = "v0.4.0-alpha";
+const ALPHA_UPDATED_AT = "2026-06-27";
 
 export const AppFooter = () => {
   const { language } = useI18n();

@@ -172,7 +172,7 @@ const NoteCard = ({
       ) : null}
 
       {onComment || onViewThread ? (
-        <div className="chapter-note-actions">
+        <div className="chapter-note-threadbar">
           {hasThread && onViewThread ? (
             <button type="button" className="chapter-note-action chapter-note-action-view" onClick={onViewThread}>
               <Icon name="comment" size={11} /> {pick(language, `Ver hilo · ${threadCount}`, `View thread · ${threadCount}`, `Ver fío · ${threadCount}`)}

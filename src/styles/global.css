@@ -4437,7 +4437,7 @@ textarea:focus-visible {
 .comment-note-header-text { margin: 2px 0 0; font-size: 0.84rem; font-style: italic; color: var(--ink-1); line-height: 1.4; }
 
 /* Acciones de nota: ancho de su contenido en desktop, 2 columnas en móvil */
-.chapter-note-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.chapter-note-threadbar { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 6px; margin-top: 6px; }
 .chapter-note-action {
   display: inline-flex; align-items: center; justify-content: center; gap: 4px;
   padding: 3px 10px; min-height: 28px;
@@ -4447,8 +4447,8 @@ textarea:focus-visible {
 .chapter-note-action:hover { border-color: var(--brand); color: var(--brand-strong); }
 .chapter-note-action-view { border-color: color-mix(in srgb, var(--brand) 45%, var(--line)); color: var(--brand-strong); }
 @media (max-width: 560px) {
-  .chapter-note-actions { display: grid; grid-template-columns: 1fr 1fr; }
-  .chapter-note-action:only-child { grid-column: 1 / -1; }
+  .chapter-note-threadbar { display: grid; grid-template-columns: 1fr 1fr; }
+  .chapter-note-threadbar .chapter-note-action:only-child { grid-column: 1 / -1; }
 }
 
 /* PWA: acciones del footer (Instalar app + Sobre Wee) */
