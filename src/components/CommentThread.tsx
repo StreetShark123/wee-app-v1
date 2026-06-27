@@ -196,14 +196,16 @@ export const CommentThread = ({ comments, members, activeUserId, readChapterIds,
   const { language } = useI18n();
   const [openOverride, setOpenOverride] = useState<Record<string, boolean>>({});
 
-  // "Ver hilo": al enfocar un comentario, abre el grupo de su capítulo.
+  // "Ver hilo": al enfocar un comentario, abre el grupo de su capítulo SOLO si ya lo
+  // has leído (anti-spoiler: nunca revelar comentarios de un capítulo sin leer).
   useEffect(() => {
     if (!focusCommentId) return;
     const target = comments.find((c) => c.id === focusCommentId);
     if (!target) return;
     const key = target.chapterId ?? GENERAL_KEY;
-    setOpenOverride((prev) => ({ ...prev, [key]: true }));
-  }, [focusCommentId, comments]);
+    const isRead = key === GENERAL_KEY || readChapterIds.has(key);
+    if (isRead) setOpenOverride((prev) => ({ ...prev, [key]: true }));
+  }, [focusCommentId, comments, readChapterIds]);
 
   const roots = comments.filter((c) => !c.parentId);
   const repliesByParent = new Map<string, BookComment[]>();

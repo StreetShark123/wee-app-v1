@@ -284,12 +284,20 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const readChapterIds = new Set(chapters.filter((c) => c.doneByMe).map((c) => c.id));
   const chapterLabelById = new Map(chapters.map((c, i) => [c.id, `${i + 1}`]));
   const noteById = new Map(chapters.flatMap((c) => c.notes.map((n) => [n.id, { alias: n.alias, text: n.text }] as const)));
-  // Hilos por anotación: noteId → { rootId del hilo, nº de comentarios }.
+  // Hilos por anotación: noteId → { rootId del 1er hilo, nº TOTAL de comentarios de
+  // todos los hilos sobre esa nota (roots + respuestas) para que "Ver hilo · N" no deje
+  // hilos huérfanos sin contar.
   const noteThreadById = (() => {
     const replyCount = new Map<string, number>();
     comments.forEach((c) => { if (c.parentId) replyCount.set(c.parentId, (replyCount.get(c.parentId) ?? 0) + 1); });
     const m = new Map<string, { rootId: string; count: number }>();
-    comments.forEach((c) => { if (!c.parentId && c.noteId && !m.has(c.noteId)) m.set(c.noteId, { rootId: c.id, count: 1 + (replyCount.get(c.id) ?? 0) }); });
+    comments.forEach((c) => {
+      if (c.parentId || !c.noteId) return;
+      const own = 1 + (replyCount.get(c.id) ?? 0);
+      const prev = m.get(c.noteId);
+      if (prev) prev.count += own;
+      else m.set(c.noteId, { rootId: c.id, count: own });
+    });
     return m;
   })();
   const handleViewNoteThread = (rootId: string) => {
@@ -376,6 +384,9 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     run(async () => {
       const { comment } = await addBookComment(book.id, text, { chapterId, noteId });
       patch((d) => ({ ...d, comments: [...d.comments, comment] }));
+      // Abre el grupo destino y salta a tu comentario (para que veas que se publicó).
+      setFocusComment(comment.id);
+      setFocusTick((t) => t + 1);
     });
   // Crear hilo sobre una nota: el comentario quedará encabezado por esa anotación.
   const handleCommentNote = (chapterId: string, note: ChapterNote) => {
@@ -695,6 +706,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                 {pick(language, "Ahora no", "Not now", "Agora non")} · {votes.later}
               </button>
             </div>
+            <p className="hint vote-help">{pick(language, "«Ahora no» lo guarda en «Para más adelante» sin descartarlo.", "«Not now» keeps it in «For later» without dropping it.", "«Agora non» gárdao en «Para máis adiante» sen descartalo.")}</p>
             {isAdmin ? (
               <button type="button" className="btn btn-primary" disabled={busy} onClick={() => handleStatus("reading")}>
                 <Icon name="check" /> {pick(language, "Aprobar y poner en lectura", "Approve and start reading", "Aprobar e poñer en lectura")}
@@ -884,8 +896,9 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               event.preventDefault();
               const clean = commentText.trim();
               if (!clean) return;
-              const ch = commentChapter || undefined;
               const noteId = pendingNote?.id;
+              // Con nota pendiente, el capítulo es el de la nota (coherencia note↔capítulo).
+              const ch = pendingNote?.chapterId ?? (commentChapter || undefined);
               setCommentText("");
               setCommentChapter("");
               setPendingNote(null);
@@ -911,7 +924,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                 : pick(language, "Comenta. Usa @nombre para mencionar. Sin spoilers 👀", "Comment. Use @name to mention. No spoilers 👀", "Comenta. Usa @nome para mencionar. Sen spoilers 👀")}
             />
             <div className="book-comment-foot">
-              {named ? (
+              {named && !pendingNote ? (
                 <label className="comment-chapter-pick">
                   {pick(language, "Sobre:", "About:", "Sobre:")}
                   <select value={commentChapter} onChange={(event) => setCommentChapter(event.target.value)} className="settings-select">
@@ -926,7 +939,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                 {pick(language, "Enviar", "Send", "Enviar")}
               </button>
             </div>
-            {commentChapter ? (
+            {commentChapter || pendingNote ? (
               <p className="hint comment-chapter-warn">{pick(language, "Solo lo verán quienes hayan leído ese capítulo.", "Only members who've read that chapter will see it.", "Só o verán quen lese ese capítulo.")}</p>
             ) : null}
           </form>
