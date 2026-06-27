@@ -6,6 +6,28 @@ en clubs → en cada club se añaden libros → cada libro tiene comentarios,
 seguimiento de capítulos por usuario y votación; cuando todos terminan, el libro
 queda "leído".
 
+## ⭐ Principio rector del producto (LÉELO ANTES DE DISEÑAR NADA)
+
+Lo PRINCIPAL de esta app es ser **user-friendly de verdad** y centrada en la
+**comunidad**. Toda decisión de UX/feature se valida contra esto:
+
+- **Premia lo positivo**: compartir, comentar, leer juntos, ayudar. Las acciones que
+  refuerzan comunidad se celebran (cualitativo), nunca se convierten en competición.
+- **CERO embudos de engagement vacío ni patrones oscuros**: nada de rachas, rankings
+  de velocidad, métricas de vanidad, notificaciones-cebo, FOMO, ni "enganche por
+  enganche". Si una feature solo existe para subir un número de uso, NO va.
+- **Transparencia de uso**: que se entienda en todo momento cómo funciona la app y qué
+  hace cada acción. Sin trucos ni dark patterns.
+- **Transparencia de datos**: el uso de datos debe ser **visible para todos los
+  usuarios — admin o no —** dentro de lo razonable y funcional. Nada de datos ocultos
+  sobre la gente que no pueda ver la propia gente. La persona puede ver, exportar y
+  borrar lo suyo.
+- **Sin monetización ni cobros** (decisión histórica del dueño).
+
+Las ideas de futuro viven en [docs/IDEAS.md](docs/IDEAS.md) (ojo a la tensión
+gamificación ↔ "sin rankings": cualquier "medalla/wrap-up" debe ser celebración
+cualitativa, no competición).
+
 El plan completo, el estado fase-a-fase y el análisis de huecos están en
 **[docs/READING_CLUB_PLAN.md](docs/READING_CLUB_PLAN.md)** — léelo antes de tocar
 dominio de libros/clubs.

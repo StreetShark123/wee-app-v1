@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from "react";
 import ReactDOM from "react-dom/client";
 import { LazyMotion } from "framer-motion";
 import App from "./App";
+import { isAnalyticsOptedOut } from "./lib/usageAnalytics";
 import "./styles/global.css";
 
 // Las features de animación se cargan en un chunk aparte tras el primer render.
@@ -15,8 +16,10 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <LazyMotion features={loadMotionFeatures}>
       <App />
     </LazyMotion>
-    <Suspense fallback={null}>
-      <Analytics />
-    </Suspense>
+    {!isAnalyticsOptedOut() ? (
+      <Suspense fallback={null}>
+        <Analytics />
+      </Suspense>
+    ) : null}
   </React.StrictMode>
 );
