@@ -4377,3 +4377,49 @@ textarea:focus-visible {
   box-shadow: 0 24px 60px rgb(0 0 0 / 55%);
 }
 .image-lightbox-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+/* Comentarios agrupados por capítulo (colapsables, anti-spoiler) */
+.comment-groups { display: flex; flex-direction: column; gap: 10px; }
+.comment-group { border: 1px solid var(--line); border-radius: var(--radius-md); overflow: hidden; }
+.comment-group-spoiler { border-style: dashed; }
+.comment-group-head {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 9px 12px; min-height: 40px;
+  background: var(--panel-1); border: 0; cursor: pointer; text-align: left;
+  color: var(--ink-0); font-weight: 600; font-size: 0.86rem;
+}
+.comment-group-head:hover { background: color-mix(in srgb, var(--brand) 8%, var(--panel-1)); }
+.comment-group-caret { transition: transform var(--motion-fast) var(--ease-standard); }
+.comment-group-caret.is-collapsed { transform: rotate(-90deg); }
+.comment-group-title { flex: 1; }
+.comment-group-count {
+  min-width: 22px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center;
+  background: var(--panel-0); border: 1px solid var(--line); border-radius: 999px;
+  font-size: 0.74rem; color: var(--ink-1);
+}
+.comment-group-warn { display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; color: var(--ink-1); font-weight: 500; }
+.comment-group-spoiler-note { margin: 0; padding: 8px 12px 0; font-size: 0.78rem; color: var(--ink-1); }
+.comment-group .comment-thread { padding: 8px 12px 12px; margin: 0; }
+
+/* Crear hilo desde nota (compacto) + chip de nota en composer + cabecera de anotación */
+.chapter-note-comment { padding: 2px 8px; min-height: 26px; font-size: 0.72rem; }
+
+.composer-note-ref {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 7px 10px; margin-bottom: 8px;
+  border: 1px solid color-mix(in srgb, var(--brand) 35%, var(--line));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--brand) 8%, transparent);
+  font-size: 0.8rem;
+}
+.composer-note-ref-text { flex: 1; line-height: 1.35; }
+.composer-note-ref-text em { color: var(--ink-1); font-style: italic; }
+.composer-note-ref-x { background: transparent; border: 0; color: var(--ink-1); cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0 2px; }
+.composer-note-ref-x:hover { color: var(--ink-0); }
+
+.comment-note-header {
+  border-left: 3px solid color-mix(in srgb, var(--brand) 55%, var(--line));
+  padding: 4px 0 4px 10px; margin-bottom: 6px;
+}
+.comment-note-header-label { font-size: 0.74rem; font-weight: 600; color: var(--ink-1); }
+.comment-note-header-text { margin: 2px 0 0; font-size: 0.84rem; font-style: italic; color: var(--ink-1); line-height: 1.4; }

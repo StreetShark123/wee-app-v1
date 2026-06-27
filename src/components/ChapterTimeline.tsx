@@ -118,7 +118,7 @@ const NoteCard = ({ note, language, onComment }: { note: ChapterNote; language: 
       ) : null}
       {onComment ? (
         <button type="button" className="chapter-note-comment" onClick={onComment}>
-          <Icon name="comment" size={12} /> {pick(language, "Comentar", "Comment", "Comentar")}
+          <Icon name="comment" size={11} /> {pick(language, "Crear hilo", "Start thread", "Crear fío")}
         </button>
       ) : null}
     </li>

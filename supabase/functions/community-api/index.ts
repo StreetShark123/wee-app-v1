@@ -1734,7 +1734,7 @@ const handlers = {
     const [commentsRes, membersRes, chaptersRes, completionsRes, notesRes, aliasMap] = await Promise.all([
       db
         .from("book_comments")
-        .select("id,user_id,text,parent_id,chapter_id,created_at,edited_at,deleted_at")
+        .select("id,user_id,text,parent_id,chapter_id,note_id,created_at,edited_at,deleted_at")
         .eq("community_id", auth.community.id)
         .eq("book_id", bookId)
         .order("created_at", { ascending: true }),
@@ -1834,6 +1834,7 @@ const handlers = {
           text: deleted ? "" : row.text,
           parentId: row.parent_id ?? undefined,
           chapterId: row.chapter_id ?? undefined,
+          noteId: row.note_id ?? undefined,
           reactions: deleted ? [] : Object.values(reactionsByComment[row.id] ?? {}),
           createdAt: toMillis(row.created_at),
           editedAt: row.edited_at ? toMillis(row.edited_at) : undefined,
@@ -1854,9 +1855,21 @@ const handlers = {
     const bookId = String(body.book_id ?? "").trim();
     const text = String(body.text ?? "").trim().slice(0, 2000);
     const parentId = body.parent_id ? String(body.parent_id).trim() : null;
-    const chapterId = body.chapter_id ? String(body.chapter_id).trim() : null;
+    let chapterId = body.chapter_id ? String(body.chapter_id).trim() : null;
+    const noteId = body.note_id ? String(body.note_id).trim() : null;
     if (!bookId) return bad("book_id required");
     if (!text) return bad("text required");
+
+    // Hilo "sobre una anotación": ancla el comentario al capítulo de la nota.
+    if (noteId) {
+      const noteRes = await db
+        .from("chapter_notes")
+        .select("id,chapter_id")
+        .eq("community_id", auth.community.id)
+        .eq("id", noteId)
+        .maybeSingle();
+      if (noteRes.data?.chapter_id) chapterId = noteRes.data.chapter_id as string;
+    }
 
     const bookRes = await db
       .from("books")
@@ -1883,8 +1896,8 @@ const handlers = {
 
     const ins = await db
       .from("book_comments")
-      .insert({ community_id: auth.community.id, book_id: bookId, user_id: auth.user.id, text, parent_id: parentId, chapter_id: chapterId })
-      .select("id,user_id,text,parent_id,chapter_id,created_at")
+      .insert({ community_id: auth.community.id, book_id: bookId, user_id: auth.user.id, text, parent_id: parentId, chapter_id: chapterId, note_id: noteId })
+      .select("id,user_id,text,parent_id,chapter_id,note_id,created_at")
       .single();
     if (ins.error) return json(400, { message: ins.error.message });
 
@@ -1945,6 +1958,7 @@ const handlers = {
         text: ins.data.text,
         parentId: ins.data.parent_id ?? undefined,
         chapterId: ins.data.chapter_id ?? undefined,
+        noteId: ins.data.note_id ?? undefined,
         reactions: [],
         createdAt: toMillis(ins.data.created_at)
       }

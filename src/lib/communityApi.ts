@@ -435,6 +435,7 @@ export interface BookComment {
   text: string;
   parentId?: string;
   chapterId?: string;
+  noteId?: string;
   reactions: CommentReaction[];
   createdAt: number;
   editedAt?: number;
@@ -489,13 +490,14 @@ export const getClubBook = async (bookId: string): Promise<BookDetail> =>
 export const addBookComment = async (
   bookId: string,
   text: string,
-  opts?: { parentId?: string; chapterId?: string }
+  opts?: { parentId?: string; chapterId?: string; noteId?: string }
 ): Promise<{ comment: BookComment }> =>
   request<{ comment: BookComment }>("/books/comment", {
     book_id: bookId,
     text,
     ...(opts?.parentId ? { parent_id: opts.parentId } : {}),
-    ...(opts?.chapterId ? { chapter_id: opts.chapterId } : {})
+    ...(opts?.chapterId ? { chapter_id: opts.chapterId } : {}),
+    ...(opts?.noteId ? { note_id: opts.noteId } : {})
   });
 
 export const setBookTarget = async (

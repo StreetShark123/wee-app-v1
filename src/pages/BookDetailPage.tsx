@@ -82,6 +82,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const [targetDate, setTargetDate] = useState("");
   const [minutesPerDay, setMinutesPerDay] = useState(30);
   const [calcPreview, setCalcPreview] = useState<{ date: string; days: number } | null>(null);
+  const [pendingNote, setPendingNote] = useState<{ id: string; alias: string; text: string; chapterId: string } | null>(null);
 
   const load = useCallback(async () => {
     if (!bookId) return;
@@ -263,6 +264,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const hasCadence = book.status === "reading" && (book.targetChapter || book.targetDate);
   const readChapterIds = new Set(chapters.filter((c) => c.doneByMe).map((c) => c.id));
   const chapterLabelById = new Map(chapters.map((c, i) => [c.id, `${i + 1}`]));
+  const noteById = new Map(chapters.flatMap((c) => c.notes.map((n) => [n.id, { alias: n.alias, text: n.text }] as const)));
 
   // ── Cálculo de cadencia (estimación de páginas + ritmo por minutos/día) ──
   const MIN_PER_PAGE = 2; // ~2 min por página de prosa
@@ -326,16 +328,16 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     const { comment } = await addBookComment(book.id, text, { parentId });
     patch((d) => ({ ...d, comments: [...d.comments, comment] }));
   };
-  const handleAddComment = (text: string, chapterId?: string) =>
+  const handleAddComment = (text: string, chapterId?: string, noteId?: string) =>
     run(async () => {
-      const { comment } = await addBookComment(book.id, text, chapterId ? { chapterId } : undefined);
+      const { comment } = await addBookComment(book.id, text, { chapterId, noteId });
       patch((d) => ({ ...d, comments: [...d.comments, comment] }));
     });
-  // #4: "Comentar" sobre una nota → abre un hilo en comentarios, anclado a ese capítulo.
+  // Crear hilo sobre una nota: el comentario quedará encabezado por esa anotación.
   const handleCommentNote = (chapterId: string, note: ChapterNote) => {
-    const snippet = note.text ? `«${note.text.slice(0, 80)}${note.text.length > 80 ? "…" : ""}»` : pick(language, "su nota", "their note", "a súa nota");
+    setPendingNote({ id: note.id, alias: note.alias, text: note.text, chapterId });
     setCommentChapter(chapterId);
-    setCommentText(pick(language, `Sobre la nota de ${note.alias} (${snippet}): `, `On ${note.alias}'s note (${snippet}): `, `Sobre a nota de ${note.alias} (${snippet}): `));
+    setCommentText("");
     window.requestAnimationFrame(() => {
       document.getElementById("comments-composer")?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
@@ -839,17 +841,30 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               const clean = commentText.trim();
               if (!clean) return;
               const ch = commentChapter || undefined;
+              const noteId = pendingNote?.id;
               setCommentText("");
               setCommentChapter("");
-              void handleAddComment(clean, ch);
+              setPendingNote(null);
+              void handleAddComment(clean, ch, noteId);
             }}
           >
+            {pendingNote ? (
+              <div className="composer-note-ref">
+                <span className="composer-note-ref-text">
+                  <Icon name="spark" size={12} /> {pick(language, `Hilo sobre la anotación de ${pendingNote.alias}`, `Thread on ${pendingNote.alias}'s note`, `Fío sobre a anotación de ${pendingNote.alias}`)}
+                  {pendingNote.text ? <em> «{pendingNote.text.slice(0, 60)}{pendingNote.text.length > 60 ? "…" : ""}»</em> : null}
+                </span>
+                <button type="button" className="composer-note-ref-x" onClick={() => setPendingNote(null)} aria-label={pick(language, "Quitar", "Remove", "Quitar")}>×</button>
+              </div>
+            ) : null}
             <MentionTextarea
               value={commentText}
               onChange={setCommentText}
               members={clubMembers}
               rows={2}
-              placeholder={pick(language, "Comenta. Usa @nombre para mencionar. Sin spoilers 👀", "Comment. Use @name to mention. No spoilers 👀", "Comenta. Usa @nome para mencionar. Sen spoilers 👀")}
+              placeholder={pendingNote
+                ? pick(language, "Abre el hilo sobre esta anotación...", "Start the thread about this note...", "Abre o fío sobre esta anotación...")
+                : pick(language, "Comenta. Usa @nombre para mencionar. Sin spoilers 👀", "Comment. Use @name to mention. No spoilers 👀", "Comenta. Usa @nome para mencionar. Sen spoilers 👀")}
             />
             <div className="book-comment-foot">
               {named ? (
@@ -880,6 +895,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               activeUserId={activeUser.id}
               readChapterIds={readChapterIds}
               chapterLabelById={chapterLabelById}
+              noteById={noteById}
               onReply={handleReply}
               onReact={handleReact}
               onEdit={handleEditComment}

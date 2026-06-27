@@ -13,6 +13,7 @@ interface CommentThreadProps {
   activeUserId: string;
   readChapterIds: Set<string>;
   chapterLabelById: Map<string, string>;
+  noteById: Map<string, { alias: string; text: string }>;
   onReply: (parentId: string, text: string) => Promise<void>;
   onReact: (commentId: string, emoji: string) => void;
   onEdit: (commentId: string, text: string) => Promise<void>;
@@ -188,8 +189,11 @@ const CommentItem = ({
   );
 };
 
-export const CommentThread = ({ comments, members, activeUserId, readChapterIds, chapterLabelById, onReply, onReact, onEdit, onDelete }: CommentThreadProps) => {
+const GENERAL_KEY = "__general__";
+
+export const CommentThread = ({ comments, members, activeUserId, readChapterIds, chapterLabelById, noteById, onReply, onReact, onEdit, onDelete }: CommentThreadProps) => {
   const { language } = useI18n();
+  const [openOverride, setOpenOverride] = useState<Record<string, boolean>>({});
   const roots = comments.filter((c) => !c.parentId);
   const repliesByParent = new Map<string, BookComment[]>();
   comments.forEach((c) => {
@@ -202,29 +206,77 @@ export const CommentThread = ({ comments, members, activeUserId, readChapterIds,
 
   const itemProps = { members, activeUserId, onReply, onReact, onEdit, onDelete };
 
+  // Agrupar hilos por capítulo (los sin capítulo van al grupo "general").
+  const groups = new Map<string, BookComment[]>();
+  roots.forEach((root) => {
+    const key = root.chapterId ?? GENERAL_KEY;
+    const arr = groups.get(key) ?? [];
+    arr.push(root);
+    groups.set(key, arr);
+  });
+  const groupKeys = Array.from(groups.keys()).sort((a, b) => {
+    if (a === GENERAL_KEY) return -1;
+    if (b === GENERAL_KEY) return 1;
+    return Number(chapterLabelById.get(a) ?? 0) - Number(chapterLabelById.get(b) ?? 0);
+  });
+
+  const renderThread = (root: BookComment) => {
+    const note = root.noteId ? noteById.get(root.noteId) : undefined;
+    return (
+      <li key={root.id} className="comment-root">
+        {note ? (
+          <div className="comment-note-header">
+            <span className="comment-note-header-label">{pick(language, `Sobre la anotación de ${note.alias}`, `On ${note.alias}'s note`, `Sobre a anotación de ${note.alias}`)}</span>
+            {note.text ? <p className="comment-note-header-text">«{note.text}»</p> : null}
+          </div>
+        ) : null}
+        <ul className="comment-thread-inner">
+          <CommentItem comment={root} {...itemProps} isReply={false} />
+          {(repliesByParent.get(root.id) ?? []).map((reply) => (
+            <CommentItem key={reply.id} comment={reply} {...itemProps} isReply />
+          ))}
+        </ul>
+      </li>
+    );
+  };
+
   return (
-    <ul className="comment-thread">
-      {roots.map((root) => {
-        // Anti-spoiler: si está anclado a un capítulo que aún no has leído, se oculta.
-        const locked = root.chapterId ? !readChapterIds.has(root.chapterId) : false;
-        if (locked) {
-          return (
-            <li key={root.id} className="comment-root comment-locked">
-              <Icon name="eyeOff" size={12} /> {pick(language, `Comentario del cap. ${chapterLabelById.get(root.chapterId ?? "") ?? "?"} — léelo para verlo`, `Comment on ch. ${chapterLabelById.get(root.chapterId ?? "") ?? "?"} — read it to see it`, `Comentario do cap. ${chapterLabelById.get(root.chapterId ?? "") ?? "?"} — leo para velo`)}
-            </li>
-          );
-        }
+    <div className="comment-groups">
+      {groupKeys.map((key) => {
+        const groupRoots = groups.get(key) ?? [];
+        const isGeneral = key === GENERAL_KEY;
+        // Anti-spoiler: un grupo de capítulo arranca COLAPSADO salvo que lo hayas leído.
+        const isRead = isGeneral || readChapterIds.has(key);
+        const open = openOverride[key] ?? isRead;
+        const label = isGeneral
+          ? pick(language, "General del libro", "About the book", "Xeral do libro")
+          : pick(language, `Capítulo ${chapterLabelById.get(key) ?? "?"}`, `Chapter ${chapterLabelById.get(key) ?? "?"}`, `Capítulo ${chapterLabelById.get(key) ?? "?"}`);
         return (
-          <li key={root.id} className="comment-root">
-            <ul className="comment-thread-inner">
-              <CommentItem comment={root} {...itemProps} chapterLabel={root.chapterId ? chapterLabelById.get(root.chapterId) : undefined} isReply={false} />
-              {(repliesByParent.get(root.id) ?? []).map((reply) => (
-                <CommentItem key={reply.id} comment={reply} {...itemProps} isReply />
-              ))}
-            </ul>
-          </li>
+          <section key={key} className={`comment-group${!isRead ? " comment-group-spoiler" : ""}`}>
+            <button
+              type="button"
+              className="comment-group-head"
+              aria-expanded={open}
+              onClick={() => setOpenOverride((prev) => ({ ...prev, [key]: !open }))}
+            >
+              <span className={`comment-group-caret${open ? "" : " is-collapsed"}`} aria-hidden="true">▾</span>
+              <span className="comment-group-title">{label}</span>
+              <span className="comment-group-count">{groupRoots.length}</span>
+              {!isRead ? (
+                <span className="comment-group-warn"><Icon name="eyeOff" size={11} /> {pick(language, "sin leer", "unread", "sen ler")}</span>
+              ) : null}
+            </button>
+            {open ? (
+              <>
+                {!isRead ? (
+                  <p className="comment-group-spoiler-note">{pick(language, "Aún no has marcado este capítulo: puede haber spoilers.", "You haven't marked this chapter yet: there may be spoilers.", "Aínda non marcaches este capítulo: pode haber spoilers.")}</p>
+                ) : null}
+                <ul className="comment-thread">{groupRoots.map(renderThread)}</ul>
+              </>
+            ) : null}
+          </section>
         );
       })}
-    </ul>
+    </div>
   );
 };
