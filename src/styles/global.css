@@ -4338,3 +4338,13 @@ textarea:focus-visible {
 .cadence-preview-date { font-weight: 600; display: flex; align-items: center; gap: 6px; margin: 0 0 2px; }
 .cadence-manual { margin-top: 10px; }
 .cadence-manual summary { cursor: pointer; font-size: 0.82rem; color: var(--ink-1); padding: 4px 0; }
+
+/* Comentarios: editado / lápida de borrado / flash al llegar desde notificación */
+.comment-edited-tag { font-size: 0.7rem; color: var(--ink-1); font-style: italic; }
+.comment-tombstone { opacity: 0.75; }
+.comment-deleted { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--ink-1); font-style: italic; margin: 2px 0; }
+.comment-flash { animation: comment-flash 2.2s ease-out; border-radius: var(--radius-md); }
+@keyframes comment-flash {
+  0%, 25% { background: color-mix(in srgb, var(--brand) 22%, transparent); }
+  100% { background: transparent; }
+}

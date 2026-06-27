@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ChapterTimeline } from "../components/ChapterTimeline";
 import { Icon } from "../components/Icon";
 import { TopBar } from "../components/TopBar";
@@ -64,6 +64,7 @@ const toggleReactionLocal = (reactions: CommentReaction[], emoji: string): Comme
 export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksChanged }: BookDetailPageProps) => {
   const { language } = useI18n();
   const navigate = useNavigate();
+  const location = useLocation();
   const { bookId } = useParams<{ bookId: string }>();
   const [detail, setDetail] = useState<BookDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -110,6 +111,20 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   useEffect(() => {
     void load();
   }, [load]);
+
+  // #1: si venimos de una notificación (#c-<id>), salta y resalta ese comentario.
+  useEffect(() => {
+    if (!detail || !location.hash.startsWith("#c-")) return;
+    const elId = location.hash.slice(1);
+    const t = window.setTimeout(() => {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("comment-flash");
+      window.setTimeout(() => el.classList.remove("comment-flash"), 2200);
+    }, 150);
+    return () => window.clearTimeout(t);
+  }, [detail, location.hash]);
 
   // Actualiza SOLO lo que cambia en la ficha (nunca recarga toda la página).
   const patch = (fn: (d: BookDetail) => BookDetail) => setDetail((prev) => (prev ? fn(prev) : prev));
@@ -326,12 +341,20 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     });
   };
   const handleEditComment = async (commentId: string, text: string) => {
-    await updateComment(commentId, text);
-    patch((d) => ({ ...d, comments: d.comments.map((c) => (c.id === commentId ? { ...c, text } : c)) }));
+    const r = await updateComment(commentId, text);
+    patch((d) => ({ ...d, comments: d.comments.map((c) => (c.id === commentId ? { ...c, text, editedAt: r.editedAt ?? Date.now() } : c)) }));
   };
   const handleDeleteComment = (commentId: string) => {
-    patch((d) => ({ ...d, comments: d.comments.filter((c) => c.id !== commentId && c.parentId !== commentId) }));
-    void deleteComment(commentId).catch(() => void load());
+    void deleteComment(commentId)
+      .then((r) => {
+        if (r.mode === "soft") {
+          // Borrado suave: deja lápida y conserva el hilo de respuestas.
+          patch((d) => ({ ...d, comments: d.comments.map((c) => (c.id === commentId ? { ...c, deleted: true, text: "", reactions: [] } : c)) }));
+        } else {
+          patch((d) => ({ ...d, comments: d.comments.filter((c) => c.id !== commentId && c.parentId !== commentId) }));
+        }
+      })
+      .catch(() => void load());
   };
   const handleFinish = () =>
     run(async () => {

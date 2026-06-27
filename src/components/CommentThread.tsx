@@ -75,11 +75,20 @@ const CommentItem = ({
     }
   };
 
+  if (comment.deleted) {
+    return (
+      <li id={`c-${comment.id}`} className={`comment-item comment-tombstone${isReply ? " comment-item-reply" : ""}`}>
+        <p className="comment-deleted"><Icon name="trash" size={12} /> {pick(language, "Comentario eliminado por el autor", "Comment deleted by its author", "Comentario eliminado polo autor")}</p>
+      </li>
+    );
+  }
+
   return (
-    <li className={`comment-item${isReply ? " comment-item-reply" : ""}`}>
+    <li id={`c-${comment.id}`} className={`comment-item${isReply ? " comment-item-reply" : ""}`}>
       <div className="comment-head">
         <strong>{comment.alias}</strong>
         {chapterLabel ? <span className="comment-chapter-tag">{pick(language, `Cap. ${chapterLabel}`, `Ch. ${chapterLabel}`, `Cap. ${chapterLabel}`)}</span> : null}
+        {comment.editedAt ? <span className="comment-edited-tag">{pick(language, "(editado)", "(edited)", "(editado)")}</span> : null}
       </div>
 
       {editOpen ? (

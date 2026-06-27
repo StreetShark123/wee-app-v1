@@ -56,7 +56,7 @@ export const NotificationsMenu = () => {
               notifications.slice(0, 14).map((notification) => (
                 <Link
                   key={notification.id}
-                  to={notification.bookId ? `/book/${notification.bookId}` : "/home"}
+                  to={notification.bookId ? `/book/${notification.bookId}${notification.commentId ? `#c-${notification.commentId}` : ""}` : "/home"}
                   className={notification.readAt ? "notification-item" : "notification-item unread"}
                   onClick={() => setOpen(false)}
                 >

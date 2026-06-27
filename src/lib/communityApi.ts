@@ -435,6 +435,8 @@ export interface BookComment {
   chapterId?: string;
   reactions: CommentReaction[];
   createdAt: number;
+  editedAt?: number;
+  deleted?: boolean;
 }
 
 export interface BookMemberProgress extends MemberBook {
@@ -510,12 +512,11 @@ export const reactComment = async (
 ): Promise<{ commentId: string; reactions: CommentReaction[] }> =>
   request<{ commentId: string; reactions: CommentReaction[] }>("/comments/react", { comment_id: commentId, emoji });
 
-export const updateComment = async (commentId: string, text: string): Promise<{ id: string; text: string }> =>
-  request<{ id: string; text: string }>("/comments/update", { comment_id: commentId, text });
+export const updateComment = async (commentId: string, text: string): Promise<{ id: string; text: string; editedAt?: number }> =>
+  request<{ id: string; text: string; editedAt?: number }>("/comments/update", { comment_id: commentId, text });
 
-export const deleteComment = async (commentId: string): Promise<void> => {
-  await request<{ ok: true }>("/comments/delete", { comment_id: commentId });
-};
+export const deleteComment = async (commentId: string): Promise<{ ok: true; mode: "soft" | "hard" }> =>
+  request<{ ok: true; mode: "soft" | "hard" }>("/comments/delete", { comment_id: commentId });
 
 export const listNotifications = async (): Promise<{ notifications: AppNotification[]; unreadCount: number }> =>
   request<{ notifications: AppNotification[]; unreadCount: number }>("/notifications/list", {});

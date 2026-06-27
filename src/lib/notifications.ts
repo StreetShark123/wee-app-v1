@@ -4,6 +4,7 @@ export interface AppNotification {
   id: string;
   kind: "mention" | "reply";
   bookId?: string;
+  commentId?: string;
   bookTitle?: string;
   actorAlias: string;
   text?: string;

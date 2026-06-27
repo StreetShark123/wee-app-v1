@@ -1732,7 +1732,7 @@ const handlers = {
     const [commentsRes, membersRes, chaptersRes, completionsRes, notesRes, aliasMap] = await Promise.all([
       db
         .from("book_comments")
-        .select("id,user_id,text,parent_id,chapter_id,created_at")
+        .select("id,user_id,text,parent_id,chapter_id,created_at,edited_at,deleted_at")
         .eq("community_id", auth.community.id)
         .eq("book_id", bookId)
         .order("created_at", { ascending: true }),
@@ -1823,16 +1823,21 @@ const handlers = {
       activeMemberCount,
       clubMembers: Array.from(aliasMap, ([id, alias]) => ({ id, alias })),
       book: rowToBook(bookRes.data as Record<string, any>),
-      comments: (commentsRes.data ?? []).map((row: Record<string, any>) => ({
-        id: row.id,
-        userId: row.user_id,
-        alias: aliasMap.get(row.user_id) ?? "—",
-        text: row.text,
-        parentId: row.parent_id ?? undefined,
-        chapterId: row.chapter_id ?? undefined,
-        reactions: Object.values(reactionsByComment[row.id] ?? {}),
-        createdAt: toMillis(row.created_at)
-      })),
+      comments: (commentsRes.data ?? []).map((row: Record<string, any>) => {
+        const deleted = !!row.deleted_at;
+        return {
+          id: row.id,
+          userId: row.user_id,
+          alias: aliasMap.get(row.user_id) ?? "—",
+          text: deleted ? "" : row.text,
+          parentId: row.parent_id ?? undefined,
+          chapterId: row.chapter_id ?? undefined,
+          reactions: deleted ? [] : Object.values(reactionsByComment[row.id] ?? {}),
+          createdAt: toMillis(row.created_at),
+          editedAt: row.edited_at ? toMillis(row.edited_at) : undefined,
+          deleted
+        };
+      }),
       members,
       myMember: members.find((m: Record<string, any>) => m.userId === auth.user.id) ?? null,
       chapters,
@@ -2007,13 +2012,13 @@ const handlers = {
     if (cur.data.user_id !== auth.user.id) return json(403, { message: "Not your comment" });
     const upd = await db
       .from("book_comments")
-      .update({ text })
+      .update({ text, edited_at: nowIso() })
       .eq("community_id", auth.community.id)
       .eq("id", commentId)
-      .select("id,text")
+      .select("id,text,edited_at")
       .single();
     if (upd.error) return json(400, { message: upd.error.message });
-    return json(200, { id: upd.data.id, text: upd.data.text });
+    return json(200, { id: upd.data.id, text: upd.data.text, editedAt: upd.data.edited_at ? toMillis(upd.data.edited_at) : undefined });
   },
 
   // Borrar un comentario (propio o admin). Borra en cascada respuestas y reacciones.
@@ -2033,9 +2038,25 @@ const handlers = {
     if (cur.data.user_id !== auth.user.id && auth.role !== "admin") {
       return json(403, { message: "Not allowed to delete this comment" });
     }
+    // Si tiene respuestas, borrado SUAVE (lápida) para no romper el hilo; si no, borrado real.
+    const kids = await db
+      .from("book_comments")
+      .select("id", { count: "exact", head: true })
+      .eq("community_id", auth.community.id)
+      .eq("parent_id", commentId);
+    const hasReplies = (kids.count ?? 0) > 0;
+    if (hasReplies) {
+      const soft = await db
+        .from("book_comments")
+        .update({ deleted_at: nowIso(), text: "" })
+        .eq("community_id", auth.community.id)
+        .eq("id", commentId);
+      if (soft.error) return json(400, { message: soft.error.message });
+      return json(200, { ok: true, mode: "soft" });
+    }
     const del = await db.from("book_comments").delete().eq("community_id", auth.community.id).eq("id", commentId);
     if (del.error) return json(400, { message: del.error.message });
-    return json(200, { ok: true });
+    return json(200, { ok: true, mode: "hard" });
   },
 
   "/books/progress": async (req: Request) => {
@@ -2588,6 +2609,7 @@ const handlers = {
       id: r.id,
       kind: r.kind,
       bookId: r.book_id ?? undefined,
+      commentId: r.comment_id ?? undefined,
       bookTitle: r.book_id ? titleById.get(r.book_id) ?? undefined : undefined,
       actorAlias: r.actor_id ? aliasMap.get(r.actor_id) ?? "—" : "—",
       text: r.text ?? undefined,
