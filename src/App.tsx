@@ -8,6 +8,7 @@ import { PageTransition } from "./components/PageTransition";
 import { AddBookModal } from "./components/AddBookModal";
 import type { BookDraft } from "./lib/bookSearch";
 import { createClubBook, listClubBooks, type ClubBook, type MemberBook } from "./lib/communityApi";
+import { clearBooksCache, getCachedList, setCachedList } from "./lib/booksCache";
 import { Toast } from "./components/Toast";
 import { useAppData } from "./lib/appData";
 import { I18nContext, pick } from "./lib/i18n";
@@ -100,18 +101,29 @@ const AppRoutes = () => {
 
   const reloadBooks = useCallback(async () => {
     if (!activeUser) {
+      clearBooksCache();
       setBooks([]);
       setMemberBooks([]);
       return;
     }
-    setBooksLoading(true);
+    // Stale-while-revalidate: pinta lo cacheado al instante, revalida detrás.
+    const cached = getCachedList(activeUser.id);
+    if (cached) {
+      setBooks(cached.books);
+      setMemberBooks(cached.memberBooks);
+    } else {
+      setBooksLoading(true);
+    }
     try {
       const data = await listClubBooks();
       setBooks(data.books);
       setMemberBooks(data.memberBooks);
+      setCachedList(activeUser.id, { books: data.books, memberBooks: data.memberBooks });
     } catch {
-      setBooks([]);
-      setMemberBooks([]);
+      if (!cached) {
+        setBooks([]);
+        setMemberBooks([]);
+      }
     } finally {
       setBooksLoading(false);
     }

@@ -5,6 +5,8 @@ import { Icon } from "../components/Icon";
 import { TopBar } from "../components/TopBar";
 import { pick, useI18n } from "../lib/i18n";
 import { parseChapterList } from "../lib/parseChapters";
+import { getCachedBook, setCachedBook } from "../lib/booksCache";
+import { BookDetailSkeleton } from "../components/Skeletons";
 import {
   addBookComment,
   addChapterNote,
@@ -54,15 +56,24 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
 
   const load = useCallback(async () => {
     if (!bookId) return;
-    setLoading(true);
+    const cached = getCachedBook(bookId);
+    if (cached) {
+      setDetail(cached);
+      setRatingInput(cached.myMember?.rating ?? 0);
+      setReviewInput(cached.myMember?.review ?? "");
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     try {
       const data = await getClubBook(bookId);
       setDetail(data);
+      setCachedBook(bookId, data);
       setRatingInput(data.myMember?.rating ?? 0);
       setReviewInput(data.myMember?.review ?? "");
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : pick(language, "No se pudo cargar el libro.", "Couldn't load the book.", "Non se puido cargar o libro."));
+      if (!cached) setError(err instanceof Error ? err.message : pick(language, "No se pudo cargar el libro.", "Couldn't load the book.", "Non se puido cargar o libro."));
     } finally {
       setLoading(false);
     }
@@ -94,9 +105,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     return (
       <main>
         <TopBar user={activeUser} onOpenShare={onOpenAddBook} onLogout={onLogout} />
-        <section className="page-section narrow">
-          <p className="hint">{pick(language, "Cargando libro", "Loading book", "Cargando libro")}<span className="loading-dots" aria-hidden="true" /></p>
-        </section>
+        <BookDetailSkeleton />
       </main>
     );
   }
