@@ -2212,7 +2212,7 @@ const handlers = {
     if (!chapterId) return bad("chapter_id required");
     const imageUrl = body.image_url ? String(body.image_url).trim().slice(0, 1000) : null;
     if (!text && !imageUrl) return bad("text or image required");
-    const kind = body.kind === "reference" ? "reference" : "note";
+    const kind = ["reference", "prompt"].includes(body.kind) ? body.kind : "note";
 
     const chapterRes = await db
       .from("book_chapters")

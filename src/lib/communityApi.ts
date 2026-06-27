@@ -436,12 +436,14 @@ export interface BookMemberProgress extends MemberBook {
   alias: string;
 }
 
+export type NoteKind = "note" | "reference" | "prompt";
+
 export interface ChapterNote {
   id: string;
   chapterId?: string;
   userId?: string;
   alias: string;
-  kind: "note" | "reference";
+  kind: NoteKind;
   text: string;
   imageUrl?: string;
   createdAt: number;
@@ -532,7 +534,7 @@ export const toggleChapter = async (
 export const addChapterNote = async (
   chapterId: string,
   text: string,
-  kind: "note" | "reference" = "note",
+  kind: NoteKind = "note",
   imageUrl?: string
 ): Promise<{ note: ChapterNote }> =>
   request<{ note: ChapterNote }>("/chapters/note/add", {

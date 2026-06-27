@@ -4019,3 +4019,8 @@ textarea:focus-visible {
 .comment-reply-btn:hover { color: var(--ink-0); }
 .comment-reply-form { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
 .comment-reply-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* C2: preguntas de debate (note kind=prompt) */
+.chapter-note-prompt { border-color: var(--accent-cyan); background: color-mix(in srgb, var(--accent-cyan) 8%, transparent); }
+.chapter-note-prompt .chapter-note-kind { color: var(--accent-cyan); }
+.chapter-note-prompt .chapter-note-text { font-weight: 500; }

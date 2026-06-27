@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { BookChapter } from "../lib/communityApi";
+import type { BookChapter, NoteKind } from "../lib/communityApi";
 import { pick, useI18n } from "../lib/i18n";
 import { Icon } from "./Icon";
 import { Linkify } from "./Linkify";
@@ -8,7 +8,7 @@ interface ChapterTimelineProps {
   chapters: BookChapter[];
   busy: boolean;
   onToggle: (chapterId: string, done: boolean) => void;
-  onAddNote: (chapterId: string, text: string, kind: "note" | "reference", imageUrl?: string) => Promise<void>;
+  onAddNote: (chapterId: string, text: string, kind: NoteKind, imageUrl?: string) => Promise<void>;
 }
 
 export const ChapterTimeline = ({ chapters, busy, onToggle, onAddNote }: ChapterTimelineProps) => {
@@ -16,7 +16,7 @@ export const ChapterTimeline = ({ chapters, busy, onToggle, onAddNote }: Chapter
   const [openFor, setOpenFor] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
   const [noteImage, setNoteImage] = useState("");
-  const [noteKind, setNoteKind] = useState<"note" | "reference">("note");
+  const [noteKind, setNoteKind] = useState<NoteKind>("note");
   const [saving, setSaving] = useState(false);
 
   const resetForm = () => {
@@ -89,7 +89,9 @@ export const ChapterTimeline = ({ chapters, busy, onToggle, onAddNote }: Chapter
                           <span className="chapter-note-kind">
                             {note.kind === "reference"
                               ? pick(language, "Referencia", "Reference", "Referencia")
-                              : pick(language, "Nota", "Note", "Nota")}
+                              : note.kind === "prompt"
+                                ? pick(language, "Pregunta de debate", "Discussion prompt", "Pregunta de debate")
+                                : pick(language, "Nota", "Note", "Nota")}
                           </span>
                           <span className="chapter-note-by">{note.alias}</span>
                         </div>
@@ -115,6 +117,9 @@ export const ChapterTimeline = ({ chapters, busy, onToggle, onAddNote }: Chapter
                   <button type="button" className={`btn chapter-kind${noteKind === "reference" ? " is-on" : ""}`} onClick={() => setNoteKind("reference")}>
                     {pick(language, "Referencia", "Reference", "Referencia")}
                   </button>
+                  <button type="button" className={`btn chapter-kind${noteKind === "prompt" ? " is-on" : ""}`} onClick={() => setNoteKind("prompt")}>
+                    {pick(language, "Pregunta", "Prompt", "Pregunta")}
+                  </button>
                 </div>
                 <textarea
                   rows={2}
@@ -123,7 +128,9 @@ export const ChapterTimeline = ({ chapters, busy, onToggle, onAddNote }: Chapter
                   placeholder={
                     noteKind === "reference"
                       ? pick(language, "Obra/autor citado + enlace (Wikipedia, etc.)", "Cited work/author + link (Wikipedia, etc.)", "Obra/autor citado + ligazón")
-                      : pick(language, "Anotación sobre este capítulo... (puedes pegar enlaces)", "A note about this chapter... (you can paste links)", "Anotación sobre este capítulo...")
+                      : noteKind === "prompt"
+                        ? pick(language, "Pregunta para debatir este capítulo...", "A question to discuss this chapter...", "Pregunta para debater este capítulo...")
+                        : pick(language, "Anotación sobre este capítulo... (puedes pegar enlaces)", "A note about this chapter... (you can paste links)", "Anotación sobre este capítulo...")
                   }
                 />
                 <label className="chapter-note-image-field">

@@ -23,7 +23,8 @@ import {
   voteBook,
   type BookDetail,
   type BookStatus,
-  type BookVote
+  type BookVote,
+  type NoteKind
 } from "../lib/communityApi";
 import type { User } from "../lib/types";
 
@@ -161,7 +162,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const parsedPreview = parseChapterList(chaptersRaw);
 
   const handleToggle = (chapterId: string, done: boolean) => run(() => toggleChapter(chapterId, done));
-  const handleAddNote = async (chapterId: string, text: string, kind: "note" | "reference", imageUrl?: string) => {
+  const handleAddNote = async (chapterId: string, text: string, kind: NoteKind, imageUrl?: string) => {
     await addChapterNote(chapterId, text, kind, imageUrl);
     await afterMutation();
   };
