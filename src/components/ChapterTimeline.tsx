@@ -233,12 +233,8 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, onToggle, onAddN
             </button>
 
             <div className="chapter-body">
-              <button
-                type="button"
-                className="chapter-head"
-                disabled={busy}
-                onClick={() => onToggle(chapter.id, !chapter.doneByMe)}
-              >
+              {/* Solo el check marca leído (no toda la fila → sin toggles accidentales). */}
+              <div className="chapter-head">
                 <span className="chapter-title">{chapter.title}</span>
                 <span className="chapter-meta">
                   {chapter.doneByMe ? <span className="chapter-done-tag">{pick(language, "Leído", "Read", "Lido")}</span> : null}
@@ -248,7 +244,7 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, onToggle, onAddN
                     </span>
                   ) : null}
                 </span>
-              </button>
+              </div>
 
               {/* Anotaciones colapsables (tus notas siempre; las de otros tras leer). */}
               {visibleNotes.length > 0 ? (

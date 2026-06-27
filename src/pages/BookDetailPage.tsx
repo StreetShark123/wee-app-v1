@@ -435,16 +435,23 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
         void load(); // si falla, recupera el estado real
       });
   };
-  const confirmReset = (): boolean =>
-    chapters.length === 0 ||
-    window.confirm(
+  const confirmReset = (): boolean => {
+    if (chapters.length === 0) return true;
+    const affected = members.filter((m) => (m.chaptersDone ?? 0) > 0).length;
+    const who = affected === 0
+      ? pick(language, "Nadie ha empezado todavía.", "Nobody has started yet.", "Aínda non empezou ninguén.")
+      : affected === 1
+        ? pick(language, "1 persona perderá su progreso.", "1 person will lose their progress.", "1 persoa perderá o seu progreso.")
+        : pick(language, `${affected} personas perderán su progreso.`, `${affected} people will lose their progress.`, `${affected} persoas perderán o seu progreso.`);
+    return window.confirm(
       pick(
         language,
-        "Esto reemplaza la lista de capítulos y REINICIA el progreso de todo el club. ¿Seguro?",
-        "This replaces the chapter list and RESETS the whole club's progress. Are you sure?",
-        "Isto substitúe a lista e REINICIA o progreso de todo o club. Seguro?"
+        `Esto reemplaza la lista de capítulos y REINICIA el progreso del club. ${who} ¿Seguro?`,
+        `This replaces the chapter list and RESETS the club's progress. ${who} Are you sure?`,
+        `Isto substitúe a lista e REINICIA o progreso do club. ${who} Seguro?`
       )
     );
+  };
   const applyChapters = (titles: string[]) =>
     run(async () => {
       const r = await setBookChaptersList(book.id, titles);
@@ -662,8 +669,8 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
             </div>
 
             {canDelete ? (
-              <div className="book-manage book-delete-zone">
-                <span className="hint"><Icon name="trash" size={13} /> {pick(language, "Zona peligrosa", "Danger zone", "Zona perigosa")}</span>
+              <details className="book-manage book-delete-zone">
+                <summary className="book-delete-summary"><Icon name="trash" size={13} /> {pick(language, "Zona peligrosa", "Danger zone", "Zona perigosa")}</summary>
                 <p className="hint">
                   {isAdmin && book.status !== "proposed"
                     ? pick(language, "Como admin puedes eliminar este libro del club.", "As an admin you can remove this book from the club.", "Como admin podes eliminar este libro do club.")
@@ -672,7 +679,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                 <button type="button" className="btn btn-danger" disabled={busy} onClick={handleDeleteBook}>
                   <Icon name="trash" size={13} /> {pick(language, "Eliminar libro", "Delete book", "Eliminar libro")}
                 </button>
-              </div>
+              </details>
             ) : null}
           </section>
         ) : null}
@@ -846,44 +853,6 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
           ) : null}
         </section>
 
-        {/* Progreso del club */}
-        <section className="page-section">
-          <div className="section-head">
-            <h2><Icon name="users" /> {pick(language, "Quién lo está leyendo", "Who's reading it", "Quen o está lendo")}</h2>
-            {members.length > 0 ? <span className="book-progress-label">{members.length}</span> : null}
-          </div>
-          {members.length === 0 ? (
-            <p className="hint">{pick(language, "Aún nadie. Marca un capítulo y aparecerás aquí.", "Nobody yet. Check a chapter and you'll show up here.", "Aínda ninguén. Marca un capítulo e aparecerás aquí.")}</p>
-          ) : (
-            <ul className="book-members">
-              {members.map((member) => (
-                <li key={member.userId} className="book-member">
-                  <Link to={`/profile/${member.userId}`} className="book-member-row book-member-link">
-                    <span>{member.alias}</span>
-                    <span className="book-member-state">
-                      {member.shelf === "finished" ? (
-                        <>
-                          {member.rating ? <span className="book-member-rating">{"★".repeat(member.rating)}</span> : null}
-                          {pick(language, "Terminado", "Finished", "Rematado")}
-                        </>
-                      ) : total > 0 ? (
-                        <span className="member-mini-bar" aria-label={`${Math.round((member.chaptersDone / total) * 100)}%`}>
-                          <span className="member-mini-fill" style={{ width: `${Math.min(100, Math.round((member.chaptersDone / total) * 100))}%` }} />
-                        </span>
-                      ) : (
-                        pick(language, "Leyendo", "Reading", "Lendo")
-                      )}
-                    </span>
-                  </Link>
-                  {book.status === "finished" && member.review ? (
-                    <p className="book-member-review">{member.review}</p>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
         {/* Comentarios */}
         <section className="page-section">
           <div className="section-head">
@@ -959,6 +928,44 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               onEdit={handleEditComment}
               onDelete={handleDeleteComment}
             />
+          )}
+        </section>
+
+        {/* Progreso del club (debajo de comentarios: la comunidad va primero) */}
+        <section className="page-section">
+          <div className="section-head">
+            <h2><Icon name="users" /> {pick(language, "Quién lo está leyendo", "Who's reading it", "Quen o está lendo")}</h2>
+            {members.length > 0 ? <span className="book-progress-label">{members.length}</span> : null}
+          </div>
+          {members.length === 0 ? (
+            <p className="hint">{pick(language, "Aún nadie. Marca un capítulo y aparecerás aquí.", "Nobody yet. Check a chapter and you'll show up here.", "Aínda ninguén. Marca un capítulo e aparecerás aquí.")}</p>
+          ) : (
+            <ul className="book-members">
+              {members.map((member) => (
+                <li key={member.userId} className="book-member">
+                  <Link to={`/profile/${member.userId}`} className="book-member-row book-member-link">
+                    <span>{member.alias}</span>
+                    <span className="book-member-state">
+                      {member.shelf === "finished" ? (
+                        <>
+                          {member.rating ? <span className="book-member-rating">{"★".repeat(member.rating)}</span> : null}
+                          {pick(language, "Terminado", "Finished", "Rematado")}
+                        </>
+                      ) : total > 0 ? (
+                        <span className="member-mini-bar" aria-label={`${Math.round((member.chaptersDone / total) * 100)}%`}>
+                          <span className="member-mini-fill" style={{ width: `${Math.min(100, Math.round((member.chaptersDone / total) * 100))}%` }} />
+                        </span>
+                      ) : (
+                        pick(language, "Leyendo", "Reading", "Lendo")
+                      )}
+                    </span>
+                  </Link>
+                  {book.status === "finished" && member.review ? (
+                    <p className="book-member-review">{member.review}</p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
           )}
         </section>
       </div>

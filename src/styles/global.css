@@ -3663,7 +3663,6 @@ textarea:focus-visible {
   background: transparent;
   border: 0;
   padding: 2px 0;
-  cursor: pointer;
 }
 
 .chapter-node.is-done .chapter-title {
@@ -4486,3 +4485,8 @@ textarea:focus-visible {
   /* Chips de reacción táctiles ≥40px en móvil */
   .reaction-chip { min-height: 40px; padding: 5px 12px; }
 }
+
+/* Zona peligrosa colapsada (details) */
+.book-delete-summary { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--danger); font-weight: 600; font-size: 0.82rem; padding: 4px 0; list-style: none; }
+.book-delete-summary::-webkit-details-marker { display: none; }
+.book-delete-zone > * + * { margin-top: 8px; }
