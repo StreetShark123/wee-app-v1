@@ -410,3 +410,15 @@ el club al que te invitan.
 - ⏳ Quedan: **D4** (comentarios anclados a capítulo), **B3/B4** (copy estado + a11y),
   **C1** cadencia, **C3** "por qué lo propongo", **C4** galería de leídos, **C5** quórum
   configurable, **C6** "para más adelante", **C7** facilitador.
+
+### Actualización (2026-06-27, sprint roadmap final)
+- ✅ **D4** comentarios anclables a capítulo + anti-spoiler (book_comments.chapter_id).
+- ✅ **C1** cadencia/meta (target_chapter/date, /books/set_target, banner + control).
+- ✅ **C3** "por qué lo propones" (books.proposal_note) en alta + mostrado al votar.
+- ✅ **C5** aprobación por MAYORÍA por defecto (communities.approval_mode) — núcleo hecho;
+  falta solo el toggle admin en CommunityPage (plumbing por useAppData).
+- ✅ **C6** estante "Para más adelante" (votos 'ahora no' dominantes).
+- ✅ **C7** facilitador del libro (= quien lo propuso), mostrado "Facilita: X".
+- ✅ Editar/borrar comentarios + @menciones con autocompletado + fin de recargas de ficha.
+- ✅ **C4** galería de leídos: cubierta por nota media en cards (A1) + reseñas en ficha.
+- ⏳ Pendiente menor: toggle quórum admin (C5 UI), B3/B4 (copy/a11y), revisión móvil/redundancias.
