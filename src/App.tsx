@@ -26,11 +26,7 @@ import { RequireAuth } from "./pages/RequireAuth";
 const AuthPage = lazy(async () => ({ default: (await import("./pages/AuthPage")).AuthPage }));
 const HomePage = lazy(async () => ({ default: (await import("./pages/HomePage")).HomePage }));
 const BookDetailPage = lazy(async () => ({ default: (await import("./pages/BookDetailPage")).BookDetailPage }));
-const TopicPage = lazy(async () => ({ default: (await import("./pages/TopicPage")).TopicPage }));
-const PostDetailPage = lazy(async () => ({ default: (await import("./pages/PostDetailPage")).PostDetailPage }));
-const SharePage = lazy(async () => ({ default: (await import("./pages/SharePage")).SharePage }));
 const ProfilePage = lazy(async () => ({ default: (await import("./pages/ProfilePage")).ProfilePage }));
-const UserPostsPage = lazy(async () => ({ default: (await import("./pages/UserPostsPage")).UserPostsPage }));
 const SettingsPage = lazy(async () => ({ default: (await import("./pages/SettingsPage")).SettingsPage }));
 const CommunityPage = lazy(async () => ({ default: (await import("./pages/CommunityPage")).CommunityPage }));
 const CommunitiesPickerPage = lazy(async () => ({ default: (await import("./pages/CommunitiesPickerPage")).CommunitiesPickerPage }));
@@ -1283,77 +1279,6 @@ const AppRoutes = () => {
         />
 
         <Route
-          path="/topic/:topic"
-          element={
-            <RequireAuth activeUser={activeUser} redirectPath={globalSession ? "/communities" : "/login"}>
-              <PageTransition>
-                <TopicPage
-                  activeUser={activeUser as NonNullable<typeof activeUser>}
-                  users={users}
-                  posts={postsForViewer}
-                  userInfluenceAuraById={userInfluenceAuraById}
-                  onOpenShareModal={() => setShareModalOpen(true)}
-                  onLogout={logoutGlobal}
-                  activeUserId={activeUser?.id ?? null}
-                  onAddComment={onAddComment}
-                  onVoteCommentAura={onVoteCommentAura}
-                  onAdminDeleteComment={onAdminDeleteComment}
-                  onAdminRenameTopic={onAdminRenameTopic}
-                  onShareUrl={onShareUrl}
-                  onToast={showToast}
-                />
-              </PageTransition>
-            </RequireAuth>
-          }
-        />
-
-        <Route
-          path="/post/:postId"
-          element={
-            <RequireAuth activeUser={activeUser} redirectPath={globalSession ? "/communities" : "/login"}>
-              <PageTransition>
-                <PostDetailPage
-                  activeUser={activeUser as NonNullable<typeof activeUser>}
-                  users={users}
-                  posts={postsForViewer}
-                  onOpenShareModal={() => setShareModalOpen(true)}
-                  onLogout={logoutGlobal}
-                  activeUserId={activeUser?.id ?? null}
-                  onOpenExternalSource={onOpenExternalSource}
-                  onRatePost={onRatePost}
-                  onAddComment={onAddComment}
-                  onVoteCommentAura={onVoteCommentAura}
-                  onAdminDeleteComment={onAdminDeleteComment}
-                  onAdminDeletePost={onAdminDeletePost}
-                  onAdminUpdatePostTopic={onAdminUpdatePostTopic}
-                  onAddPostTopic={onAddPostTopic}
-                  onReportPost={onReportPost}
-                  onAdminModeratePost={onAdminModeratePost}
-                  onToast={showToast}
-                />
-              </PageTransition>
-            </RequireAuth>
-          }
-        />
-
-        <Route
-          path="/share"
-          element={
-            <RequireAuth activeUser={activeUser} redirectPath={globalSession ? "/communities" : "/login"}>
-              <PageTransition>
-                <SharePage
-                  activeUser={activeUser as NonNullable<typeof activeUser>}
-                  onShareUrl={onShareUrl}
-                  getDuplicatePreview={getDuplicatePreview}
-                  onToast={showToast}
-                  onLogout={logoutGlobal}
-                />
-              </PageTransition>
-            </RequireAuth>
-          }
-        />
-
-        <Route
           path="/profile/:userId"
           element={
             <RequireAuth activeUser={activeUser} redirectPath={globalSession ? "/communities" : "/login"}>
@@ -1370,25 +1295,6 @@ const AppRoutes = () => {
                   onSetUserRole={onAdminSetUserRole}
                   onToast={showToast}
                   onOpenShareModal={() => setShareModalOpen(true)}
-                />
-              </PageTransition>
-            </RequireAuth>
-          }
-        />
-
-        <Route
-          path="/profile/:userId/posts"
-          element={
-            <RequireAuth activeUser={activeUser} redirectPath={globalSession ? "/communities" : "/login"}>
-              <PageTransition>
-                <UserPostsPage
-                  activeUser={activeUser as NonNullable<typeof activeUser>}
-                  users={users}
-                  posts={postsForViewer}
-                  onDeletePost={removePost}
-                  onToast={showToast}
-                  onOpenShareModal={() => setShareModalOpen(true)}
-                  onLogout={logoutGlobal}
                 />
               </PageTransition>
             </RequireAuth>

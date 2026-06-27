@@ -272,6 +272,15 @@ Cada fase termina verde en `npm run check` (typecheck + test + design:lint).
   TopBar, el FAB flotante y el `ShareLinkModal` legacy de App.
 
 ### Fase 6 — Limpieza de legado de noticias (EN CURSO)
+- ✅ Ronda 2: quitadas las rutas de noticias `/topic` `/post` `/share`
+  `/profile/:id/posts` + borradas sus páginas (TopicPage, PostDetailPage, SharePage,
+  UserPostsPage) + componentes huérfanos (ShareLinkModal, CommentsPanel, EmojiMenu).
+  Enlace "Mis libros/posts" retirado del TopBar. Typecheck/tests/build verdes.
+- ⏳ Queda (refactor de `App.tsx`, mayor cuidado): ~14 handlers de posts muertos
+  (onShareUrl/onRatePost/onAdmin*/notificaciones por-post/dedup) y sus libs
+  (classify, enrich, presentation, usageAnalytics-share); `ProfilePage` sigue
+  post-céntrica (es además la edición de alias/avatar → modernizar a "perfil lector").
+  `auraEngine/topicEngineV2/topicForum/topicColors/PostCard` viven anclados por ProfilePage.
 - ✅ Borrados 7 archivos muertos (0 referencias): `IconGallery`, `AppSkeleton`,
   `TopicBlock`, `FiltersBar`, `PostDetailModal`, `LoginPage`, `InviteRedirectPage`.
 - ✅ JoinPage rediseñada: por enlace muestra "Te han invitado a {club}" + 2 botones
