@@ -1756,7 +1756,7 @@ const handlers = {
         .eq("book_id", bookId),
       db
         .from("chapter_notes")
-        .select("id,chapter_id,user_id,kind,text,image_url,created_at")
+        .select("id,chapter_id,user_id,kind,text,image_url,created_at,edited_at")
         .eq("community_id", auth.community.id)
         .eq("book_id", bookId)
         .order("created_at", { ascending: true }),
@@ -1789,7 +1789,8 @@ const handlers = {
         kind: row.kind ?? "note",
         text: row.text,
         imageUrl: row.image_url ?? undefined,
-        createdAt: toMillis(row.created_at)
+        createdAt: toMillis(row.created_at),
+        editedAt: row.edited_at ? toMillis(row.edited_at) : undefined
       });
     });
     const chapters = (chaptersRes.data ?? []).map((row: Record<string, any>) => ({
@@ -2022,6 +2023,76 @@ const handlers = {
       if (r.user_id === auth.user.id) e.mine = true;
     });
     return json(200, { commentId, reactions: Object.values(byEmoji) });
+  },
+
+  // Editar una anotación propia (texto/tipo/enlace). Deja marca de editado.
+  "/chapters/note/update": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const noteId = String(body.note_id ?? "").trim();
+    const text = String(body.text ?? "").trim().slice(0, 4000);
+    if (!noteId) return bad("note_id required");
+    const imageUrl = body.image_url !== undefined ? (String(body.image_url ?? "").trim().slice(0, 1000) || null) : undefined;
+    const kind = ["note", "reference", "prompt"].includes(body.kind) ? body.kind : undefined;
+
+    const cur = await db
+      .from("chapter_notes")
+      .select("id,user_id")
+      .eq("community_id", auth.community.id)
+      .eq("id", noteId)
+      .maybeSingle();
+    if (cur.error || !cur.data) return json(404, { message: "Note not found" });
+    if (cur.data.user_id !== auth.user.id) return json(403, { message: "Not your note" });
+
+    const patch: Record<string, any> = { edited_at: nowIso() };
+    if (text || imageUrl !== undefined) patch.text = text;
+    if (imageUrl !== undefined) patch.image_url = imageUrl;
+    if (kind) patch.kind = kind;
+    const upd = await db
+      .from("chapter_notes")
+      .update(patch)
+      .eq("community_id", auth.community.id)
+      .eq("id", noteId)
+      .select("id,chapter_id,user_id,kind,text,image_url,created_at,edited_at")
+      .single();
+    if (upd.error) return json(400, { message: upd.error.message });
+    return json(200, {
+      note: {
+        id: upd.data.id,
+        chapterId: upd.data.chapter_id,
+        userId: upd.data.user_id ?? undefined,
+        alias: auth.user.alias,
+        kind: upd.data.kind ?? "note",
+        text: upd.data.text,
+        imageUrl: upd.data.image_url ?? undefined,
+        createdAt: toMillis(upd.data.created_at),
+        editedAt: upd.data.edited_at ? toMillis(upd.data.edited_at) : undefined
+      }
+    });
+  },
+
+  // Borrar una anotación (propia o admin). Los hilos que la encabezaban quedan como
+  // comentarios normales (FK note_id → set null).
+  "/chapters/note/delete": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const noteId = String(body.note_id ?? "").trim();
+    if (!noteId) return bad("note_id required");
+    const cur = await db
+      .from("chapter_notes")
+      .select("id,user_id")
+      .eq("community_id", auth.community.id)
+      .eq("id", noteId)
+      .maybeSingle();
+    if (cur.error || !cur.data) return json(404, { message: "Note not found" });
+    if (cur.data.user_id !== auth.user.id && auth.role !== "admin") {
+      return json(403, { message: "Not allowed to delete this note" });
+    }
+    const del = await db.from("chapter_notes").delete().eq("community_id", auth.community.id).eq("id", noteId);
+    if (del.error) return json(400, { message: del.error.message });
+    return json(200, { ok: true });
   },
 
   // Reacción emoji a una ANOTACIÓN (toggle). Mismo modelo que comentarios.

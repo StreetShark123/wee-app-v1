@@ -12,6 +12,8 @@ import { MentionTextarea } from "../components/MentionTextarea";
 import {
   addBookComment,
   addChapterNote,
+  updateChapterNote,
+  deleteChapterNote,
   completeAllChapters,
   reactComment,
   reactNote,
@@ -377,6 +379,17 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const handleAddNote = async (chapterId: string, text: string, kind: NoteKind, imageUrl?: string) => {
     const { note } = await addChapterNote(chapterId, text, kind, imageUrl);
     patch((d) => ({ ...d, chapters: d.chapters.map((c) => (c.id === chapterId ? { ...c, notes: [...c.notes, note] } : c)) }));
+  };
+  const patchNote = (noteId: string, fn: (n: ChapterNote) => ChapterNote) =>
+    patch((d) => ({ ...d, chapters: d.chapters.map((c) => ({ ...c, notes: c.notes.map((n) => (n.id === noteId ? fn(n) : n)) })) }));
+  const handleEditNote = async (noteId: string, text: string) => {
+    const { note } = await updateChapterNote(noteId, { text });
+    patchNote(noteId, (n) => ({ ...n, text: note.text, editedAt: note.editedAt ?? Date.now() }));
+  };
+  const handleDeleteNote = (noteId: string) => {
+    if (!window.confirm(pick(language, "¿Borrar esta anotación?", "Delete this note?", "Borrar esta anotación?"))) return;
+    patch((d) => ({ ...d, chapters: d.chapters.map((c) => ({ ...c, notes: c.notes.filter((n) => n.id !== noteId) })) }));
+    void deleteChapterNote(noteId).catch(() => void load());
   };
   const handleReply = async (parentId: string, text: string) => {
     const { comment } = await addBookComment(book.id, text, { parentId });
@@ -746,12 +759,12 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                   <p className="chapter-alldone"><Icon name="check" /> {pick(language, "Has leído todos los capítulos.", "You've read every chapter.", "Liches todos os capítulos.")}</p>
                   <details className="chapter-collapsed">
                     <summary>{pick(language, `Ver los ${total} capítulos`, `Show the ${total} chapters`, `Ver os ${total} capítulos`)}</summary>
-                    <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} onCommentNote={handleCommentNote} noteThreadById={noteThreadById} onViewNoteThread={handleViewNoteThread} onReactNote={handleReactNote} />
+                    <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} onCommentNote={handleCommentNote} noteThreadById={noteThreadById} onViewNoteThread={handleViewNoteThread} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} />
                   </details>
                 </>
               ) : (
                 <>
-                  <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} onCommentNote={handleCommentNote} noteThreadById={noteThreadById} onViewNoteThread={handleViewNoteThread} onReactNote={handleReactNote} />
+                  <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} onCommentNote={handleCommentNote} noteThreadById={noteThreadById} onViewNoteThread={handleViewNoteThread} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} />
                   <button type="button" className="btn chapter-mark-all" disabled={busy} onClick={() => handleCompleteAll(true)}>
                     <Icon name="check" /> {pick(language, "Marcar todo como leído", "Mark all as read", "Marcar todo como lido")}
                   </button>

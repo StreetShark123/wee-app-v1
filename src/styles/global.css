@@ -4490,3 +4490,8 @@ textarea:focus-visible {
 .book-delete-summary { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--danger); font-weight: 600; font-size: 0.82rem; padding: 4px 0; list-style: none; }
 .book-delete-summary::-webkit-details-marker { display: none; }
 .book-delete-zone > * + * { margin-top: 8px; }
+
+/* Editar/borrar nota propia */
+.chapter-note-edited { color: var(--ink-1); font-style: italic; font-weight: 400; font-size: 0.92em; }
+.chapter-note-edit { display: flex; flex-direction: column; gap: 6px; }
+.chapter-note-action-del:hover { border-color: var(--danger); color: var(--danger); }

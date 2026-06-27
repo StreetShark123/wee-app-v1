@@ -457,6 +457,7 @@ export interface ChapterNote {
   text: string;
   imageUrl?: string;
   createdAt: number;
+  editedAt?: number;
   reactions?: CommentReaction[];
 }
 
@@ -615,6 +616,20 @@ export const addChapterNote = async (
     kind,
     ...(imageUrl ? { image_url: imageUrl } : {})
   });
+
+export const updateChapterNote = async (
+  noteId: string,
+  patch: { text?: string; kind?: NoteKind; imageUrl?: string | null }
+): Promise<{ note: ChapterNote }> =>
+  request<{ note: ChapterNote }>("/chapters/note/update", {
+    note_id: noteId,
+    ...(patch.text !== undefined ? { text: patch.text } : {}),
+    ...(patch.kind ? { kind: patch.kind } : {}),
+    ...(patch.imageUrl !== undefined ? { image_url: patch.imageUrl } : {})
+  });
+
+export const deleteChapterNote = async (noteId: string): Promise<{ ok: true }> =>
+  request<{ ok: true }>("/chapters/note/delete", { note_id: noteId });
 
 export interface BookEditPatch {
   title?: string;

@@ -17,6 +17,8 @@ interface ChapterTimelineProps {
   noteThreadById?: Map<string, { rootId: string; count: number }>;
   onViewNoteThread?: (rootId: string) => void;
   onReactNote?: (noteId: string, emoji: string) => void;
+  onEditNote?: (noteId: string, text: string) => Promise<void>;
+  onDeleteNote?: (noteId: string) => void;
 }
 
 const YT_RE = /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/i;
@@ -111,28 +113,57 @@ const kindLabel = (kind: NoteKind, language: AppLanguage): string =>
 const NoteCard = ({
   note,
   language,
+  mine,
   onComment,
   threadCount,
   onViewThread,
-  onReact
+  onReact,
+  onEdit,
+  onDelete
 }: {
   note: ChapterNote;
   language: AppLanguage;
+  mine?: boolean;
   onComment?: () => void;
   threadCount?: number;
   onViewThread?: () => void;
   onReact?: (emoji: string) => void;
+  onEdit?: (text: string) => Promise<void>;
+  onDelete?: () => void;
 }) => {
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(note.text);
+  const [savingEdit, setSavingEdit] = useState(false);
   const media = mediaUrlsOf(note);
   const hasThread = !!threadCount && threadCount > 0;
   const reactions = note.reactions ?? [];
+  const canManage = mine && (onEdit || onDelete);
+  const submitEdit = async () => {
+    const clean = editText.trim();
+    if (!clean || !onEdit || savingEdit) return;
+    setSavingEdit(true);
+    try {
+      await onEdit(clean);
+      setEditing(false);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
   return (
     <li className={`chapter-note chapter-note-${note.kind}`}>
       <div className="chapter-note-head">
-        <span className="chapter-note-by">{note.alias}</span>
+        <span className="chapter-note-by">{note.alias}{note.editedAt ? <span className="chapter-note-edited"> · {pick(language, "editado", "edited", "editado")}</span> : null}</span>
         <span className="chapter-note-kind">{kindLabel(note.kind, language)}</span>
       </div>
-      {note.text ? <p className="chapter-note-text"><Linkify text={note.text} /></p> : null}
+      {editing ? (
+        <div className="chapter-note-edit">
+          <textarea rows={2} value={editText} onChange={(e) => setEditText(e.target.value)} autoFocus />
+          <div className="chapter-note-actions">
+            <button type="button" className="btn" onClick={() => { setEditing(false); setEditText(note.text); }} disabled={savingEdit}>{pick(language, "Cancelar", "Cancel", "Cancelar")}</button>
+            <button type="button" className="btn btn-primary" onClick={submitEdit} disabled={savingEdit || !editText.trim()}>{pick(language, "Guardar", "Save", "Gardar")}</button>
+          </div>
+        </div>
+      ) : note.text ? <p className="chapter-note-text"><Linkify text={note.text} /></p> : null}
       {media.length > 0 ? (
         <div className="chapter-note-media">
           {media.map((url) => <NoteMedia key={url} url={url} language={language} />)}
@@ -156,7 +187,7 @@ const NoteCard = ({
         </div>
       ) : null}
 
-      {onComment || onViewThread ? (
+      {(onComment || onViewThread || canManage) && !editing ? (
         <div className="chapter-note-threadbar">
           {hasThread && onViewThread ? (
             <button type="button" className="chapter-note-action chapter-note-action-view" onClick={onViewThread}>
@@ -168,13 +199,23 @@ const NoteCard = ({
               <Icon name="plus" size={11} /> {hasThread ? pick(language, "Nuevo hilo", "New thread", "Novo fío") : pick(language, "Crear hilo", "Start thread", "Crear fío")}
             </button>
           ) : null}
+          {mine && onEdit ? (
+            <button type="button" className="chapter-note-action" onClick={() => { setEditText(note.text); setEditing(true); }}>
+              <Icon name="pencil" size={11} /> {pick(language, "Editar", "Edit", "Editar")}
+            </button>
+          ) : null}
+          {mine && onDelete ? (
+            <button type="button" className="chapter-note-action chapter-note-action-del" onClick={onDelete}>
+              <Icon name="trash" size={11} /> {pick(language, "Borrar", "Delete", "Borrar")}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </li>
   );
 };
 
-export const ChapterTimeline = ({ chapters, busy, activeUserId, onToggle, onAddNote, onCommentNote, noteThreadById, onViewNoteThread, onReactNote }: ChapterTimelineProps) => {
+export const ChapterTimeline = ({ chapters, busy, activeUserId, onToggle, onAddNote, onCommentNote, noteThreadById, onViewNoteThread, onReactNote, onEditNote, onDeleteNote }: ChapterTimelineProps) => {
   const { language } = useI18n();
   const [openFor, setOpenFor] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
@@ -262,10 +303,13 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, onToggle, onAddN
                             key={note.id}
                             note={note}
                             language={language}
+                            mine={note.userId === activeUserId}
                             onComment={onCommentNote ? () => onCommentNote(chapter.id, note) : undefined}
                             threadCount={thread?.count}
                             onViewThread={thread && onViewNoteThread ? () => onViewNoteThread(thread.rootId) : undefined}
                             onReact={onReactNote ? (emoji) => onReactNote(note.id, emoji) : undefined}
+                            onEdit={onEditNote ? (text) => onEditNote(note.id, text) : undefined}
+                            onDelete={onDeleteNote ? () => onDeleteNote(note.id) : undefined}
                           />
                         );
                       })}
