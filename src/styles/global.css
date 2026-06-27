@@ -4506,3 +4506,7 @@ textarea:focus-visible {
 
 /* Item activo del autocompletado @ (navegación por teclado) */
 .mention-option.is-active { background: color-mix(in srgb, var(--brand) 22%, transparent); color: var(--brand-strong); }
+
+/* Pantalla de error (chunk viejo / fallo de carga) */
+.app-error-screen { text-align: center; }
+.app-error-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }

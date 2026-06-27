@@ -4,7 +4,14 @@ import { LazyMotion } from "framer-motion";
 import App from "./App";
 import { ConfirmProvider } from "./lib/confirm";
 import { isAnalyticsOptedOut } from "./lib/usageAnalytics";
+import { tryChunkReload } from "./lib/chunkReload";
 import "./styles/global.css";
+
+// Tras un deploy, los chunks lazy con hash viejo dan 404. Vite emite este evento:
+// recargamos una vez para coger los assets nuevos (guardia anti-bucle dentro).
+window.addEventListener("vite:preloadError", () => {
+  tryChunkReload();
+});
 
 // Las features de animación se cargan en un chunk aparte tras el primer render.
 const loadMotionFeatures = () => import("framer-motion").then((mod) => mod.domAnimation);

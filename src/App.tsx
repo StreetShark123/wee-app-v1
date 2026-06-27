@@ -1,6 +1,7 @@
 import { AnimatePresence } from "framer-motion";
 import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { HashRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { AppFooter } from "./components/AppFooter";
 import { CommunityLoadingScreen } from "./components/CommunityLoadingScreen";
 import { Icon } from "./components/Icon";
@@ -425,6 +426,7 @@ const AppRoutes = () => {
   return (
     <I18nContext.Provider value={i18nValue}>
       <NotificationsContext.Provider value={notificationsValue}>
+        <AppErrorBoundary>
         <Suspense
           fallback={
             <CommunityLoadingScreen
@@ -653,6 +655,7 @@ const AppRoutes = () => {
         </Routes>
         </AnimatePresence>
         </Suspense>
+        </AppErrorBoundary>
         <Toast message={toast} />
         <AddBookModal
           open={bookModalOpen}
