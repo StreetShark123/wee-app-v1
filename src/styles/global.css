@@ -7,7 +7,7 @@
   --panel-1: #1a2743;
   --line: #2a3a5e;
   --ink-0: #e7edf9;
-  --ink-1: #b9c7e6;
+  --ink-1: #ccd7f0;
   --brand: #5ea1ff;
   --brand-strong: #7cb3ff;
   --accent-cyan: #5fd4ff;
@@ -3865,4 +3865,22 @@ textarea:focus-visible {
 @media (max-width: 560px) {
   .books-hero-actions { width: 100%; }
   .books-hero-search { max-width: none; flex: 1; }
+}
+
+/* A11y: ampliar área táctil (≥44px) de acciones de lectura sin cambiar el tamaño visual */
+.chapter-check { position: absolute; }
+.chapter-check::before {
+  content: "";
+  position: absolute;
+  inset: -9px;            /* 28px + 18px ≈ 46px de zona de toque */
+}
+.book-star {
+  position: relative;
+  min-width: 36px;
+  min-height: 36px;
+}
+.book-star::before {
+  content: "";
+  position: absolute;
+  inset: -6px;            /* ≈ 48px de zona de toque */
 }

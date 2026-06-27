@@ -70,17 +70,21 @@ export const HomePage = ({
   const proposed = visibleBooks.filter((book) => book.status === "proposed");
   const finished = visibleBooks.filter((book) => book.status === "finished");
 
-  const renderShelf = (title: string, list: typeof books) => (
+  const renderShelf = (title: string, list: typeof books, emptyHint: string) => (
     <section className="page-section shelf-section">
       <div className="shelf-head">
         <h3 className="shelf-title">{title}</h3>
         <span className="shelf-count">{list.length}</span>
       </div>
-      <div className="book-grid">
-        {list.map((book) => (
-          <BookCard key={book.id} book={book} member={memberByBookId.get(book.id)} onOpen={(entry) => navigate(`/book/${entry.id}`)} />
-        ))}
-      </div>
+      {list.length > 0 ? (
+        <div className="book-grid">
+          {list.map((book) => (
+            <BookCard key={book.id} book={book} member={memberByBookId.get(book.id)} onOpen={(entry) => navigate(`/book/${entry.id}`)} />
+          ))}
+        </div>
+      ) : (
+        <p className="hint shelf-empty">{emptyHint}</p>
+      )}
     </section>
   );
 
@@ -134,9 +138,21 @@ export const HomePage = ({
           <p className="hint">{pick(language, "Ningún libro coincide con la búsqueda.", "No book matches your search.", "Ningún libro coincide coa busca.")}</p>
         ) : (
           <>
-            {reading.length > 0 ? renderShelf(pick(language, "En lectura", "Reading now", "En lectura"), reading) : null}
-            {proposed.length > 0 ? renderShelf(pick(language, "Propuestas", "Proposals", "Propostas"), proposed) : null}
-            {finished.length > 0 ? renderShelf(pick(language, "Leídos", "Read", "Lidos"), finished) : null}
+            {renderShelf(
+              pick(language, "En lectura", "Reading now", "En lectura"),
+              reading,
+              pick(language, "Aún nada en lectura. Aprobad una propuesta para empezar.", "Nothing being read yet. Approve a proposal to start.", "Aínda nada en lectura. Aprobade unha proposta.")
+            )}
+            {renderShelf(
+              pick(language, "Propuestas", "Proposals", "Propostas"),
+              proposed,
+              pick(language, "Sin propuestas. Añade un libro y votad.", "No proposals. Add a book and vote.", "Sen propostas. Engade un libro e votade.")
+            )}
+            {renderShelf(
+              pick(language, "Leídos", "Read", "Lidos"),
+              finished,
+              pick(language, "Todavía no habéis terminado ningún libro juntos.", "You haven't finished a book together yet.", "Aínda non rematastes ningún libro xuntos.")
+            )}
           </>
         )}
       </div>

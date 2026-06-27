@@ -387,13 +387,15 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
           {allDone ? (
             <div className="book-rating-block">
               <p className="chapter-finish-title">{pick(language, "¡Terminado! Valora el libro", "Done! Rate the book", "Rematado! Valora o libro")}</p>
-              <div className="book-rating">
+              <div className="book-rating" role="radiogroup" aria-label={pick(language, "Tu valoración, de 1 a 5 estrellas", "Your rating, 1 to 5 stars", "A túa valoración, de 1 a 5 estrelas")}>
                 {[1, 2, 3, 4, 5].map((value) => (
                   <button
                     key={value}
                     type="button"
+                    role="radio"
+                    aria-checked={ratingInput === value}
                     className={`book-star${ratingInput >= value ? " is-on" : ""}`}
-                    aria-label={`${value}`}
+                    aria-label={pick(language, `${value} de 5 estrellas`, `${value} of 5 stars`, `${value} de 5 estrelas`)}
                     disabled={busy}
                     onClick={() => saveRating(value)}
                   >
