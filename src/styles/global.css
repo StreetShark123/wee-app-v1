@@ -365,7 +365,7 @@ h4 {
   color: #b7caeb;
   border: 1px solid #42648f;
   border-radius: var(--radius-pill);
-  padding: 0.14rem 0.46rem;
+  padding: 2px var(--sp-2);
   background: linear-gradient(180deg, rgb(20 38 64 / 82%), rgb(13 27 47 / 86%));
   box-shadow: inset 0 1px 0 rgb(130 177 238 / 16%);
 }
@@ -391,7 +391,6 @@ h4 {
 
 h2 svg,
 h3 svg,
-.btn svg,
 .link-btn svg,
 .topic-hot-tag svg {
   vertical-align: -2px;
@@ -544,7 +543,7 @@ h3 svg,
   max-height: min(56vh, 420px);
   overflow: auto;
   display: grid;
-  gap: 0.35rem;
+  gap: var(--sp-2);
   padding-right: 0.1rem;
 }
 
@@ -768,8 +767,15 @@ h3 svg,
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 1rem;
+  gap: var(--sp-4);
   flex-wrap: wrap;
+}
+
+/* Título de sección unificado en todas las pantallas (Home/BookDetail/Community/Profile) */
+.section-head h2 {
+  font-size: 1.16rem;
+  line-height: 1.3;
+  margin: 0;
 }
 
 .section-intro {
@@ -1404,7 +1410,7 @@ textarea::placeholder {
   color: #d7e5ff;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: var(--sp-1);
   min-height: 38px;
   font-weight: 600;
 }
@@ -2276,7 +2282,7 @@ textarea::placeholder {
 .settings-actions {
   margin-top: 0.2rem;
   display: flex;
-  gap: 0.6rem;
+  gap: var(--sp-2);
   flex-wrap: wrap;
 }
 
@@ -3045,7 +3051,7 @@ textarea:focus-visible {
   font-size: var(--tag-font);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 2px 7px;
+  padding: 2px var(--sp-2);
   border-radius: var(--radius-pill);
   border: 1px solid var(--line);
   color: var(--ink-1);
@@ -3193,21 +3199,21 @@ textarea:focus-visible {
 .book-detail-head {
   display: grid;
   grid-template-columns: 100px 1fr;
-  gap: 16px;
+  gap: var(--sp-4);
   align-items: start;
 }
 
 .book-detail-meta {
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: var(--sp-2);
   min-width: 0;
 }
 
 .book-detail-meta h1 {
   font-size: 1.4rem;
   line-height: 1.2;
-  margin: 2px 0 0;
+  margin: 0;
 }
 
 .book-detail-author {
@@ -3479,7 +3485,7 @@ textarea:focus-visible {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 1px 8px;
+  padding: 2px var(--sp-2);
   border-radius: var(--radius-pill);
   border: 1px solid var(--line);
   color: var(--ink-1);
@@ -3499,7 +3505,7 @@ textarea:focus-visible {
 
 .chapter-note-text {
   flex: 1;
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .chapter-note-by {
@@ -3758,7 +3764,7 @@ textarea:focus-visible {
   color: var(--success);
   border: 1px solid var(--success);
   border-radius: var(--radius-pill);
-  padding: 1px 7px;
+  padding: 2px var(--sp-2);
 }
 
 .chapter-note { flex-direction: column; align-items: stretch; gap: 5px; }
@@ -3889,7 +3895,7 @@ textarea:focus-visible {
 .book-member { flex-direction: column; align-items: stretch; gap: 4px; }
 .book-member-row { display: flex; justify-content: space-between; gap: 10px; }
 .book-member-rating { color: var(--accent-amber); margin-right: 6px; letter-spacing: 1px; }
-.book-member-review { margin: 0; font-size: 0.85rem; color: var(--ink-1); line-height: 1.4; }
+.book-member-review { margin: 0; font-size: 0.85rem; color: var(--ink-1); line-height: 1.5; }
 
 /* Fix: texto de capítulos NO leídos legible (el botón heredaba color negro) */
 .chapter-head { color: var(--ink-0); }
@@ -4084,7 +4090,7 @@ textarea:focus-visible {
 .comment-item-reply { padding-left: 14px; border-left: 2px solid var(--line); }
 .comment-head { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; }
 .comment-head strong { font-size: 0.82rem; color: var(--brand-strong); }
-.comment-text { margin: 0; font-size: 0.9rem; line-height: 1.45; }
+.comment-text { margin: 0; font-size: 0.9rem; line-height: 1.5; }
 .comment-text a { color: var(--brand-strong); text-decoration: underline; }
 
 .comment-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -4212,7 +4218,7 @@ textarea:focus-visible {
   color: var(--accent-cyan);
   border: 1px solid var(--accent-cyan);
   border-radius: var(--radius-pill);
-  padding: 1px 6px;
+  padding: 2px var(--sp-2);
 }
 .comment-locked {
   display: flex;
@@ -4319,7 +4325,7 @@ textarea:focus-visible {
 .profile-book-cover-empty { display: grid; place-items: center; color: var(--ink-1); }
 .profile-book-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .profile-book-rating { color: var(--accent-amber); letter-spacing: 1px; font-size: 0.85rem; }
-.profile-book-review { font-size: 0.82rem; color: var(--ink-1); line-height: 1.4; }
+.profile-book-review { font-size: 0.82rem; color: var(--ink-1); line-height: 1.5; }
 .profile-no-reads { margin-top: 6px; }
 
 /* Crear club desde la página del club + zona de borrado de libro */
@@ -4662,23 +4668,23 @@ textarea:focus-visible {
 .book-detail-head .book-cover-lg { width: 100%; height: auto; aspect-ratio: 2 / 3; }
 
 /* Barra de acciones superior (volver | editar) */
-.book-action-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.book-action-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
 .book-action-bar .book-back { margin: 0; }
 
 /* Chips de meta (estado/facilita/cadencia) y barra de progreso en cabecera */
-.book-meta-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 2px; }
+.book-meta-chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
 .book-chip {
-  display: inline-flex; align-items: center; gap: 5px;
+  display: inline-flex; align-items: center; gap: var(--sp-1);
   font-size: 0.78rem; color: var(--ink-1);
   border: 1px solid var(--line); border-radius: var(--radius-pill);
-  padding: 2px 8px;
+  padding: 2px var(--sp-2);
 }
-.book-head-progress { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.book-head-progress { display: flex; align-items: center; gap: var(--sp-2); margin-top: var(--sp-1); }
 .book-head-progress-label { font-size: 0.76rem; color: var(--ink-1); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* Sinopsis plegable (3 líneas + leer más) */
 .book-detail-synopsis.is-open p { -webkit-line-clamp: unset; }
-.synopsis-toggle { margin-top: 2px; font-size: 0.8rem; color: var(--brand-strong); }
+.synopsis-toggle { align-self: flex-start; font-size: 0.8rem; color: var(--brand-strong); }
 
 /* Toggle de numeración de capítulos */
 .chapter-number-toggle { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--ink-1); cursor: pointer; }
