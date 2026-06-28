@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import type { BookChapter, ChapterNote, NoteKind } from "../lib/communityApi";
 import { pick, useI18n } from "../lib/i18n";
 import type { AppLanguage } from "../lib/types";
+import { timeAgo } from "../lib/timeAgo";
 import { Icon } from "./Icon";
 import { Linkify } from "./Linkify";
 import { ReactionPicker } from "./ReactionPicker";
@@ -152,7 +153,11 @@ const NoteCard = ({
   return (
     <li className={`chapter-note chapter-note-${note.kind}`}>
       <div className="chapter-note-head">
-        <span className="chapter-note-by">{note.alias}{note.editedAt ? <span className="chapter-note-edited"> · {pick(language, "editado", "edited", "editado")}</span> : null}</span>
+        <span className="chapter-note-by">
+          {note.alias}
+          <span className="chapter-note-time"> · {timeAgo(note.createdAt, language)}</span>
+          {note.editedAt ? <span className="chapter-note-edited"> · {pick(language, "editado", "edited", "editado")}</span> : null}
+        </span>
         <span className="chapter-note-kind">{kindLabel(note.kind, language)}</span>
       </div>
       {editing ? (

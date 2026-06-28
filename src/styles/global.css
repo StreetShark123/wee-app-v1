@@ -3667,8 +3667,6 @@ textarea:focus-visible {
 
 .chapter-node.is-done .chapter-title {
   color: var(--ink-1);
-  text-decoration: line-through;
-  text-decoration-color: color-mix(in srgb, var(--success) 60%, transparent);
 }
 
 .chapter-meta {
@@ -4530,3 +4528,7 @@ textarea:focus-visible {
   .member-row { align-items: flex-start; }
   .member-meta { width: 100%; }
 }
+
+/* Hora de publicación en notas y comentarios */
+.chapter-note-time { color: var(--ink-1); font-weight: 400; }
+.comment-time { color: var(--ink-1); font-size: 0.72rem; font-weight: 400; margin-left: 6px; }
