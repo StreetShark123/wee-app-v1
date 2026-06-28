@@ -178,6 +178,52 @@ const CommentItem = ({
 
 const GENERAL_KEY = "__general__";
 
+// Renderiza un hilo (raíces + respuestas) sin agrupar por capítulo. Para los hilos
+// inline que cuelgan de una anotación.
+export const NoteThread = ({
+  comments,
+  members,
+  activeUserId,
+  onReply,
+  onReact,
+  onEdit,
+  onDelete
+}: {
+  comments: BookComment[];
+  members: ClubMemberLite[];
+  activeUserId: string;
+  onReply: (parentId: string, text: string) => Promise<void>;
+  onReact: (commentId: string, emoji: string) => void;
+  onEdit: (commentId: string, text: string) => Promise<void>;
+  onDelete: (commentId: string) => void;
+}) => {
+  const roots = comments.filter((c) => !c.parentId);
+  if (roots.length === 0) return null;
+  const repliesByParent = new Map<string, BookComment[]>();
+  comments.forEach((c) => {
+    if (c.parentId) {
+      const list = repliesByParent.get(c.parentId) ?? [];
+      list.push(c);
+      repliesByParent.set(c.parentId, list);
+    }
+  });
+  const itemProps = { members, activeUserId, onReply, onReact, onEdit, onDelete };
+  return (
+    <ul className="comment-thread note-thread">
+      {roots.map((root) => (
+        <li key={root.id} className="comment-root">
+          <ul className="comment-thread-inner">
+            <CommentItem comment={root} {...itemProps} isReply={false} />
+            {(repliesByParent.get(root.id) ?? []).map((reply) => (
+              <CommentItem key={reply.id} comment={reply} {...itemProps} isReply />
+            ))}
+          </ul>
+        </li>
+      ))}
+    </ul>
+  );
+};
+
 export const CommentThread = ({ comments, members, activeUserId, readChapterIds, chapterLabelById, noteById, focusCommentId, onReply, onReact, onEdit, onDelete }: CommentThreadProps) => {
   const { language } = useI18n();
   const [openOverride, setOpenOverride] = useState<Record<string, boolean>>({});

@@ -4532,3 +4532,27 @@ textarea:focus-visible {
 /* Hora de publicación en notas y comentarios */
 .chapter-note-time { color: var(--ink-1); font-weight: 400; }
 .comment-time { color: var(--ink-1); font-size: 0.72rem; font-weight: 400; margin-left: 6px; }
+
+/* Hilos inline en notas (estilo Reddit) + discusión general secundaria */
+.note-actionbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.note-thread-toggle {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; min-height: 28px;
+  border: 1px solid var(--line); border-radius: var(--radius-pill);
+  background: transparent; color: var(--ink-1); font-size: 0.74rem; cursor: pointer;
+}
+.note-thread-toggle:hover, .note-thread-toggle.is-open { border-color: var(--brand); color: var(--brand-strong); }
+.note-mini-action {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 6px; min-height: 28px;
+  background: transparent; border: 0; color: var(--ink-1); font-size: 0.72rem; cursor: pointer;
+}
+.note-mini-action:hover { color: var(--brand-strong); }
+.note-mini-action-del:hover { color: var(--danger); }
+.note-thread-wrap {
+  margin-top: 8px; padding: 8px 0 0 10px;
+  border-left: 2px solid color-mix(in srgb, var(--brand) 30%, var(--line));
+}
+.note-thread { margin: 0; padding: 0; }
+.note-comment-composer { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+
+.community-secondary .section-head h2 { font-size: 1rem; color: var(--ink-1); }

@@ -1,25 +1,32 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import type { BookChapter, ChapterNote, NoteKind } from "../lib/communityApi";
+import type { BookChapter, BookComment, ChapterNote, ClubMemberLite, NoteKind } from "../lib/communityApi";
 import { pick, useI18n } from "../lib/i18n";
 import type { AppLanguage } from "../lib/types";
 import { timeAgo } from "../lib/timeAgo";
 import { Icon } from "./Icon";
 import { Linkify } from "./Linkify";
+import { MentionTextarea } from "./MentionTextarea";
+import { NoteThread } from "./CommentThread";
 import { ReactionPicker } from "./ReactionPicker";
 
 interface ChapterTimelineProps {
   chapters: BookChapter[];
   busy: boolean;
   activeUserId: string;
+  members: ClubMemberLite[];
+  noteThreads: Map<string, BookComment[]>;
+  lastReadChapterId?: string | null;
   onToggle: (chapterId: string, done: boolean) => void;
   onAddNote: (chapterId: string, text: string, kind: NoteKind, imageUrl?: string) => Promise<void>;
-  onCommentNote?: (chapterId: string, note: ChapterNote) => void;
-  noteThreadById?: Map<string, { rootId: string; count: number }>;
-  onViewNoteThread?: (rootId: string) => void;
   onReactNote?: (noteId: string, emoji: string) => void;
   onEditNote?: (noteId: string, text: string) => Promise<void>;
   onDeleteNote?: (noteId: string) => void;
+  onReplyComment: (parentId: string, text: string) => Promise<void>;
+  onReactComment: (commentId: string, emoji: string) => void;
+  onEditComment: (commentId: string, text: string) => Promise<void>;
+  onDeleteComment: (commentId: string) => void;
+  onCommentOnNote: (noteId: string, text: string) => Promise<void>;
 }
 
 const YT_RE = /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/i;
@@ -115,30 +122,45 @@ const NoteCard = ({
   note,
   language,
   mine,
-  onComment,
-  threadCount,
-  onViewThread,
+  activeUserId,
+  members,
+  thread,
+  defaultThreadOpen,
   onReact,
   onEdit,
-  onDelete
+  onDelete,
+  onReplyComment,
+  onReactComment,
+  onEditComment,
+  onDeleteComment,
+  onCommentOnNote
 }: {
   note: ChapterNote;
   language: AppLanguage;
   mine?: boolean;
-  onComment?: () => void;
-  threadCount?: number;
-  onViewThread?: () => void;
+  activeUserId: string;
+  members: ClubMemberLite[];
+  thread: BookComment[];
+  defaultThreadOpen?: boolean;
   onReact?: (emoji: string) => void;
   onEdit?: (text: string) => Promise<void>;
   onDelete?: () => void;
+  onReplyComment: (parentId: string, text: string) => Promise<void>;
+  onReactComment: (commentId: string, emoji: string) => void;
+  onEditComment: (commentId: string, text: string) => Promise<void>;
+  onDeleteComment: (commentId: string) => void;
+  onCommentOnNote: (text: string) => Promise<void>;
 }) => {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(note.text);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [threadOpen, setThreadOpen] = useState(!!defaultThreadOpen);
+  const [noteCommentText, setNoteCommentText] = useState("");
+  const [sendingComment, setSendingComment] = useState(false);
   const media = mediaUrlsOf(note);
-  const hasThread = !!threadCount && threadCount > 0;
   const reactions = note.reactions ?? [];
-  const canManage = mine && (onEdit || onDelete);
+  const threadCount = thread.length;
+
   const submitEdit = async () => {
     const clean = editText.trim();
     if (!clean || !onEdit || savingEdit) return;
@@ -150,6 +172,18 @@ const NoteCard = ({
       setSavingEdit(false);
     }
   };
+  const submitNoteComment = async () => {
+    const clean = noteCommentText.trim();
+    if (!clean || sendingComment) return;
+    setSendingComment(true);
+    try {
+      await onCommentOnNote(clean);
+      setNoteCommentText("");
+    } finally {
+      setSendingComment(false);
+    }
+  };
+
   return (
     <li className={`chapter-note chapter-note-${note.kind}`}>
       <div className="chapter-note-head">
@@ -174,8 +208,9 @@ const NoteCard = ({
           {media.map((url) => <NoteMedia key={url} url={url} language={language} />)}
         </div>
       ) : null}
-      {onReact || reactions.length > 0 ? (
-        <div className="note-reactions comment-actions">
+
+      {!editing ? (
+        <div className="note-actionbar comment-actions">
           {reactions.map((r) => (
             <button
               key={r.emoji}
@@ -189,53 +224,56 @@ const NoteCard = ({
             </button>
           ))}
           {onReact ? <ReactionPicker onPick={onReact} /> : null}
-        </div>
-      ) : null}
-
-      {(onComment || onViewThread || canManage) && !editing ? (
-        <div className="chapter-note-threadbar">
-          {hasThread && onViewThread ? (
-            <button type="button" className="chapter-note-action chapter-note-action-view" onClick={onViewThread}>
-              <Icon name="comment" size={11} /> {pick(language, `Ver hilo · ${threadCount}`, `View thread · ${threadCount}`, `Ver fío · ${threadCount}`)}
-            </button>
-          ) : null}
-          {onComment ? (
-            <button type="button" className="chapter-note-action" onClick={onComment}>
-              <Icon name="plus" size={11} /> {hasThread ? pick(language, "Nuevo hilo", "New thread", "Novo fío") : pick(language, "Crear hilo", "Start thread", "Crear fío")}
-            </button>
-          ) : null}
+          <button type="button" className={`note-thread-toggle${threadOpen ? " is-open" : ""}`} aria-expanded={threadOpen} onClick={() => setThreadOpen((v) => !v)}>
+            <Icon name="comment" size={12} /> {threadCount > 0 ? threadCount : pick(language, "Comentar", "Comment", "Comentar")}
+          </button>
           {mine && onEdit ? (
-            <button type="button" className="chapter-note-action" onClick={() => { setEditText(note.text); setEditing(true); }}>
+            <button type="button" className="note-mini-action" onClick={() => { setEditText(note.text); setEditing(true); }}>
               <Icon name="pencil" size={11} /> {pick(language, "Editar", "Edit", "Editar")}
             </button>
           ) : null}
           {mine && onDelete ? (
-            <button type="button" className="chapter-note-action chapter-note-action-del" onClick={onDelete}>
+            <button type="button" className="note-mini-action note-mini-action-del" onClick={onDelete}>
               <Icon name="trash" size={11} /> {pick(language, "Borrar", "Delete", "Borrar")}
             </button>
           ) : null}
+        </div>
+      ) : null}
+
+      {threadOpen && !editing ? (
+        <div className="note-thread-wrap">
+          <NoteThread comments={thread} members={members} activeUserId={activeUserId} onReply={onReplyComment} onReact={onReactComment} onEdit={onEditComment} onDelete={onDeleteComment} />
+          <div className="note-comment-composer">
+            <MentionTextarea
+              value={noteCommentText}
+              onChange={setNoteCommentText}
+              members={members}
+              rows={2}
+              placeholder={pick(language, "Comenta esta nota... (@ menciona)", "Comment on this note... (@ to mention)", "Comenta esta nota... (@ menciona)")}
+            />
+            <button type="button" className="btn btn-primary btn-tiny" onClick={submitNoteComment} disabled={sendingComment || !noteCommentText.trim()}>
+              {pick(language, "Comentar", "Comment", "Comentar")}
+            </button>
+          </div>
         </div>
       ) : null}
     </li>
   );
 };
 
-export const ChapterTimeline = ({ chapters, busy, activeUserId, onToggle, onAddNote, onCommentNote, noteThreadById, onViewNoteThread, onReactNote, onEditNote, onDeleteNote }: ChapterTimelineProps) => {
+export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThreads, lastReadChapterId, onToggle, onAddNote, onReactNote, onEditNote, onDeleteNote, onReplyComment, onReactComment, onEditComment, onDeleteComment, onCommentOnNote }: ChapterTimelineProps) => {
   const { language } = useI18n();
   const [openFor, setOpenFor] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
   const [noteImage, setNoteImage] = useState("");
   const [noteKind, setNoteKind] = useState<NoteKind>("note");
   const [saving, setSaving] = useState(false);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // Por defecto solo se despliegan las notas del ÚLTIMO capítulo leído; el resto van
+  // colapsadas. El usuario puede abrir/cerrar cada una (override).
+  const [openOverride, setOpenOverride] = useState<Record<string, boolean>>({});
 
-  const toggleCollapsed = (chapterId: string) =>
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      if (next.has(chapterId)) next.delete(chapterId);
-      else next.add(chapterId);
-      return next;
-    });
+  const toggleNotesOpen = (chapterId: string, defaultOpen: boolean) =>
+    setOpenOverride((prev) => ({ ...prev, [chapterId]: !(prev[chapterId] ?? defaultOpen) }));
 
   const resetForm = () => {
     setNoteText("");
@@ -264,7 +302,8 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, onToggle, onAddN
         const otherNotes = chapter.notes.filter((n) => n.userId !== activeUserId);
         const visibleNotes = chapter.doneByMe ? [...myNotes, ...otherNotes] : myNotes;
         const lockedCount = chapter.doneByMe ? 0 : otherNotes.length;
-        const isCollapsed = collapsed.has(chapter.id);
+        const defaultOpen = chapter.id === lastReadChapterId;
+        const notesOpen = openOverride[chapter.id] ?? defaultOpen;
         return (
           <li key={chapter.id} className={`chapter-node${chapter.doneByMe ? " is-done" : ""}`}>
             <button
@@ -295,29 +334,32 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, onToggle, onAddN
               {/* Notas colapsables (tus notas siempre; las de otros tras leer). */}
               {visibleNotes.length > 0 ? (
                 <div className="chapter-notes-block">
-                  <button type="button" className="chapter-notes-toggle" onClick={() => toggleCollapsed(chapter.id)} aria-expanded={!isCollapsed}>
-                    <span className={`chapter-notes-caret${isCollapsed ? " is-collapsed" : ""}`} aria-hidden="true">▾</span>
+                  <button type="button" className="chapter-notes-toggle" onClick={() => toggleNotesOpen(chapter.id, defaultOpen)} aria-expanded={notesOpen}>
+                    <span className={`chapter-notes-caret${notesOpen ? "" : " is-collapsed"}`} aria-hidden="true">▾</span>
                     {pick(language, `Notas (${visibleNotes.length})`, `Notes (${visibleNotes.length})`, `Notas (${visibleNotes.length})`)}
                   </button>
-                  {!isCollapsed ? (
+                  {notesOpen ? (
                     <ul className="chapter-notes">
-                      {visibleNotes.map((note) => {
-                        const thread = noteThreadById?.get(note.id);
-                        return (
-                          <NoteCard
-                            key={note.id}
-                            note={note}
-                            language={language}
-                            mine={note.userId === activeUserId}
-                            onComment={onCommentNote ? () => onCommentNote(chapter.id, note) : undefined}
-                            threadCount={thread?.count}
-                            onViewThread={thread && onViewNoteThread ? () => onViewNoteThread(thread.rootId) : undefined}
-                            onReact={onReactNote ? (emoji) => onReactNote(note.id, emoji) : undefined}
-                            onEdit={onEditNote ? (text) => onEditNote(note.id, text) : undefined}
-                            onDelete={onDeleteNote ? () => onDeleteNote(note.id) : undefined}
-                          />
-                        );
-                      })}
+                      {visibleNotes.map((note) => (
+                        <NoteCard
+                          key={note.id}
+                          note={note}
+                          language={language}
+                          mine={note.userId === activeUserId}
+                          activeUserId={activeUserId}
+                          members={members}
+                          thread={noteThreads.get(note.id) ?? []}
+                          defaultThreadOpen={defaultOpen}
+                          onReact={onReactNote ? (emoji) => onReactNote(note.id, emoji) : undefined}
+                          onEdit={onEditNote ? (text) => onEditNote(note.id, text) : undefined}
+                          onDelete={onDeleteNote ? () => onDeleteNote(note.id) : undefined}
+                          onReplyComment={onReplyComment}
+                          onReactComment={onReactComment}
+                          onEditComment={onEditComment}
+                          onDeleteComment={onDeleteComment}
+                          onCommentOnNote={(text) => onCommentOnNote(note.id, text)}
+                        />
+                      ))}
                     </ul>
                   ) : null}
                 </div>

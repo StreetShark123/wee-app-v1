@@ -87,9 +87,6 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const [targetDate, setTargetDate] = useState("");
   const [minutesPerDay, setMinutesPerDay] = useState(30);
   const [calcPreview, setCalcPreview] = useState<{ date: string; days: number } | null>(null);
-  const [pendingNote, setPendingNote] = useState<{ id: string; alias: string; text: string; chapterId: string } | null>(null);
-  const [focusComment, setFocusComment] = useState<string | null>(null);
-  const [focusTick, setFocusTick] = useState(0);
 
   const load = useCallback(async () => {
     if (!bookId) return;
@@ -120,23 +117,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     void load();
   }, [load]);
 
-  // "Ver hilo" desde una nota: abre el grupo (vía CommentThread) y salta al comentario.
-  useEffect(() => {
-    if (!focusComment) return;
-    const t = window.setTimeout(() => {
-      const el = document.getElementById(`c-${focusComment}`);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        el.classList.add("comment-flash");
-        window.setTimeout(() => el.classList.remove("comment-flash"), 2200);
-      } else {
-        document.getElementById("comments-composer")?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    }, 90);
-    return () => window.clearTimeout(t);
-  }, [focusComment, focusTick]);
-
-  // #1: si venimos de una notificación (#c-<id>), salta y resalta ese comentario.
+  // Si venimos de una notificación (#c-<id>), salta y resalta ese comentario.
   useEffect(() => {
     if (!detail || !location.hash.startsWith("#c-")) return;
     const elId = location.hash.slice(1);
@@ -288,26 +269,32 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const readChapterIds = new Set(chapters.filter((c) => c.doneByMe).map((c) => c.id));
   const chapterLabelById = new Map(chapters.map((c, i) => [c.id, `${i + 1}`]));
   const noteById = new Map(chapters.flatMap((c) => c.notes.map((n) => [n.id, { alias: n.alias, text: n.text }] as const)));
-  // Hilos por nota: noteId → { rootId del 1er hilo, nº TOTAL de comentarios de
-  // todos los hilos sobre esa nota (roots + respuestas) para que "Ver hilo · N" no deje
-  // hilos huérfanos sin contar.
-  const noteThreadById = (() => {
-    const replyCount = new Map<string, number>();
-    comments.forEach((c) => { if (c.parentId) replyCount.set(c.parentId, (replyCount.get(c.parentId) ?? 0) + 1); });
-    const m = new Map<string, { rootId: string; count: number }>();
+  // Hilos inline por nota: noteId → comentarios del hilo (raíces con ese noteId + sus
+  // respuestas). El resto va a la "discusión general" de abajo.
+  const noteThreads = (() => {
+    const rootNote = new Map<string, string>();
+    comments.forEach((c) => { if (!c.parentId && c.noteId) rootNote.set(c.id, c.noteId); });
+    const m = new Map<string, typeof comments>();
+    const push = (noteId: string, c: (typeof comments)[number]) => {
+      const arr = m.get(noteId) ?? [];
+      arr.push(c);
+      m.set(noteId, arr);
+    };
     comments.forEach((c) => {
-      if (c.parentId || !c.noteId) return;
-      const own = 1 + (replyCount.get(c.id) ?? 0);
-      const prev = m.get(c.noteId);
-      if (prev) prev.count += own;
-      else m.set(c.noteId, { rootId: c.id, count: own });
+      if (!c.parentId && c.noteId) push(c.noteId, c);
+      else if (c.parentId && rootNote.has(c.parentId)) push(rootNote.get(c.parentId) as string, c);
     });
     return m;
   })();
-  const handleViewNoteThread = (rootId: string) => {
-    setFocusComment(rootId);
-    setFocusTick((t) => t + 1);
-  };
+  const noteCommentIds = new Set<string>();
+  noteThreads.forEach((arr) => arr.forEach((c) => noteCommentIds.add(c.id)));
+  const generalComments = comments.filter((c) => !noteCommentIds.has(c.id));
+  const lastReadChapterId = [...chapters].reverse().find((c) => c.doneByMe)?.id ?? null;
+  const handleCommentOnNote = (noteId: string, text: string) =>
+    run(async () => {
+      const { comment } = await addBookComment(book.id, text, { noteId });
+      patch((d) => ({ ...d, comments: [...d.comments, comment] }));
+    });
   // Reacción a una nota: optimista en su nota, sin recargar la ficha.
   const handleReactNote = (noteId: string, emoji: string) => {
     const apply = (reactionsOf: (n: ChapterNote) => CommentReaction[]) =>
@@ -400,23 +387,11 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     const { comment } = await addBookComment(book.id, text, { parentId });
     patch((d) => ({ ...d, comments: [...d.comments, comment] }));
   };
-  const handleAddComment = (text: string, chapterId?: string, noteId?: string) =>
+  const handleAddComment = (text: string, chapterId?: string) =>
     run(async () => {
-      const { comment } = await addBookComment(book.id, text, { chapterId, noteId });
+      const { comment } = await addBookComment(book.id, text, { chapterId });
       patch((d) => ({ ...d, comments: [...d.comments, comment] }));
-      // Abre el grupo destino y salta a tu comentario (para que veas que se publicó).
-      setFocusComment(comment.id);
-      setFocusTick((t) => t + 1);
     });
-  // Crear hilo sobre una nota: el comentario quedará encabezado por esa nota.
-  const handleCommentNote = (chapterId: string, note: ChapterNote) => {
-    setPendingNote({ id: note.id, alias: note.alias, text: note.text, chapterId });
-    setCommentChapter(chapterId);
-    setCommentText("");
-    window.requestAnimationFrame(() => {
-      document.getElementById("comments-composer")?.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
-  };
   const handleEditComment = async (commentId: string, text: string) => {
     const r = await updateComment(commentId, text);
     patch((d) => ({ ...d, comments: d.comments.map((c) => (c.id === commentId ? { ...c, text, editedAt: r.editedAt ?? Date.now() } : c)) }));
@@ -764,12 +739,12 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                   <p className="chapter-alldone"><Icon name="check" /> {pick(language, "Has leído todos los capítulos.", "You've read every chapter.", "Liches todos os capítulos.")}</p>
                   <details className="chapter-collapsed">
                     <summary>{pick(language, `Ver los ${total} capítulos`, `Show the ${total} chapters`, `Ver os ${total} capítulos`)}</summary>
-                    <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} onCommentNote={handleCommentNote} noteThreadById={noteThreadById} onViewNoteThread={handleViewNoteThread} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} />
+                    <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} members={clubMembers} noteThreads={noteThreads} lastReadChapterId={lastReadChapterId} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} onReplyComment={handleReply} onReactComment={handleReact} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onCommentOnNote={handleCommentOnNote} />
                   </details>
                 </>
               ) : (
                 <>
-                  <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} onCommentNote={handleCommentNote} noteThreadById={noteThreadById} onViewNoteThread={handleViewNoteThread} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} />
+                  <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} members={clubMembers} noteThreads={noteThreads} lastReadChapterId={lastReadChapterId} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} onReplyComment={handleReply} onReactComment={handleReact} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onCommentOnNote={handleCommentOnNote} />
                   <button type="button" className="btn chapter-mark-all" disabled={busy} onClick={() => handleCompleteAll(true)}>
                     <Icon name="check" /> {pick(language, "Marcar todo como leído", "Mark all as read", "Marcar todo como lido")}
                   </button>
@@ -876,10 +851,10 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
           ) : null}
         </section>
 
-        {/* Comentarios */}
-        <section className="page-section">
+        {/* Discusión general (los debates por capítulo viven en las notas, arriba) */}
+        <section className="page-section community-secondary">
           <div className="section-head">
-            <h2><Icon name="comment" /> {pick(language, "Comentarios", "Comments", "Comentarios")}</h2>
+            <h2><Icon name="comment" /> {pick(language, "Discusión general", "General discussion", "Discusión xeral")}</h2>
           </div>
           <form
             id="comments-composer"
@@ -888,35 +863,21 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               event.preventDefault();
               const clean = commentText.trim();
               if (!clean) return;
-              const noteId = pendingNote?.id;
-              // Con nota pendiente, el capítulo es el de la nota (coherencia note↔capítulo).
-              const ch = pendingNote?.chapterId ?? (commentChapter || undefined);
+              const ch = commentChapter || undefined;
               setCommentText("");
               setCommentChapter("");
-              setPendingNote(null);
-              void handleAddComment(clean, ch, noteId);
+              void handleAddComment(clean, ch);
             }}
           >
-            {pendingNote ? (
-              <div className="composer-note-ref">
-                <span className="composer-note-ref-text">
-                  <Icon name="spark" size={12} /> {pick(language, `Hilo sobre la nota de ${pendingNote.alias}`, `Thread on ${pendingNote.alias}'s note`, `Fío sobre a nota de ${pendingNote.alias}`)}
-                  {pendingNote.text ? <em> «{pendingNote.text.slice(0, 60)}{pendingNote.text.length > 60 ? "…" : ""}»</em> : null}
-                </span>
-                <button type="button" className="composer-note-ref-x" onClick={() => setPendingNote(null)} aria-label={pick(language, "Quitar", "Remove", "Quitar")}>×</button>
-              </div>
-            ) : null}
             <MentionTextarea
               value={commentText}
               onChange={setCommentText}
               members={clubMembers}
               rows={2}
-              placeholder={pendingNote
-                ? pick(language, "Abre el hilo sobre esta nota...", "Start the thread about this note...", "Abre o fío sobre esta nota...")
-                : pick(language, "Comenta. Usa @nombre para mencionar. Sin spoilers 👀", "Comment. Use @name to mention. No spoilers 👀", "Comenta. Usa @nome para mencionar. Sen spoilers 👀")}
+              placeholder={pick(language, "Una idea general del libro... (@ menciona, sin spoilers 👀)", "A general thought about the book... (@ to mention, no spoilers 👀)", "Unha idea xeral do libro... (@ menciona, sen spoilers 👀)")}
             />
             <div className="book-comment-foot">
-              {named && !pendingNote ? (
+              {named ? (
                 <label className="comment-chapter-pick">
                   {pick(language, "Sobre:", "About:", "Sobre:")}
                   <select value={commentChapter} onChange={(event) => setCommentChapter(event.target.value)} className="settings-select">
@@ -931,21 +892,20 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                 {pick(language, "Enviar", "Send", "Enviar")}
               </button>
             </div>
-            {commentChapter || pendingNote ? (
+            {commentChapter ? (
               <p className="hint comment-chapter-warn">{pick(language, "Solo lo verán quienes hayan leído ese capítulo. Si mencionas a alguien que aún no ha llegado, lo verá cuando lo lea.", "Only members who've read that chapter will see it. If you mention someone who isn't there yet, they'll see it when they read it.", "Só o verán quen lese ese capítulo. Se mencionas a alguén que aínda non chegou, verao cando o lea.")}</p>
             ) : null}
           </form>
-          {comments.length === 0 ? (
-            <p className="hint">{pick(language, "Sé quien abre el debate. ¿Qué esperas de este libro?", "Be the one to open the debate. What do you expect from this book?", "Sé quen abre o debate. Que esperas deste libro?")}</p>
+          {generalComments.length === 0 ? (
+            <p className="hint">{pick(language, "Para debatir un capítulo concreto, comenta en sus notas arriba. Aquí van las ideas generales del libro.", "To discuss a specific chapter, comment on its notes above. General thoughts about the book go here.", "Para debater un capítulo concreto, comenta nas súas notas arriba. Aquí van as ideas xerais do libro.")}</p>
           ) : (
             <CommentThread
-              comments={comments}
+              comments={generalComments}
               members={clubMembers}
               activeUserId={activeUser.id}
               readChapterIds={readChapterIds}
               chapterLabelById={chapterLabelById}
               noteById={noteById}
-              focusCommentId={focusComment}
               onReply={handleReply}
               onReact={handleReact}
               onEdit={handleEditComment}
