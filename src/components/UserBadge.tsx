@@ -1,9 +1,18 @@
 import { hueForUser } from "../lib/userColor";
+import { Icon, type IconName } from "./Icon";
 
-// Insignia de autor: avatar inicial coloreado + nombre en su color (estable por usuario).
+// Repertorio de glifos para quien no tiene avatar: estable por usuario.
+const GLYPHS: IconName[] = ["heart", "spiral", "spark", "flame", "bolt", "target", "leaf", "moon", "star", "diamond"];
+const glyphForUser = (key: string): IconName => {
+  const s = key || "?";
+  let h = 7;
+  for (let i = 0; i < s.length; i++) h = (h * 17 + s.charCodeAt(i)) % GLYPHS.length;
+  return GLYPHS[h];
+};
+
+// Insignia de autor: avatar de glifo coloreado + nombre en su color (estable por usuario).
 export const UserBadge = ({ alias, withAvatar = false }: { alias: string; withAvatar?: boolean }) => {
   const hue = hueForUser(alias);
-  const initial = (alias || "?").trim().charAt(0).toUpperCase();
   return (
     <span className="user-badge">
       {withAvatar ? (
@@ -12,7 +21,7 @@ export const UserBadge = ({ alias, withAvatar = false }: { alias: string; withAv
           style={{ background: `hsl(${hue} 45% 40%)`, borderColor: `hsl(${hue} 65% 62%)` }}
           aria-hidden="true"
         >
-          {initial}
+          <Icon name={glyphForUser(alias)} size={13} />
         </span>
       ) : null}
       <span className="user-badge-name" style={{ color: `hsl(${hue} 72% 72%)` }}>{alias}</span>
@@ -20,13 +29,12 @@ export const UserBadge = ({ alias, withAvatar = false }: { alias: string; withAv
   );
 };
 
-// Solo el avatar inicial (para apilar los lectores de un capítulo).
+// Solo el avatar de glifo (para apilar los lectores de un capítulo).
 export const UserDot = ({ alias, title }: { alias: string; title?: string }) => {
   const hue = hueForUser(alias);
-  const initial = (alias || "?").trim().charAt(0).toUpperCase();
   return (
     <span className="user-dot" style={{ background: `hsl(${hue} 45% 40%)`, borderColor: `hsl(${hue} 65% 62%)` }} title={title ?? alias}>
-      {initial}
+      <Icon name={glyphForUser(alias)} size={12} />
     </span>
   );
 };

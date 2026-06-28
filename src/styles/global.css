@@ -3573,6 +3573,7 @@ textarea:focus-visible {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
   min-height: 60vh;
 }
 
@@ -3586,6 +3587,8 @@ textarea:focus-visible {
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  width: 100%;
+  max-width: 440px;
   padding: 28px 20px;
   background: var(--panel-0);
   border: 1px solid var(--line);
@@ -4612,3 +4615,12 @@ textarea:focus-visible {
 .chapter-readers .user-dot { margin-left: -7px; box-shadow: 0 0 0 1.5px var(--panel-0); }
 .chapter-readers .user-dot:first-child { margin-left: 0; }
 .chapter-readers-more { margin-left: 4px; font-size: 0.72rem; color: var(--ink-1); font-weight: 600; }
+
+/* Fallback ligero de ruta perezosa (evita repetir la pantalla de carga completa) */
+.route-fallback { display: grid; place-items: center; min-height: 50vh; }
+.route-spinner {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 3px solid var(--line); border-top-color: var(--brand);
+  animation: route-spin 0.7s linear infinite;
+}
+@keyframes route-spin { to { transform: rotate(360deg); } }

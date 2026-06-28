@@ -428,16 +428,7 @@ const AppRoutes = () => {
     <I18nContext.Provider value={i18nValue}>
       <NotificationsContext.Provider value={notificationsValue}>
         <AppErrorBoundary>
-        <Suspense
-          fallback={
-            <CommunityLoadingScreen
-              communityName={selectedCommunity?.name}
-              topics={Array.from(new Set(posts.flatMap((post) => post.topics))).slice(0, 3)}
-              usersCount={users.length}
-              finishing={false}
-            />
-          }
-        >
+        <Suspense fallback={<div className="route-fallback" aria-busy="true"><span className="route-spinner" /></div>}>
         <AnimatePresence mode="wait" initial={false}>
         <Routes location={location} key={location.pathname}>
         <Route
@@ -659,6 +650,7 @@ const AppRoutes = () => {
         <Route path="*" element={<Navigate to={resolveRootRoute({ hasGlobalSession: Boolean(globalSession), hasActiveCommunitySession: Boolean(activeUser) })} replace />} />
         </Routes>
         </AnimatePresence>
+        {activeUser ? <AppFooter /> : null}
         </Suspense>
         </AppErrorBoundary>
         <Toast message={toast} />
@@ -668,7 +660,6 @@ const AppRoutes = () => {
           onAddBook={onAddBook}
           onToast={showToast}
         />
-        {activeUser ? <AppFooter /> : null}
       </NotificationsContext.Provider>
     </I18nContext.Provider>
   );

@@ -30,6 +30,10 @@ export type IconName =
   | "heart"
   | "spark"
   | "spiral"
+  | "star"
+  | "moon"
+  | "leaf"
+  | "diamond"
   | "target"
   | "eye"
   | "eyeOff"
@@ -91,6 +95,11 @@ const PATHS: Record<IconName, string> = {
   spark: "M13 2 6 13h5l-1 9 8-12h-5z",
   spiral:
     "M12 4a8 8 0 1 0 8 8 1 1 0 1 1-2 0 6 6 0 1 1-6-6 4 4 0 1 1-4 4 2 2 0 1 0 2-2 1 1 0 1 1 0-2z",
+  star:
+    "M12 2l2.9 6.3 6.9.7-5.1 4.6 1.4 6.8L12 17.8 5.9 20.4l1.4-6.8L2.2 9l6.9-.7z",
+  moon: "M13 3a9 9 0 1 0 8 13A7.5 7.5 0 0 1 13 3z",
+  leaf: "M4 20c0-9 7-16 16-16 0 9-7 16-16 16zm3.2-3.2c6-1 10-5 11-11-6 1-10 5-11 11z",
+  diamond: "M5 3h14l3 6-10 12L2 9z",
   target:
     "M12 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-7-7V3zm0 4a5 5 0 1 0 5 5h-2a3 3 0 1 1-3-3V7zm8-4v6h-2V6.4l-3.3 3.3-1.4-1.4L16.6 5H14V3z",
   eye:

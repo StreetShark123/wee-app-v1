@@ -1928,6 +1928,9 @@ const handlers = {
       .single();
     if (ins.error) return json(400, { message: ins.error.message });
 
+    // Voto propio por defecto (estilo Reddit): el autor arranca con +1.
+    await db.from("comment_reactions").insert({ comment_id: ins.data.id, user_id: auth.user.id, emoji: "up" });
+
     // ── Notificaciones (sanas: solo dirigidas a ti): @menciones + respuesta ──
     try {
       const notified = new Set<string>([auth.user.id]); // nunca te notificas a ti mismo
@@ -1986,7 +1989,7 @@ const handlers = {
         parentId: ins.data.parent_id ?? undefined,
         chapterId: ins.data.chapter_id ?? undefined,
         noteId: ins.data.note_id ?? undefined,
-        reactions: [],
+        reactions: [{ emoji: "up", count: 1, mine: true }],
         createdAt: toMillis(ins.data.created_at)
       }
     });
@@ -1998,9 +2001,9 @@ const handlers = {
     if (auth instanceof Response) return auth;
     const body = await parseBody(req);
     const commentId = String(body.comment_id ?? "").trim();
-    const emoji = String(body.emoji ?? "").trim().slice(0, 16);
+    const emoji = String(body.emoji ?? "").trim();
     if (!commentId) return bad("comment_id required");
-    if (!emoji) return bad("emoji required");
+    if (!["up", "down"].includes(emoji)) return bad("emoji must be up or down");
 
     const cRes = await db
       .from("book_comments")
@@ -2114,9 +2117,9 @@ const handlers = {
     if (auth instanceof Response) return auth;
     const body = await parseBody(req);
     const noteId = String(body.note_id ?? "").trim();
-    const emoji = String(body.emoji ?? "").trim().slice(0, 16);
+    const emoji = String(body.emoji ?? "").trim();
     if (!noteId) return bad("note_id required");
-    if (!emoji) return bad("emoji required");
+    if (!["up", "down"].includes(emoji)) return bad("emoji must be up or down");
 
     const nRes = await db
       .from("chapter_notes")
@@ -2481,6 +2484,10 @@ const handlers = {
       .select("id,chapter_id,user_id,kind,text,image_url,created_at")
       .single();
     if (ins.error) return json(400, { message: ins.error.message });
+
+    // Voto propio por defecto (estilo Reddit): el autor arranca con +1.
+    await db.from("note_reactions").insert({ note_id: ins.data.id, user_id: auth.user.id, emoji: "up" });
+
     return json(200, {
       note: {
         id: ins.data.id,
@@ -2490,6 +2497,7 @@ const handlers = {
         kind: ins.data.kind ?? "note",
         text: ins.data.text,
         imageUrl: ins.data.image_url ?? undefined,
+        reactions: [{ emoji: "up", count: 1, mine: true }],
         createdAt: toMillis(ins.data.created_at)
       }
     });
