@@ -3078,12 +3078,6 @@ textarea:focus-visible {
   color: var(--ink-1);
 }
 
-.book-card-shelf {
-  margin-top: 2px;
-  font-size: 0.72rem;
-  color: var(--brand-strong);
-}
-
 /* Modal de alta de libro (búsqueda + revisión) */
 .book-results {
   list-style: none;
@@ -4094,36 +4088,6 @@ textarea:focus-visible {
 .comment-text a { color: var(--brand-strong); text-decoration: underline; }
 
 .comment-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.reaction-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.78rem;
-  padding: 2px 8px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--line);
-  background: var(--panel-1);
-  color: var(--ink-1);
-  cursor: pointer;
-}
-.reaction-chip.is-mine { border-color: var(--brand); color: var(--brand-strong); background: color-mix(in srgb, var(--brand) 14%, transparent); }
-.reaction-add { position: relative; display: inline-flex; }
-.reaction-add-btn { color: var(--ink-1); }
-.reaction-picker {
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 0;
-  z-index: 5;
-  display: flex;
-  gap: 2px;
-  padding: 5px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--line);
-  background: var(--panel-1);
-  box-shadow: 0 8px 20px rgb(4 9 22 / 35%);
-}
-.reaction-emoji { font-size: 1.1rem; line-height: 1; padding: 4px 6px; border: 0; background: transparent; border-radius: var(--radius-sm); cursor: pointer; }
-.reaction-emoji:hover { background: color-mix(in srgb, var(--brand) 18%, transparent); }
 .comment-reply-btn { font-size: 0.78rem; color: var(--ink-1); background: transparent; border: 0; cursor: pointer; padding: 2px 4px; }
 .comment-reply-btn:hover { color: var(--ink-0); }
 .comment-reply-form { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
@@ -4133,28 +4097,6 @@ textarea:focus-visible {
 .chapter-note-prompt { border-color: color-mix(in srgb, var(--accent-amber) 40%, var(--line)); background: color-mix(in srgb, var(--accent-amber) 7%, transparent); }
 .chapter-note-prompt .chapter-note-kind { color: var(--accent-amber); border-color: color-mix(in srgb, var(--accent-amber) 50%, var(--line)); background: color-mix(in srgb, var(--accent-amber) 14%, transparent); }
 .chapter-note-prompt .chapter-note-text { font-weight: 500; }
-
-/* Reacciones: picker más grande + pop al reaccionar + feedback táctil */
-.reaction-picker {
-  flex-wrap: wrap;
-  max-width: 232px;
-  gap: 1px;
-  border-radius: var(--radius-md);
-}
-.reaction-emoji { font-size: 1.15rem; padding: 4px 5px; }
-
-.reaction-chip { transition: transform 120ms var(--ease-standard), background 120ms var(--ease-standard), border-color 120ms var(--ease-standard); }
-.reaction-chip:active { transform: scale(0.9); }
-.reaction-chip.is-mine { font-weight: 700; }
-.reaction-count { font-variant-numeric: tabular-nums; }
-
-@keyframes reaction-pop {
-  0% { transform: scale(0.7); }
-  55% { transform: scale(1.18); }
-  100% { transform: scale(1); }
-}
-.reaction-pop { animation: reaction-pop 220ms var(--ease-emphasized); }
-@media (prefers-reduced-motion: reduce) { .reaction-pop { animation: none; } }
 
 /* @menciones: autocompletado */
 .mention-wrap { position: relative; }
@@ -4233,14 +4175,8 @@ textarea:focus-visible {
   padding: 8px 12px;
 }
 
-/* Móvil: popovers no desbordan el viewport */
-.reaction-picker {
-  left: auto;        /* abre hacia la izquierda del botón "+", siempre en pantalla */
-  right: 0;
-  max-width: min(232px, calc(100vw - 28px));
-}
+/* Móvil: popover de menciones no desborda el viewport */
 .mention-list { max-width: min(260px, calc(100vw - 28px)); max-height: 40vh; overflow: auto; overscroll-behavior: contain; }
-.reaction-add { position: relative; }
 
 /* Móvil: el pie del composer de comentarios respira y no se sale */
 @media (max-width: 560px) {
@@ -4249,19 +4185,6 @@ textarea:focus-visible {
   .book-comment-foot .btn { width: 100%; }
   .comment-actions { gap: 4px 6px; }
 }
-
-/* Fix: picker de emojis en rejilla cómoda (no una columna) */
-.reaction-picker {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 2px;
-  width: 248px;
-  max-width: calc(100vw - 28px);
-}
-@media (max-width: 420px) {
-  .reaction-picker { grid-template-columns: repeat(6, 1fr); width: auto; }
-}
-.reaction-emoji { display: grid; place-items: center; }
 
 /* Cadencia inteligente */
 .cadence-pace {
@@ -4373,9 +4296,6 @@ textarea:focus-visible {
 .input-icon { position: relative; display: flex; align-items: center; width: 100%; }
 .input-icon > svg { position: absolute; left: 10px; opacity: 0.65; pointer-events: none; }
 .input-icon > input { padding-left: 32px; }
-
-/* Reacciones: celdas táctiles ≥40px (antes ~26px → toques erróneos) */
-.reaction-emoji { min-width: 40px; min-height: 40px; display: inline-grid; place-items: center; }
 
 /* Acciones de comentario: más alto y con más separación táctil */
 .comment-reply-btn { min-height: 36px; padding: 4px 10px; }
@@ -4519,13 +4439,6 @@ textarea:focus-visible {
 .composer-note-ref-x { background: transparent; border: 0; color: var(--ink-1); cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0 2px; }
 .composer-note-ref-x:hover { color: var(--ink-0); }
 
-.comment-note-header {
-  border-left: 3px solid color-mix(in srgb, var(--brand) 55%, var(--line));
-  padding: 4px 0 4px 10px; margin-bottom: 6px;
-}
-.comment-note-header-label { font-size: 0.74rem; font-weight: 600; color: var(--ink-1); }
-.comment-note-header-text { margin: 2px 0 0; font-size: 0.84rem; font-style: italic; color: var(--ink-1); line-height: 1.4; }
-
 /* Acciones de nota: ancho de su contenido en desktop, 2 columnas en móvil */
 .chapter-note-threadbar { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 6px; margin-top: 6px; }
 .chapter-note-action {
@@ -4543,25 +4456,6 @@ textarea:focus-visible {
 
 /* PWA: acciones del footer (Instalar app + Sobre Wee) */
 .footer-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-
-/* Picker de reacciones: bottom-sheet en móvil (no se corta ni queda tras el teclado) */
-.reaction-picker-backdrop { display: none; }
-@media (max-width: 560px) {
-  .reaction-picker-backdrop {
-    display: block; position: fixed; inset: 0; z-index: 70;
-    background: rgb(6 12 24 / 45%); backdrop-filter: blur(2px);
-  }
-  .reaction-picker {
-    position: fixed; z-index: 71;
-    left: 8px; right: 8px; top: auto;
-    bottom: calc(8px + env(safe-area-inset-bottom));
-    width: auto; max-width: none;
-    grid-template-columns: repeat(6, 1fr); gap: 6px; padding: 12px;
-    box-shadow: 0 -12px 34px rgb(0 0 0 / 48%);
-  }
-  /* Chips de reacción táctiles ≥40px en móvil */
-  .reaction-chip { min-height: 40px; padding: 5px 12px; }
-}
 
 /* Zona peligrosa colapsada (details) */
 .book-delete-summary { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--danger); font-weight: 600; font-size: 0.82rem; padding: 4px 0; list-style: none; }
@@ -4643,9 +4537,6 @@ textarea:focus-visible {
 /* El toggle de comentar se separa de las reacciones (a la derecha) */
 .note-thread-empty { margin: 0 0 4px; font-style: italic; }
 
-/* Fix bocadillo de emojis: dentro del picker la celda se ajusta a su columna (el
-   min-width:40px táctil rompía la rejilla y los emojis se salían). Alto táctil intacto. */
-.reaction-picker .reaction-emoji { min-width: 0; width: 100%; }
 
 /* Votos ↑/↓ tipo Reddit (sustituyen a los emojis) + barra de nota compacta */
 .note-actionbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
