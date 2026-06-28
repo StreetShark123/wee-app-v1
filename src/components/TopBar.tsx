@@ -88,7 +88,7 @@ const TopBarInner = ({ user, communityName, onLeaveCommunity, searchValue, onSea
             aria-haspopup="menu"
           >
             <Avatar user={user} size={32} />
-            <span><Icon name="user" size={13} /> {user.alias}</span>
+            <span className="user-menu-label"><Icon name="user" size={13} /> {user.alias}</span>
             <span className="user-menu-caret">▾</span>
           </button>
 

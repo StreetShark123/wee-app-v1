@@ -2872,11 +2872,16 @@ textarea:focus-visible {
     font-size: 1.08rem;
   }
 
-  .user-link span {
-    max-width: 120px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  /* Perfil compacto en móvil: solo avatar (sin nombre ni caret) */
+  .user-menu-label,
+  .user-menu-caret {
+    display: none;
+  }
+
+  .user-menu-trigger {
+    gap: 0;
+    padding: 2px;
+    border-radius: var(--radius-pill);
   }
 
   .topbar-right {
