@@ -8,7 +8,7 @@ import { useConfirm } from "../lib/confirm";
 import { parseChapterList } from "../lib/parseChapters";
 import { getCachedBook, setCachedBook } from "../lib/booksCache";
 import { BookDetailSkeleton } from "../components/Skeletons";
-import { CommentThread } from "../components/CommentThread";
+import { NoteThread } from "../components/CommentThread";
 import { MentionTextarea } from "../components/MentionTextarea";
 import {
   addBookComment,
@@ -80,7 +80,6 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const [ratingInput, setRatingInput] = useState(0);
   const [reviewInput, setReviewInput] = useState("");
   const [commentText, setCommentText] = useState("");
-  const [commentChapter, setCommentChapter] = useState("");
   const [editOpen, setEditOpen] = useState(false);
   const [edit, setEdit] = useState({ title: "", author: "", coverUrl: "", description: "" });
   const [targetCh, setTargetCh] = useState("");
@@ -266,9 +265,6 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const parsedPreview = parseChapterList(chaptersRaw);
   const daysLeft = book.targetDate ? Math.ceil((new Date(`${book.targetDate}T23:59:59`).getTime() - Date.now()) / 86400000) : null;
   const hasCadence = book.status === "reading" && (book.targetChapter || book.targetDate);
-  const readChapterIds = new Set(chapters.filter((c) => c.doneByMe).map((c) => c.id));
-  const chapterLabelById = new Map(chapters.map((c, i) => [c.id, `${i + 1}`]));
-  const noteById = new Map(chapters.flatMap((c) => c.notes.map((n) => [n.id, { alias: n.alias, text: n.text }] as const)));
   // Hilos inline por nota: noteId → comentarios del hilo (raíces con ese noteId + sus
   // respuestas). El resto va a la "discusión general" de abajo.
   const noteThreads = (() => {
@@ -851,11 +847,13 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
           ) : null}
         </section>
 
-        {/* Discusión general (los debates por capítulo viven en las notas, arriba) */}
+        {/* Discusión general: SOLO sobre el libro entero. Lo de cada capítulo se debate
+            en sus notas, arriba. */}
         <section className="page-section community-secondary">
           <div className="section-head">
-            <h2><Icon name="comment" /> {pick(language, "Discusión general", "General discussion", "Discusión xeral")}</h2>
+            <h2><Icon name="comment" /> {pick(language, "Sobre el libro entero", "About the whole book", "Sobre o libro enteiro")}</h2>
           </div>
+          <p className="hint">{pick(language, "Ideas que abarcan todo el libro. Para debatir un capítulo, comenta en sus notas (arriba). Sin spoilers 👀", "Thoughts that span the whole book. To discuss a chapter, comment on its notes (above). No spoilers 👀", "Ideas que abarcan todo o libro. Para debater un capítulo, comenta nas súas notas (arriba). Sen spoilers 👀")}</p>
           <form
             id="comments-composer"
             className="book-comment-form"
@@ -863,10 +861,8 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               event.preventDefault();
               const clean = commentText.trim();
               if (!clean) return;
-              const ch = commentChapter || undefined;
               setCommentText("");
-              setCommentChapter("");
-              void handleAddComment(clean, ch);
+              void handleAddComment(clean);
             }}
           >
             <MentionTextarea
@@ -874,38 +870,22 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               onChange={setCommentText}
               members={clubMembers}
               rows={2}
-              placeholder={pick(language, "Una idea general del libro... (@ menciona, sin spoilers 👀)", "A general thought about the book... (@ to mention, no spoilers 👀)", "Unha idea xeral do libro... (@ menciona, sen spoilers 👀)")}
+              placeholder={pick(language, "Una idea sobre el libro entero... (@ menciona)", "A thought about the whole book... (@ to mention)", "Unha idea sobre o libro enteiro... (@ menciona)")}
             />
             <div className="book-comment-foot">
-              {named ? (
-                <label className="comment-chapter-pick">
-                  {pick(language, "Sobre:", "About:", "Sobre:")}
-                  <select value={commentChapter} onChange={(event) => setCommentChapter(event.target.value)} className="settings-select">
-                    <option value="">{pick(language, "El libro (general)", "The book (general)", "O libro (xeral)")}</option>
-                    {chapters.map((c, i) => (
-                      <option key={c.id} value={c.id}>{pick(language, `Capítulo ${i + 1}`, `Chapter ${i + 1}`, `Capítulo ${i + 1}`)}</option>
-                    ))}
-                  </select>
-                </label>
-              ) : <span />}
+              <span />
               <button type="submit" className="btn btn-primary" disabled={busy || !commentText.trim()}>
-                {pick(language, "Enviar", "Send", "Enviar")}
+                {pick(language, "Comentar", "Comment", "Comentar")}
               </button>
             </div>
-            {commentChapter ? (
-              <p className="hint comment-chapter-warn">{pick(language, "Solo lo verán quienes hayan leído ese capítulo. Si mencionas a alguien que aún no ha llegado, lo verá cuando lo lea.", "Only members who've read that chapter will see it. If you mention someone who isn't there yet, they'll see it when they read it.", "Só o verán quen lese ese capítulo. Se mencionas a alguén que aínda non chegou, verao cando o lea.")}</p>
-            ) : null}
           </form>
           {generalComments.length === 0 ? (
-            <p className="hint">{pick(language, "Para debatir un capítulo concreto, comenta en sus notas arriba. Aquí van las ideas generales del libro.", "To discuss a specific chapter, comment on its notes above. General thoughts about the book go here.", "Para debater un capítulo concreto, comenta nas súas notas arriba. Aquí van as ideas xerais do libro.")}</p>
+            <p className="hint">{pick(language, "Aún no hay comentarios generales. Abre tú el debate sobre el libro.", "No general comments yet. Open the conversation about the book.", "Aínda non hai comentarios xerais. Abre ti o debate sobre o libro.")}</p>
           ) : (
-            <CommentThread
+            <NoteThread
               comments={generalComments}
               members={clubMembers}
               activeUserId={activeUser.id}
-              readChapterIds={readChapterIds}
-              chapterLabelById={chapterLabelById}
-              noteById={noteById}
               onReply={handleReply}
               onReact={handleReact}
               onEdit={handleEditComment}

@@ -4556,3 +4556,7 @@ textarea:focus-visible {
 .note-comment-composer { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
 
 .community-secondary .section-head h2 { font-size: 1rem; color: var(--ink-1); }
+
+/* El toggle de comentar se separa de las reacciones (a la derecha) */
+.note-actionbar .note-thread-toggle { margin-left: auto; }
+.note-thread-empty { margin: 0 0 4px; font-style: italic; }

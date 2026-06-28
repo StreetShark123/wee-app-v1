@@ -225,7 +225,11 @@ const NoteCard = ({
           ))}
           {onReact ? <ReactionPicker onPick={onReact} /> : null}
           <button type="button" className={`note-thread-toggle${threadOpen ? " is-open" : ""}`} aria-expanded={threadOpen} onClick={() => setThreadOpen((v) => !v)}>
-            <Icon name="comment" size={12} /> {threadCount > 0 ? threadCount : pick(language, "Comentar", "Comment", "Comentar")}
+            <Icon name="comment" size={12} /> {threadCount > 0
+              ? `${threadCount} ${threadCount === 1 ? pick(language, "comentario", "comment", "comentario") : pick(language, "comentarios", "comments", "comentarios")}`
+              : note.kind === "prompt"
+                ? pick(language, "Responder", "Reply", "Responder")
+                : pick(language, "Comentar", "Comment", "Comentar")}
           </button>
           {mine && onEdit ? (
             <button type="button" className="note-mini-action" onClick={() => { setEditText(note.text); setEditing(true); }}>
@@ -242,7 +246,11 @@ const NoteCard = ({
 
       {threadOpen && !editing ? (
         <div className="note-thread-wrap">
-          <NoteThread comments={thread} members={members} activeUserId={activeUserId} onReply={onReplyComment} onReact={onReactComment} onEdit={onEditComment} onDelete={onDeleteComment} />
+          {threadCount === 0 ? (
+            <p className="hint note-thread-empty">{pick(language, "Aún sin comentarios. Abre tú el hilo.", "No comments yet. Start the thread.", "Aínda sen comentarios. Abre ti o fío.")}</p>
+          ) : (
+            <NoteThread comments={thread} members={members} activeUserId={activeUserId} onReply={onReplyComment} onReact={onReactComment} onEdit={onEditComment} onDelete={onDeleteComment} />
+          )}
           <div className="note-comment-composer">
             <MentionTextarea
               value={noteCommentText}
