@@ -481,11 +481,6 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
             </span>
           )}
           {coverLightbox && book.coverUrl ? <ImageLightbox url={book.coverUrl} onClose={() => setCoverLightbox(false)} showVisit={false} /> : null}
-          {canSetChapters && !editOpen ? (
-            <button type="button" className="btn book-edit-corner" onClick={openEdit}>
-              <Icon name="pencil" size={13} /> {pick(language, "Editar", "Edit", "Editar")}
-            </button>
-          ) : null}
           <div className="book-detail-meta">
             <div className="book-status-row">
               <span className={`book-card-status book-card-status-${book.status}`}>{statusLabel(book.status, language)}</span>
@@ -513,6 +508,11 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               </p>
             ) : null}
           </div>
+          {canSetChapters && !editOpen ? (
+            <button type="button" className="btn book-edit-corner" onClick={openEdit}>
+              <Icon name="pencil" size={13} /> {pick(language, "Editar", "Edit", "Editar")}
+            </button>
+          ) : null}
         </section>
 
         {editOpen ? (

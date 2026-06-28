@@ -3368,6 +3368,7 @@ textarea:focus-visible {
 
 .chapter-body {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -3385,6 +3386,9 @@ textarea:focus-visible {
   font-size: 0.94rem;
   font-weight: 600;
   line-height: 1.3;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .chapter-node.is-done .chapter-title {
@@ -3661,7 +3665,8 @@ textarea:focus-visible {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px 10px;
+  flex-wrap: wrap;
   width: 100%;
   text-align: left;
   background: transparent;
@@ -3676,8 +3681,11 @@ textarea:focus-visible {
 .chapter-meta {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px 8px;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .chapter-done-tag {
@@ -4012,6 +4020,7 @@ textarea:focus-visible {
 
 .comment-item { display: flex; flex-direction: column; gap: 5px; }
 .comment-item-reply { padding-left: 14px; border-left: 2px solid var(--line); }
+.comment-head { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; }
 .comment-head strong { font-size: 0.82rem; color: var(--brand-strong); }
 .comment-text { margin: 0; font-size: 0.9rem; line-height: 1.45; }
 .comment-text a { color: var(--brand-strong); text-decoration: underline; }
@@ -4136,7 +4145,6 @@ textarea:focus-visible {
 .comment-chapter-warn { margin-top: 4px; }
 
 .comment-chapter-tag {
-  margin-left: 8px;
   font-size: var(--tag-font);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -4535,7 +4543,7 @@ textarea:focus-visible {
 
 /* Hora de publicación en notas y comentarios */
 .chapter-note-time { color: var(--ink-1); font-weight: 400; }
-.comment-time { color: var(--ink-1); font-size: 0.72rem; font-weight: 400; margin-left: 6px; }
+.comment-time { color: var(--ink-1); font-size: 0.72rem; font-weight: 400; }
 
 /* Hilos inline en notas (estilo Reddit) + discusión general secundaria */
 .note-actionbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
@@ -4572,7 +4580,7 @@ textarea:focus-visible {
 .note-actionbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
 .vote-control { display: inline-flex; align-items: center; gap: 1px; }
 .vote-arrow {
-  display: inline-grid; place-items: center; width: 30px; height: 30px;
+  display: inline-grid; place-items: center; width: 34px; height: 34px;
   background: transparent; border: 0; border-radius: 6px; cursor: pointer; color: var(--ink-1);
   transition: background var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard);
 }
@@ -4590,9 +4598,9 @@ textarea:focus-visible {
 .book-cover-btn img { width: 110px; height: 100%; min-height: 144px; object-fit: cover; border-radius: var(--radius-sm); display: block; background: var(--panel-1); }
 .book-detail-head .book-cover-empty { align-self: stretch; height: auto; min-height: 144px; }
 @media (max-width: 800px) {
-  .book-detail-head { align-items: flex-start; }
   .book-cover-btn { align-self: center; }
-  .book-cover-btn img { height: auto; }
+  .book-cover-btn img { height: auto; min-height: 0; aspect-ratio: 2 / 3; }
+  .book-edit-corner { position: static; align-self: center; margin-top: 6px; }
 }
 
 /* Toggle de numeración de capítulos */
