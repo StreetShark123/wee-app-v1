@@ -8,7 +8,7 @@ import { Icon } from "./components/Icon";
 import { PageTransition } from "./components/PageTransition";
 import { AddBookModal } from "./components/AddBookModal";
 import type { BookDraft } from "./lib/bookSearch";
-import { createClubBook, exportMyData, listClubBooks, listNotifications, markNotificationsRead, type ClubBook, type MemberBook } from "./lib/communityApi";
+import { createClubBook, demoteMember, exportMyData, listClubBooks, listNotifications, markNotificationsRead, promoteMember, removeMember, type ClubBook, type MemberBook } from "./lib/communityApi";
 import { clearBooksCache, getCachedList, setCachedList } from "./lib/booksCache";
 import { Toast } from "./components/Toast";
 import { useAppData } from "./lib/appData";
@@ -304,14 +304,12 @@ const AppRoutes = () => {
     if (userId === activeUser.id) {
       return { ok: false, message: pick(language, "No puedes eliminar tu propio usuario admin.", "You cannot delete your own admin user.") };
     }
-    return {
-      ok: false,
-      message: pick(
-        language,
-        "Eliminar otros usuarios requiere permisos backend adicionales (admin SQL v3).",
-        "Deleting other users requires additional backend permissions (admin SQL v3)."
-      )
-    };
+    try {
+      await removeMember(userId);
+      return { ok: true, message: pick(language, "Usuario eliminado del club.", "User removed from the club.") };
+    } catch (err) {
+      return { ok: false, message: err instanceof Error ? err.message : pick(language, "No se pudo eliminar al usuario.", "Couldn't remove the user.") };
+    }
   };
 
   const onAdminSetUserRole = async (
@@ -321,14 +319,18 @@ const AppRoutes = () => {
     if (!activeUser || activeUser.role !== "admin") {
       return { ok: false, message: pick(language, "Esta acción es solo para admin.", "This action is admin-only.") };
     }
-    return {
-      ok: false,
-      message: pick(
-        language,
-        "Cambiar roles requiere permisos backend adicionales (admin SQL v3).",
-        "Changing roles requires additional backend permissions (admin SQL v3)."
-      )
-    };
+    try {
+      if (role === "admin") await promoteMember(userId);
+      else await demoteMember(userId);
+      return {
+        ok: true,
+        message: role === "admin"
+          ? pick(language, "Ahora es admin del club.", "They're now a club admin.")
+          : pick(language, "Ya no es admin.", "They're no longer an admin.")
+      };
+    } catch (err) {
+      return { ok: false, message: err instanceof Error ? err.message : pick(language, "No se pudo cambiar el rol.", "Couldn't change the role.") };
+    }
   };
 
   const showToast = (message: string): void => {
