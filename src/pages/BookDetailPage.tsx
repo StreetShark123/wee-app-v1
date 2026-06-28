@@ -78,6 +78,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const [minutesPerDay, setMinutesPerDay] = useState(30);
   const [calcPreview, setCalcPreview] = useState<{ date: string; days: number } | null>(null);
   const [coverLightbox, setCoverLightbox] = useState(false);
+  const [synopsisOpen, setSynopsisOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!bookId) return;
@@ -466,9 +467,16 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
       <TopBar user={activeUser} onOpenShare={onOpenAddBook} onLogout={onLogout} />
 
       <div className="book-detail">
-        <button type="button" className="book-back" onClick={() => navigate("/home")}>
-          <Icon name="arrowLeft" size={14} /> {pick(language, "Estantería del club", "Club shelf", "Estantería do club")}
-        </button>
+        <div className="book-action-bar">
+          <button type="button" className="book-back" onClick={() => navigate("/home")}>
+            <Icon name="arrowLeft" size={14} /> {pick(language, "Estantería del club", "Club shelf", "Estantería do club")}
+          </button>
+          {canSetChapters && !editOpen ? (
+            <button type="button" className="btn book-edit-corner" onClick={openEdit}>
+              <Icon name="pencil" size={13} /> {pick(language, "Editar", "Edit", "Editar")}
+            </button>
+          ) : null}
+        </div>
 
         <section className="page-section book-detail-head">
           {book.coverUrl ? (
@@ -491,28 +499,44 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               {book.author ?? pick(language, "Autor desconocido", "Unknown author", "Autor descoñecido")}
               {book.publishedYear ? ` · ${book.publishedYear}` : ""}
             </p>
-            {book.description ? <p className="book-detail-synopsis">{book.description}</p> : null}
-            {facilitatorAlias && book.status !== "proposed" ? (
-              <p className="book-facilitator"><Icon name="spark" size={12} /> {pick(language, `Facilita: ${facilitatorAlias}`, `Facilitator: ${facilitatorAlias}`, `Facilita: ${facilitatorAlias}`)}</p>
+            {book.description ? (
+              <div className={`book-detail-synopsis${synopsisOpen ? " is-open" : ""}`}>
+                <p>{book.description}</p>
+                {book.description.length > 200 ? (
+                  <button type="button" className="link-btn synopsis-toggle" onClick={() => setSynopsisOpen((v) => !v)}>
+                    {synopsisOpen ? pick(language, "leer menos", "show less", "ler menos") : pick(language, "leer más", "read more", "ler máis")}
+                  </button>
+                ) : null}
+              </div>
             ) : null}
-            {hasCadence ? (
-              <p className="book-cadence">
-                <Icon name="target" size={12} />{" "}
-                {book.targetChapter ? pick(language, `Meta: hasta el cap. ${book.targetChapter}`, `Goal: through ch. ${book.targetChapter}`, `Meta: ata o cap. ${book.targetChapter}`) : pick(language, "Meta esta semana", "This week's goal", "Meta esta semana")}
-                {daysLeft != null ? (
-                  <span className="book-cadence-days">
-                    {" · "}
-                    {daysLeft < 0 ? pick(language, "vencida", "overdue", "vencida") : daysLeft === 0 ? pick(language, "hoy", "today", "hoxe") : pick(language, `faltan ${daysLeft} días`, `${daysLeft} days left`, `faltan ${daysLeft} días`)}
+            {(facilitatorAlias && book.status !== "proposed") || hasCadence ? (
+              <div className="book-meta-chips">
+                {facilitatorAlias && book.status !== "proposed" ? (
+                  <span className="book-chip"><Icon name="spark" size={12} /> {pick(language, `Facilita: ${facilitatorAlias}`, `Facilitator: ${facilitatorAlias}`, `Facilita: ${facilitatorAlias}`)}</span>
+                ) : null}
+                {hasCadence ? (
+                  <span className="book-chip">
+                    <Icon name="target" size={12} />{" "}
+                    {book.targetChapter ? pick(language, `Meta: cap. ${book.targetChapter}`, `Goal: ch. ${book.targetChapter}`, `Meta: cap. ${book.targetChapter}`) : pick(language, "Meta esta semana", "This week's goal", "Meta esta semana")}
+                    {daysLeft != null ? (
+                      <span className={`book-cadence-days${daysLeft < 0 ? " is-overdue" : ""}`}>
+                        {" · "}
+                        {daysLeft < 0 ? pick(language, "vencida", "overdue", "vencida") : daysLeft === 0 ? pick(language, "hoy", "today", "hoxe") : pick(language, `faltan ${daysLeft} días`, `${daysLeft} days left`, `faltan ${daysLeft} días`)}
+                      </span>
+                    ) : null}
                   </span>
                 ) : null}
-              </p>
+              </div>
+            ) : null}
+            {named ? (
+              <div className="book-head-progress">
+                <span className="book-card-progress">
+                  <span className="book-card-progress-fill" style={{ width: `${progressPct}%` }} />
+                </span>
+                <span className="book-head-progress-label">{pick(language, `${doneCount}/${total} leídos`, `${doneCount}/${total} read`, `${doneCount}/${total} lidos`)}</span>
+              </div>
             ) : null}
           </div>
-          {canSetChapters && !editOpen ? (
-            <button type="button" className="btn book-edit-corner" onClick={openEdit}>
-              <Icon name="pencil" size={13} /> {pick(language, "Editar", "Edit", "Editar")}
-            </button>
-          ) : null}
         </section>
 
         {editOpen ? (
@@ -521,19 +545,20 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               <h2><Icon name="pencil" /> {pick(language, "Editar libro", "Edit book", "Editar libro")}</h2>
             </div>
 
-            <h3 className="edit-subhead">{pick(language, "Datos del libro", "Book details", "Datos do libro")}</h3>
-            <p className="hint">{pick(language, "Si Google no trae la portada correcta, pega aquí la URL de una imagen.", "If Google's cover is wrong, paste an image URL here.", "Se Google non trae a portada correcta, pega aquí o URL dunha imaxe.")}</p>
-            <label className="form-field">
-              {pick(language, "Título", "Title", "Título")}
-              <input value={edit.title} onChange={(event) => setEdit((prev) => ({ ...prev, title: event.target.value }))} />
-            </label>
-            <label className="form-field">
-              {pick(language, "Autor", "Author", "Autor")}
-              <input value={edit.author} onChange={(event) => setEdit((prev) => ({ ...prev, author: event.target.value }))} />
-            </label>
+            <div className="edit-fields-row">
+              <label className="form-field">
+                {pick(language, "Título", "Title", "Título")}
+                <input value={edit.title} onChange={(event) => setEdit((prev) => ({ ...prev, title: event.target.value }))} />
+              </label>
+              <label className="form-field">
+                {pick(language, "Autor", "Author", "Autor")}
+                <input value={edit.author} onChange={(event) => setEdit((prev) => ({ ...prev, author: event.target.value }))} />
+              </label>
+            </div>
             <label className="form-field">
               {pick(language, "URL de la portada", "Cover image URL", "URL da portada")}
               <input type="url" value={edit.coverUrl} onChange={(event) => setEdit((prev) => ({ ...prev, coverUrl: event.target.value }))} placeholder="https://..." />
+              <span className="field-help">{pick(language, "Si Google no trae la portada correcta, pega aquí la URL de una imagen.", "If Google's cover is wrong, paste an image URL here.", "Se Google non trae a portada correcta, pega aquí o URL dunha imaxe.")}</span>
             </label>
             {edit.coverUrl.trim() ? <img className="book-edit-preview" src={edit.coverUrl} alt="" /> : null}
             <label className="form-field">
@@ -553,7 +578,6 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
             {isAdmin ? (
               <div className="book-manage">
                 <div className="book-feature-controls">
-                  <span className="hint">{pick(language, "Estado del libro:", "Book status:", "Estado do libro:")}</span>
                   {(["proposed", "reading", "finished"] as BookStatus[]).map((status) => (
                     <button
                       key={status}
@@ -720,16 +744,10 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
         <section className="page-section">
           <div className="section-head">
             <h2><Icon name="timeline" /> {pick(language, "Capítulos", "Chapters", "Capítulos")}</h2>
-            {named ? (
-              <span className="book-progress-label">{doneCount}/{total}</span>
-            ) : null}
           </div>
 
           {named ? (
             <div className="stack">
-              <span className="book-card-progress">
-                <span className="book-card-progress-fill" style={{ width: `${progressPct}%` }} />
-              </span>
               {allDone ? (
                 <>
                   <p className="chapter-alldone"><Icon name="check" /> {pick(language, "Has leído todos los capítulos.", "You've read every chapter.", "Liches todos os capítulos.")}</p>

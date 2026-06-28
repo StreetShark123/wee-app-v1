@@ -3186,15 +3186,17 @@ textarea:focus-visible {
 }
 
 .book-detail-head {
-  display: flex;
-  gap: 18px;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 16px;
+  align-items: start;
 }
 
 .book-detail-meta {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
+  min-width: 0;
 }
 
 .book-detail-meta h1 {
@@ -3207,10 +3209,15 @@ textarea:focus-visible {
   color: var(--ink-1);
 }
 
-.book-detail-synopsis {
+.book-detail-synopsis p {
   color: var(--ink-1);
   font-size: 0.9rem;
   line-height: 1.5;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
 }
 
 .book-card-progress {
@@ -3341,14 +3348,10 @@ textarea:focus-visible {
   line-height: 1.45;
 }
 
-@media (max-width: 800px) {
+@media (max-width: 520px) {
   .book-detail-head {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-  .book-detail-meta {
-    align-items: center;
+    grid-template-columns: 76px 1fr;
+    gap: 12px;
   }
 }
 
@@ -4162,9 +4165,8 @@ textarea:focus-visible {
 .comment-del-btn:hover { color: var(--danger); text-decoration: underline; }
 
 /* C7 facilitador / C1 cadencia / C3 propuesta / D4 comentarios por capítulo */
-.book-facilitator { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; color: var(--accent-amber); margin: 2px 0 0; }
-.book-cadence { display: inline-flex; align-items: center; gap: 5px; font-size: 0.82rem; color: var(--accent-cyan); margin: 2px 0 0; }
 .book-cadence-days { color: var(--ink-1); }
+.book-cadence-days.is-overdue { color: var(--danger); }
 .book-cadence-edit { margin-top: 12px; flex-wrap: wrap; }
 
 .book-proposal-note {
@@ -4551,6 +4553,10 @@ textarea:focus-visible {
 
 /* Subtítulos del panel de gestión (Datos del libro / Gestión de la lectura) */
 .edit-subhead { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-1); margin: 4px 0 8px; font-weight: 700; }
+.field-help { font-size: 0.78rem; color: var(--ink-1); line-height: 1.3; }
+.edit-fields-row { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 480px) { .edit-fields-row { grid-template-columns: 1fr 1fr; } }
+.book-edit-form .edit-fields-row .form-field { margin-bottom: 0; }
 .edit-subhead-spaced { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
 
 /* Item activo del autocompletado @ (navegación por teclado) */
@@ -4631,16 +4637,28 @@ textarea:focus-visible {
 .vote-score.is-down { color: var(--danger); }
 
 /* Cabecera de libro: botón de editar en la esquina + portada a toda altura clicable */
-.book-detail-head { position: relative; align-items: stretch; }
-.book-edit-corner { position: absolute; top: 12px; right: 12px; z-index: 1; }
-.book-cover-btn { padding: 0; border: 0; background: transparent; cursor: zoom-in; display: block; flex: 0 0 auto; align-self: stretch; }
-.book-cover-btn img { width: 110px; height: 100%; min-height: 144px; object-fit: cover; border-radius: var(--radius-sm); display: block; background: var(--panel-1); }
-.book-detail-head .book-cover-empty { align-self: stretch; height: auto; min-height: 144px; }
-@media (max-width: 800px) {
-  .book-cover-btn { align-self: center; }
-  .book-cover-btn img { height: auto; min-height: 0; aspect-ratio: 2 / 3; }
-  .book-edit-corner { position: static; align-self: center; margin-top: 6px; }
+.book-cover-btn { padding: 0; border: 0; background: transparent; cursor: zoom-in; display: block; width: 100%; }
+.book-cover-btn img { width: 100%; height: auto; aspect-ratio: 2 / 3; object-fit: cover; border-radius: var(--radius-sm); display: block; background: var(--panel-1); }
+.book-detail-head .book-cover-lg { width: 100%; height: auto; aspect-ratio: 2 / 3; }
+
+/* Barra de acciones superior (volver | editar) */
+.book-action-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.book-action-bar .book-back { margin: 0; }
+
+/* Chips de meta (estado/facilita/cadencia) y barra de progreso en cabecera */
+.book-meta-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 2px; }
+.book-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.78rem; color: var(--ink-1);
+  border: 1px solid var(--line); border-radius: var(--radius-pill);
+  padding: 2px 8px;
 }
+.book-head-progress { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.book-head-progress-label { font-size: 0.76rem; color: var(--ink-1); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Sinopsis plegable (3 líneas + leer más) */
+.book-detail-synopsis.is-open p { -webkit-line-clamp: unset; }
+.synopsis-toggle { margin-top: 2px; font-size: 0.8rem; color: var(--brand-strong); }
 
 /* Toggle de numeración de capítulos */
 .chapter-number-toggle { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--ink-1); cursor: pointer; }
