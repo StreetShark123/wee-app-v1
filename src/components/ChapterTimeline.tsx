@@ -17,6 +17,7 @@ interface ChapterTimelineProps {
   members: ClubMemberLite[];
   noteThreads: Map<string, BookComment[]>;
   lastReadChapterId?: string | null;
+  numberChapters?: boolean;
   onToggle: (chapterId: string, done: boolean) => void;
   onAddNote: (chapterId: string, text: string, kind: NoteKind, imageUrl?: string) => Promise<void>;
   onReactNote?: (noteId: string, emoji: string) => void;
@@ -231,7 +232,7 @@ const NoteCard = ({
   );
 };
 
-export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThreads, lastReadChapterId, onToggle, onAddNote, onReactNote, onEditNote, onDeleteNote, onReplyComment, onReactComment, onEditComment, onDeleteComment, onCommentOnNote }: ChapterTimelineProps) => {
+export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThreads, lastReadChapterId, numberChapters, onToggle, onAddNote, onReactNote, onEditNote, onDeleteNote, onReplyComment, onReactComment, onEditComment, onDeleteComment, onCommentOnNote }: ChapterTimelineProps) => {
   const { language } = useI18n();
   const [openFor, setOpenFor] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
@@ -267,7 +268,9 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
 
   return (
     <ol className="chapter-timeline">
-      {chapters.map((chapter) => {
+      {chapters.map((chapter, chapterIdx) => {
+        const isNamed = !/^cap[íi]tulo\s*\d+\s*$/i.test(chapter.title.trim());
+        const displayTitle = numberChapters && isNamed ? `${chapterIdx + 1}. ${chapter.title}` : chapter.title;
         const myNotes = chapter.notes.filter((n) => n.userId === activeUserId);
         const otherNotes = chapter.notes.filter((n) => n.userId !== activeUserId);
         const visibleNotes = chapter.doneByMe ? [...myNotes, ...otherNotes] : myNotes;
@@ -290,7 +293,7 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
             <div className="chapter-body">
               {/* Solo el check marca leído (no toda la fila → sin toggles accidentales). */}
               <div className="chapter-head">
-                <span className="chapter-title">{chapter.title}</span>
+                <span className="chapter-title">{displayTitle}</span>
                 <span className="chapter-meta">
                   {chapter.doneByMe ? <span className="chapter-done-tag">{pick(language, "Leído", "Read", "Lido")}</span> : null}
                   {chapter.completedCount > 0 ? (

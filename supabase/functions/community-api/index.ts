@@ -212,6 +212,7 @@ const rowToBook = (row: Record<string, any>): Record<string, any> => ({
   proposalNote: row.proposal_note ?? undefined,
   targetChapter: row.target_chapter ?? undefined,
   targetDate: row.target_date ?? undefined,
+  numberChapters: row.number_chapters !== false,
   createdAt: toMillis(row.created_at)
 });
 
@@ -2561,6 +2562,7 @@ const handlers = {
     if (body.description !== undefined) patch.description = body.description ? String(body.description).trim().slice(0, 4000) : null;
     if (body.publishedYear !== undefined) patch.published_year = Number.isFinite(Number(body.publishedYear)) ? Number(body.publishedYear) : null;
     if (body.pageCount !== undefined) patch.page_count = Number.isFinite(Number(body.pageCount)) ? Number(body.pageCount) : null;
+    if (body.numberChapters !== undefined) patch.number_chapters = body.numberChapters !== false;
 
     const upd = await db
       .from("books")

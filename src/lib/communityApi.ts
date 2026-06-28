@@ -373,6 +373,7 @@ export interface ClubBook {
   proposalNote?: string;
   targetChapter?: number;
   targetDate?: string;
+  numberChapters?: boolean;
   createdAt: number;
 }
 
@@ -638,6 +639,7 @@ export interface BookEditPatch {
   description?: string | null;
   publishedYear?: number | null;
   pageCount?: number | null;
+  numberChapters?: boolean;
 }
 
 export const updateBook = async (bookId: string, patch: BookEditPatch): Promise<{ book: ClubBook }> =>

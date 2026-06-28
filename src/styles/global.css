@@ -3382,7 +3382,8 @@ textarea:focus-visible {
 }
 
 .chapter-title {
-  font-size: 0.92rem;
+  font-size: 0.94rem;
+  font-weight: 600;
   line-height: 1.3;
 }
 
@@ -4590,3 +4591,7 @@ textarea:focus-visible {
   .book-cover-btn { align-self: center; }
   .book-cover-btn img { height: auto; }
 }
+
+/* Toggle de numeración de capítulos */
+.chapter-number-toggle { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--ink-1); cursor: pointer; }
+.chapter-number-toggle input { width: auto; min-height: 0; }
