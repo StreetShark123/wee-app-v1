@@ -9,6 +9,7 @@ import { parseChapterList } from "../lib/parseChapters";
 import { getCachedBook, setCachedBook } from "../lib/booksCache";
 import { BookDetailSkeleton } from "../components/Skeletons";
 import { NoteThread } from "../components/CommentThread";
+import { ImageLightbox } from "../components/ImageLightbox";
 import { MentionTextarea } from "../components/MentionTextarea";
 import { applyVoteLocal } from "../components/VoteControl";
 import {
@@ -76,6 +77,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const [targetDate, setTargetDate] = useState("");
   const [minutesPerDay, setMinutesPerDay] = useState(30);
   const [calcPreview, setCalcPreview] = useState<{ date: string; days: number } | null>(null);
+  const [coverLightbox, setCoverLightbox] = useState(false);
 
   const load = useCallback(async () => {
     if (!bookId) return;
@@ -465,12 +467,20 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
 
         <section className="page-section book-detail-head">
           {book.coverUrl ? (
-            <img className="book-cover book-cover-lg" src={book.coverUrl} alt="" />
+            <button type="button" className="book-cover book-cover-lg book-cover-btn" onClick={() => setCoverLightbox(true)} aria-label={pick(language, "Ver portada", "View cover", "Ver portada")}>
+              <img src={book.coverUrl} alt="" />
+            </button>
           ) : (
             <span className="book-cover book-cover-lg book-cover-empty" aria-hidden="true">
               <Icon name="book" />
             </span>
           )}
+          {coverLightbox && book.coverUrl ? <ImageLightbox url={book.coverUrl} onClose={() => setCoverLightbox(false)} showVisit={false} /> : null}
+          {canSetChapters && !editOpen ? (
+            <button type="button" className="btn book-edit-corner" onClick={openEdit}>
+              <Icon name="pencil" size={13} /> {pick(language, "Editar", "Edit", "Editar")}
+            </button>
+          ) : null}
           <div className="book-detail-meta">
             <div className="book-status-row">
               <span className={`book-card-status book-card-status-${book.status}`}>{statusLabel(book.status, language)}</span>
@@ -496,11 +506,6 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                   </span>
                 ) : null}
               </p>
-            ) : null}
-            {canSetChapters && !editOpen ? (
-              <button type="button" className="btn book-edit-toggle" onClick={openEdit}>
-                <Icon name="pencil" size={13} /> {isAdmin ? pick(language, "Editar / gestionar", "Edit / manage", "Editar / xestionar") : pick(language, "Editar libro", "Edit book", "Editar libro")}
-              </button>
             ) : null}
           </div>
         </section>

@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+import { useState } from "react";
 import type { BookChapter, BookComment, ChapterNote, ClubMemberLite, NoteKind } from "../lib/communityApi";
 import { pick, useI18n } from "../lib/i18n";
 import type { AppLanguage } from "../lib/types";
 import { timeAgo } from "../lib/timeAgo";
 import { Icon } from "./Icon";
+import { ImageLightbox } from "./ImageLightbox";
 import { Linkify } from "./Linkify";
 import { MentionTextarea } from "./MentionTextarea";
 import { NoteThread } from "./CommentThread";
@@ -41,33 +41,6 @@ const hostOf = (url: string): string => {
   }
 };
 
-// Visor de imagen a tamaño real, con enlace al original.
-const ImageLightbox = ({ url, onClose, language }: { url: string; onClose: () => void; language: AppLanguage }) => {
-  useEffect(() => {
-    const onEsc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onEsc);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.removeEventListener("keydown", onEsc); document.body.style.overflow = prev; };
-  }, [onClose]);
-  return createPortal(
-    <div className="image-lightbox" role="dialog" aria-modal="true" onClick={onClose}>
-      <div className="image-lightbox-inner" onClick={(e) => e.stopPropagation()}>
-        <img className="image-lightbox-img" src={url} alt="" />
-        <div className="image-lightbox-actions">
-          <a className="btn" href={url} target="_blank" rel="noopener noreferrer nofollow">
-            <Icon name="link" size={13} /> {pick(language, "Visitar enlace original", "Visit original link", "Visitar ligazón orixinal")}
-          </a>
-          <button type="button" className="btn btn-primary" onClick={onClose}>
-            {pick(language, "Cerrar", "Close", "Pechar")}
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-};
-
 // Detecta el tipo de un enlace para renderizarlo de forma adecuada.
 const NoteMedia = ({ url, language }: { url: string; language: AppLanguage }) => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -92,7 +65,7 @@ const NoteMedia = ({ url, language }: { url: string; language: AppLanguage }) =>
         >
           <img src={url} alt="" loading="lazy" />
         </button>
-        {lightboxOpen ? <ImageLightbox url={url} onClose={() => setLightboxOpen(false)} language={language} /> : null}
+        {lightboxOpen ? <ImageLightbox url={url} onClose={() => setLightboxOpen(false)} /> : null}
       </>
     );
   }

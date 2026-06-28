@@ -4578,3 +4578,15 @@ textarea:focus-visible {
 .vote-score { min-width: 22px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 0.82rem; color: var(--ink-0); }
 .vote-score.is-up { color: var(--success); }
 .vote-score.is-down { color: var(--danger); }
+
+/* Cabecera de libro: botón de editar en la esquina + portada a toda altura clicable */
+.book-detail-head { position: relative; align-items: stretch; }
+.book-edit-corner { position: absolute; top: 12px; right: 12px; z-index: 1; }
+.book-cover-btn { padding: 0; border: 0; background: transparent; cursor: zoom-in; display: block; flex: 0 0 auto; align-self: stretch; }
+.book-cover-btn img { width: 110px; height: 100%; min-height: 144px; object-fit: cover; border-radius: var(--radius-sm); display: block; background: var(--panel-1); }
+.book-detail-head .book-cover-empty { align-self: stretch; height: auto; min-height: 144px; }
+@media (max-width: 800px) {
+  .book-detail-head { align-items: flex-start; }
+  .book-cover-btn { align-self: center; }
+  .book-cover-btn img { height: auto; }
+}
