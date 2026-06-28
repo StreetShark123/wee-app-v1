@@ -587,12 +587,28 @@ h3 svg,
   overflow: hidden;
 }
 
+.notification-item-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 .notification-item-post {
   font-size: 0.75rem;
   color: #acc4e8;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.notification-item-time {
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: #8aa6cf;
+  white-space: nowrap;
 }
 
 .user-menu-caret {
@@ -3466,7 +3482,12 @@ textarea:focus-visible {
 }
 
 .chapter-note-by {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
   color: var(--ink-1);
   font-size: 0.72rem;
 }
@@ -3708,7 +3729,7 @@ textarea:focus-visible {
 
 .chapter-note-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
 }

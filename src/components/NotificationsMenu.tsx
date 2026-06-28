@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { pick, useI18n } from "../lib/i18n";
 import { useNotifications } from "../lib/notifications";
+import { timeAgo } from "../lib/timeAgo";
 import { Icon } from "./Icon";
 
 export const NotificationsMenu = () => {
@@ -65,7 +66,10 @@ export const NotificationsMenu = () => {
                       ? pick(language, `${notification.actorAlias} te mencionó`, `${notification.actorAlias} mentioned you`, `${notification.actorAlias} mencionoute`)
                       : pick(language, `${notification.actorAlias} respondió a tu comentario`, `${notification.actorAlias} replied to your comment`, `${notification.actorAlias} respondeu ao teu comentario`)}
                   </span>
-                  {notification.bookTitle ? <span className="notification-item-post">{notification.bookTitle}</span> : null}
+                  <span className="notification-item-meta">
+                    {notification.bookTitle ? <span className="notification-item-post">{notification.bookTitle}</span> : null}
+                    <span className="notification-item-time">{timeAgo(notification.createdAt, language)}</span>
+                  </span>
                 </Link>
               ))
             )}
