@@ -13,6 +13,19 @@ window.addEventListener("vite:preloadError", () => {
   tryChunkReload();
 });
 
+// PWA en desarrollo activo: comprueba si hay versión nueva al volver a la app (la
+// instalada/cacheada puede quedarse atrás varios deploys). autoUpdate aplica y recarga.
+const checkForAppUpdate = () => {
+  navigator.serviceWorker
+    ?.getRegistration()
+    .then((r) => r?.update())
+    .catch(() => undefined);
+};
+window.addEventListener("focus", checkForAppUpdate);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) checkForAppUpdate();
+});
+
 // Las features de animación se cargan en un chunk aparte tras el primer render.
 const loadMotionFeatures = () => import("framer-motion").then((mod) => mod.domAnimation);
 
