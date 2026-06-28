@@ -109,18 +109,29 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     void load();
   }, [load]);
 
-  // Si venimos de una notificación (#c-<id>), salta y resalta ese comentario.
+  // Si venimos de una notificación (#c-<id>), salta y resalta ese comentario. El hilo
+  // puede tardar en montarse (auto-expansión del capítulo/nota), así que reintentamos.
   useEffect(() => {
     if (!detail || !location.hash.startsWith("#c-")) return;
     const elId = location.hash.slice(1);
-    const t = window.setTimeout(() => {
+    let tries = 0;
+    let timer = 0;
+    let flashTimer = 0;
+    const tick = () => {
       const el = document.getElementById(elId);
-      if (!el) return;
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.classList.add("comment-flash");
-      window.setTimeout(() => el.classList.remove("comment-flash"), 2200);
-    }, 150);
-    return () => window.clearTimeout(t);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("comment-flash");
+        flashTimer = window.setTimeout(() => el.classList.remove("comment-flash"), 2200);
+        return;
+      }
+      if (tries++ < 12) timer = window.setTimeout(tick, 150);
+    };
+    timer = window.setTimeout(tick, 120);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearTimeout(flashTimer);
+    };
   }, [detail, location.hash]);
 
   // Actualiza SOLO lo que cambia en la ficha (nunca recarga toda la página).
@@ -284,6 +295,8 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   noteThreads.forEach((arr) => arr.forEach((c) => noteCommentIds.add(c.id)));
   const generalComments = comments.filter((c) => !noteCommentIds.has(c.id));
   const lastReadChapterId = [...chapters].reverse().find((c) => c.doneByMe)?.id ?? null;
+  // Comentario objetivo si venimos de una notificación (#c-<id>): para auto-abrir su hilo.
+  const focusCommentId = location.hash.startsWith("#c-") ? location.hash.slice(3) : null;
   const handleCommentOnNote = (noteId: string, text: string) =>
     run(async () => {
       const { comment } = await addBookComment(book.id, text, { noteId });
@@ -753,12 +766,12 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                   <p className="chapter-alldone"><Icon name="check" /> {pick(language, "Has leído todos los capítulos.", "You've read every chapter.", "Liches todos os capítulos.")}</p>
                   <details className="chapter-collapsed">
                     <summary>{pick(language, `Ver los ${total} capítulos`, `Show the ${total} chapters`, `Ver os ${total} capítulos`)}</summary>
-                    <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} members={clubMembers} noteThreads={noteThreads} lastReadChapterId={lastReadChapterId} numberChapters={book.numberChapters !== false} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} onReplyComment={handleReply} onReactComment={handleReact} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onCommentOnNote={handleCommentOnNote} />
+                    <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} members={clubMembers} noteThreads={noteThreads} lastReadChapterId={lastReadChapterId} numberChapters={book.numberChapters !== false} focusCommentId={focusCommentId} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} onReplyComment={handleReply} onReactComment={handleReact} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onCommentOnNote={handleCommentOnNote} />
                   </details>
                 </>
               ) : (
                 <>
-                  <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} members={clubMembers} noteThreads={noteThreads} lastReadChapterId={lastReadChapterId} numberChapters={book.numberChapters !== false} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} onReplyComment={handleReply} onReactComment={handleReact} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onCommentOnNote={handleCommentOnNote} />
+                  <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} members={clubMembers} noteThreads={noteThreads} lastReadChapterId={lastReadChapterId} numberChapters={book.numberChapters !== false} focusCommentId={focusCommentId} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} onReplyComment={handleReply} onReactComment={handleReact} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onCommentOnNote={handleCommentOnNote} />
                   <button type="button" className="btn chapter-mark-all" disabled={busy} onClick={() => handleCompleteAll(true)}>
                     <Icon name="check" /> {pick(language, "Marcar todo como leído", "Mark all as read", "Marcar todo como lido")}
                   </button>

@@ -19,6 +19,7 @@ interface ChapterTimelineProps {
   noteThreads: Map<string, BookComment[]>;
   lastReadChapterId?: string | null;
   numberChapters?: boolean;
+  focusCommentId?: string | null;
   onToggle: (chapterId: string, done: boolean) => void;
   onAddNote: (chapterId: string, text: string, kind: NoteKind, imageUrl?: string) => Promise<void>;
   onReactNote?: (noteId: string, emoji: string) => void;
@@ -233,7 +234,7 @@ const NoteCard = ({
   );
 };
 
-export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThreads, lastReadChapterId, numberChapters, onToggle, onAddNote, onReactNote, onEditNote, onDeleteNote, onReplyComment, onReactComment, onEditComment, onDeleteComment, onCommentOnNote }: ChapterTimelineProps) => {
+export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThreads, lastReadChapterId, numberChapters, focusCommentId, onToggle, onAddNote, onReactNote, onEditNote, onDeleteNote, onReplyComment, onReactComment, onEditComment, onDeleteComment, onCommentOnNote }: ChapterTimelineProps) => {
   const { language } = useI18n();
   const [openFor, setOpenFor] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
@@ -267,6 +268,18 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
     }
   };
 
+  // Si venimos de una notificación (#c-<id>): localiza la nota cuyo hilo contiene ese
+  // comentario, para auto-abrir su capítulo + hilo y poder hacer scroll hasta él.
+  let focusNoteId: string | null = null;
+  if (focusCommentId) {
+    for (const [noteId, thread] of noteThreads) {
+      if (thread.some((c) => c.id === focusCommentId)) {
+        focusNoteId = noteId;
+        break;
+      }
+    }
+  }
+
   return (
     <ol className="chapter-timeline">
       {chapters.map((chapter, chapterIdx) => {
@@ -274,9 +287,20 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
         const displayTitle = numberChapters && isNamed ? `${chapterIdx + 1}. ${chapter.title}` : chapter.title;
         const myNotes = chapter.notes.filter((n) => n.userId === activeUserId);
         const otherNotes = chapter.notes.filter((n) => n.userId !== activeUserId);
-        const visibleNotes = chapter.doneByMe ? [...myNotes, ...otherNotes] : myNotes;
-        const lockedCount = chapter.doneByMe ? 0 : otherNotes.length;
-        const defaultOpen = chapter.id === lastReadChapterId;
+        const chapterHasFocus = !!focusNoteId && chapter.notes.some((n) => n.id === focusNoteId);
+        let visibleNotes = chapter.doneByMe ? [...myNotes, ...otherNotes] : myNotes;
+        // Revela la nota objetivo de la notificación aunque sea de otro en capítulo sin leer:
+        // el usuario ya forma parte de esa conversación.
+        let revealedLocked = false;
+        if (chapterHasFocus && !visibleNotes.some((n) => n.id === focusNoteId)) {
+          const focusNote = otherNotes.find((n) => n.id === focusNoteId);
+          if (focusNote) {
+            visibleNotes = [...visibleNotes, focusNote];
+            revealedLocked = true;
+          }
+        }
+        const lockedCount = chapter.doneByMe ? 0 : otherNotes.length - (revealedLocked ? 1 : 0);
+        const defaultOpen = chapter.id === lastReadChapterId || chapterHasFocus;
         const notesOpen = openOverride[chapter.id] ?? defaultOpen;
         return (
           <li key={chapter.id} className={`chapter-node${chapter.doneByMe ? " is-done" : ""}`}>
@@ -324,7 +348,7 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
                           activeUserId={activeUserId}
                           members={members}
                           thread={noteThreads.get(note.id) ?? []}
-                          defaultThreadOpen={defaultOpen}
+                          defaultThreadOpen={defaultOpen || note.id === focusNoteId}
                           onReact={onReactNote ? (emoji) => onReactNote(note.id, emoji) : undefined}
                           onEdit={onEditNote ? (text) => onEditNote(note.id, text) : undefined}
                           onDelete={onDeleteNote ? () => onDeleteNote(note.id) : undefined}
