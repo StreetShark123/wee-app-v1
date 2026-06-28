@@ -2291,6 +2291,17 @@ textarea::placeholder {
   gap: 0.7rem;
 }
 
+/* En escritorio: copia + privacidad lado a lado; 'uso de datos' fila completa */
+@media (min-width: 880px) {
+  .settings-grid-cards {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+  .settings-grid-cards > article:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
 .community-page-grid {
   grid-template-columns: 1fr;
 }
@@ -3219,11 +3230,6 @@ textarea:focus-visible {
   transition: width var(--motion-base) var(--ease-standard);
 }
 
-.book-progress-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
 
 .book-progress-label {
   font-size: 0.82rem;
@@ -3273,18 +3279,25 @@ textarea:focus-visible {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
 }
 
 .book-members li {
   display: flex;
   justify-content: space-between;
+  gap: 8px;
   padding: 8px 12px;
   background: var(--panel-0);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
+}
+
+/* Filas con reseña ocupan toda la rejilla (texto largo) */
+.book-members li:has(.book-member-review) {
+  grid-column: 1 / -1;
+  flex-direction: column;
 }
 
 .book-member-state {
@@ -4266,7 +4279,7 @@ textarea:focus-visible {
 
 /* Perfil público: lecturas */
 .profile-reads-sub { margin: 12px 0 8px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-1); }
-.profile-book-list { display: flex; flex-direction: column; gap: 8px; }
+.profile-book-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
 .profile-book {
   display: flex;
   gap: 10px;

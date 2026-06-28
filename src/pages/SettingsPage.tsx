@@ -37,6 +37,7 @@ export const SettingsPage = ({
           {pick(language, "Tu cuenta y tus datos.", "Your account and your data.", "A túa conta e os teus datos.")}
         </p>
 
+        <div className="settings-grid settings-grid-cards">
         <article className="settings-card">
           <h3><Icon name="eye" /> {pick(language, "Cómo usamos tus datos", "How we use your data", "Como usamos os teus datos")}</h3>
           <p className="hint">
@@ -132,6 +133,7 @@ export const SettingsPage = ({
             <Icon name="trash" /> {pick(language, "Eliminar mis datos", "Delete my data", "Eliminar os meus datos")}
           </button>
         </article>
+        </div>
 
         {message ? <p className="hint">{message}</p> : null}
       </section>

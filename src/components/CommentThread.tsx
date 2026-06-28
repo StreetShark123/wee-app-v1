@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { BookComment, ClubMemberLite } from "../lib/communityApi";
 import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
@@ -8,20 +8,6 @@ import { Linkify } from "./Linkify";
 import { MentionTextarea } from "./MentionTextarea";
 import { UserBadge, styleFor } from "./UserBadge";
 import { VoteControl } from "./VoteControl";
-
-interface CommentThreadProps {
-  comments: BookComment[];
-  members: ClubMemberLite[];
-  activeUserId: string;
-  readChapterIds: Set<string>;
-  chapterLabelById: Map<string, string>;
-  noteById: Map<string, { alias: string; text: string }>;
-  focusCommentId?: string | null;
-  onReply: (parentId: string, text: string) => Promise<void>;
-  onReact: (commentId: string, emoji: string) => void;
-  onEdit: (commentId: string, text: string) => Promise<void>;
-  onDelete: (commentId: string) => void;
-}
 
 const CommentItem = ({
   comment,
@@ -164,8 +150,6 @@ const CommentItem = ({
   );
 };
 
-const GENERAL_KEY = "__general__";
-
 // Renderiza un hilo (raíces + respuestas) sin agrupar por capítulo. Para los hilos
 // inline que cuelgan de una anotación.
 export const NoteThread = ({
@@ -209,107 +193,5 @@ export const NoteThread = ({
         </li>
       ))}
     </ul>
-  );
-};
-
-export const CommentThread = ({ comments, members, activeUserId, readChapterIds, chapterLabelById, noteById, focusCommentId, onReply, onReact, onEdit, onDelete }: CommentThreadProps) => {
-  const { language } = useI18n();
-  const [openOverride, setOpenOverride] = useState<Record<string, boolean>>({});
-
-  // "Ver hilo": al enfocar un comentario, abre el grupo de su capítulo SOLO si ya lo
-  // has leído (anti-spoiler: nunca revelar comentarios de un capítulo sin leer).
-  useEffect(() => {
-    if (!focusCommentId) return;
-    const target = comments.find((c) => c.id === focusCommentId);
-    if (!target) return;
-    const key = target.chapterId ?? GENERAL_KEY;
-    const isRead = key === GENERAL_KEY || readChapterIds.has(key);
-    if (isRead) setOpenOverride((prev) => ({ ...prev, [key]: true }));
-  }, [focusCommentId, comments, readChapterIds]);
-
-  const roots = comments.filter((c) => !c.parentId);
-  const repliesByParent = new Map<string, BookComment[]>();
-  comments.forEach((c) => {
-    if (c.parentId) {
-      const list = repliesByParent.get(c.parentId) ?? [];
-      list.push(c);
-      repliesByParent.set(c.parentId, list);
-    }
-  });
-
-  const itemProps = { members, activeUserId, onReply, onReact, onEdit, onDelete };
-
-  // Agrupar hilos por capítulo (los sin capítulo van al grupo "general").
-  const groups = new Map<string, BookComment[]>();
-  roots.forEach((root) => {
-    const key = root.chapterId ?? GENERAL_KEY;
-    const arr = groups.get(key) ?? [];
-    arr.push(root);
-    groups.set(key, arr);
-  });
-  const groupKeys = Array.from(groups.keys()).sort((a, b) => {
-    if (a === GENERAL_KEY) return -1;
-    if (b === GENERAL_KEY) return 1;
-    return Number(chapterLabelById.get(a) ?? 0) - Number(chapterLabelById.get(b) ?? 0);
-  });
-
-  const renderThread = (root: BookComment) => {
-    const note = root.noteId ? noteById.get(root.noteId) : undefined;
-    return (
-      <li key={root.id} className="comment-root">
-        {note ? (
-          <div className="comment-note-header">
-            <span className="comment-note-header-label">{pick(language, `Sobre la nota de ${note.alias}`, `On ${note.alias}'s note`, `Sobre a nota de ${note.alias}`)}</span>
-            {note.text ? <p className="comment-note-header-text">«{note.text}»</p> : null}
-          </div>
-        ) : null}
-        <ul className="comment-thread-inner">
-          <CommentItem comment={root} {...itemProps} isReply={false} />
-          {(repliesByParent.get(root.id) ?? []).map((reply) => (
-            <CommentItem key={reply.id} comment={reply} {...itemProps} isReply />
-          ))}
-        </ul>
-      </li>
-    );
-  };
-
-  return (
-    <div className="comment-groups">
-      {groupKeys.map((key) => {
-        const groupRoots = groups.get(key) ?? [];
-        const isGeneral = key === GENERAL_KEY;
-        // Anti-spoiler: un grupo de capítulo arranca COLAPSADO salvo que lo hayas leído.
-        const isRead = isGeneral || readChapterIds.has(key);
-        const open = openOverride[key] ?? isRead;
-        const label = isGeneral
-          ? pick(language, "General del libro", "About the book", "Xeral do libro")
-          : pick(language, `Capítulo ${chapterLabelById.get(key) ?? "?"}`, `Chapter ${chapterLabelById.get(key) ?? "?"}`, `Capítulo ${chapterLabelById.get(key) ?? "?"}`);
-        return (
-          <section key={key} className={`comment-group${!isRead ? " comment-group-spoiler" : ""}`}>
-            <button
-              type="button"
-              className="comment-group-head"
-              aria-expanded={open}
-              onClick={() => setOpenOverride((prev) => ({ ...prev, [key]: !open }))}
-            >
-              <span className={`comment-group-caret${open ? "" : " is-collapsed"}`} aria-hidden="true">▾</span>
-              <span className="comment-group-title">{label}</span>
-              <span className="comment-group-count">{groupRoots.length}</span>
-              {!isRead ? (
-                <span className="comment-group-warn"><Icon name="eyeOff" size={11} /> {pick(language, "sin leer", "unread", "sen ler")}</span>
-              ) : null}
-            </button>
-            {open ? (
-              <>
-                {!isRead ? (
-                  <p className="comment-group-spoiler-note">{pick(language, "Aún no has marcado este capítulo: puede haber spoilers.", "You haven't marked this chapter yet: there may be spoilers.", "Aínda non marcaches este capítulo: pode haber spoilers.")}</p>
-                ) : null}
-                <ul className="comment-thread">{groupRoots.map(renderThread)}</ul>
-              </>
-            ) : null}
-          </section>
-        );
-      })}
-    </div>
   );
 };
