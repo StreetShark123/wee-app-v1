@@ -13,6 +13,8 @@ export type IconName =
   | "timeline"
   | "tag"
   | "arrowLeft"
+  | "arrowUp"
+  | "arrowDown"
   | "search"
   | "plus"
   | "bolt"
@@ -65,6 +67,8 @@ const PATHS: Record<IconName, string> = {
     "M6 5h2v14H6zm5 1h9v2h-9zm0 5h7v2h-7zm0 5h9v2h-9zM5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm0 5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm0 5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z",
   tag: "M3 11V4h7l10 10-6 6L4 10zm5-4a2 2 0 1 0 0 4 2 2 0 0 0 0-4z",
   arrowLeft: "M11 5 4 12l7 7 1.4-1.4L7.8 13H20v-2H7.8l4.6-4.6z",
+  arrowUp: "M6 14.6 7.4 16 12 11.4 16.6 16 18 14.6l-6-6z",
+  arrowDown: "M6 9.4 7.4 8 12 12.6 16.6 8 18 9.4l-6 6z",
   search: "M11 19a8 8 0 1 1 5.3-14l4.35 4.35-1.4 1.4L14.9 6.4A6 6 0 1 0 17 11h2a8 8 0 0 1-8 8z",
   plus: "M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z",
   bolt: "M13 2 4 13h6l-1 9 9-11h-6z",

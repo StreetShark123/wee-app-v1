@@ -2016,6 +2016,8 @@ const handlers = {
     if (existing.data) {
       await db.from("comment_reactions").delete().eq("comment_id", commentId).eq("user_id", auth.user.id).eq("emoji", emoji);
     } else {
+      // Un solo voto por usuario: quita el voto anterior (opuesto) y pon este.
+      await db.from("comment_reactions").delete().eq("comment_id", commentId).eq("user_id", auth.user.id);
       await db.from("comment_reactions").upsert(
         { community_id: auth.community.id, comment_id: commentId, user_id: auth.user.id, emoji, created_at: nowIso() },
         { onConflict: "comment_id,user_id,emoji" }
@@ -2130,6 +2132,8 @@ const handlers = {
     if (existing.data) {
       await db.from("note_reactions").delete().eq("note_id", noteId).eq("user_id", auth.user.id).eq("emoji", emoji);
     } else {
+      // Un solo voto por usuario.
+      await db.from("note_reactions").delete().eq("note_id", noteId).eq("user_id", auth.user.id);
       await db.from("note_reactions").upsert(
         { community_id: auth.community.id, note_id: noteId, user_id: auth.user.id, emoji, created_at: nowIso() },
         { onConflict: "note_id,user_id,emoji" }

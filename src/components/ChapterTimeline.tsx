@@ -8,7 +8,7 @@ import { Icon } from "./Icon";
 import { Linkify } from "./Linkify";
 import { MentionTextarea } from "./MentionTextarea";
 import { NoteThread } from "./CommentThread";
-import { ReactionPicker } from "./ReactionPicker";
+import { VoteControl } from "./VoteControl";
 
 interface ChapterTimelineProps {
   chapters: BookChapter[];
@@ -211,20 +211,8 @@ const NoteCard = ({
       ) : null}
 
       {!editing ? (
-        <div className="note-actionbar comment-actions">
-          {reactions.map((r) => (
-            <button
-              key={r.emoji}
-              type="button"
-              className={`reaction-chip reaction-pop${r.mine ? " is-mine" : ""}`}
-              onClick={() => onReact?.(r.emoji)}
-              aria-pressed={r.mine}
-              title={r.mine ? pick(language, "Quitar tu reacción", "Remove your reaction", "Quitar a túa reacción") : pick(language, "Reaccionar", "React", "Reaccionar")}
-            >
-              <span aria-hidden="true">{r.emoji}</span> <span className="reaction-count">{r.count}</span>
-            </button>
-          ))}
-          {onReact ? <ReactionPicker onPick={onReact} /> : null}
+        <div className="note-actionbar">
+          {onReact ? <VoteControl reactions={reactions} onVote={onReact} /> : null}
           <button type="button" className={`note-thread-toggle${threadOpen ? " is-open" : ""}`} aria-expanded={threadOpen} onClick={() => setThreadOpen((v) => !v)}>
             <Icon name="comment" size={12} /> {threadCount > 0
               ? `${threadCount} ${threadCount === 1 ? pick(language, "comentario", "comment", "comentario") : pick(language, "comentarios", "comments", "comentarios")}`

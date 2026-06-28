@@ -6,7 +6,7 @@ import { timeAgo } from "../lib/timeAgo";
 import { Icon } from "./Icon";
 import { Linkify } from "./Linkify";
 import { MentionTextarea } from "./MentionTextarea";
-import { ReactionPicker } from "./ReactionPicker";
+import { VoteControl } from "./VoteControl";
 
 interface CommentThreadProps {
   comments: BookComment[];
@@ -112,20 +112,7 @@ const CommentItem = ({
       )}
 
       <div className="comment-actions">
-        {comment.reactions.map((r) => (
-          <button
-            key={`${r.emoji}-${r.count}-${r.mine ? 1 : 0}`}
-            type="button"
-            className={`reaction-chip reaction-pop${r.mine ? " is-mine" : ""}`}
-            onClick={() => onReact(comment.id, r.emoji)}
-            aria-pressed={r.mine}
-            aria-label={pick(language, `${r.emoji}, ${r.count}${r.mine ? ", tu reacción" : ""}`, `${r.emoji}, ${r.count}${r.mine ? ", your reaction" : ""}`, `${r.emoji}, ${r.count}`)}
-            title={r.mine ? pick(language, "Quitar tu reacción", "Remove your reaction", "Quitar a túa reacción") : pick(language, "Reaccionar", "React", "Reaccionar")}
-          >
-            <span aria-hidden="true">{r.emoji}</span> <span className="reaction-count">{r.count}</span>
-          </button>
-        ))}
-        <ReactionPicker onPick={(e) => onReact(comment.id, e)} />
+        <VoteControl reactions={comment.reactions} onVote={(dir) => onReact(comment.id, dir)} />
         <button type="button" className="comment-reply-btn" onClick={() => setReplyOpen((v) => !v)}>
           {pick(language, "Responder", "Reply", "Responder")}
         </button>

@@ -4558,9 +4558,23 @@ textarea:focus-visible {
 .community-secondary .section-head h2 { font-size: 1rem; color: var(--ink-1); }
 
 /* El toggle de comentar se separa de las reacciones (a la derecha) */
-.note-actionbar .note-thread-toggle { margin-left: auto; }
 .note-thread-empty { margin: 0 0 4px; font-style: italic; }
 
 /* Fix bocadillo de emojis: dentro del picker la celda se ajusta a su columna (el
    min-width:40px táctil rompía la rejilla y los emojis se salían). Alto táctil intacto. */
 .reaction-picker .reaction-emoji { min-width: 0; width: 100%; }
+
+/* Votos ↑/↓ tipo Reddit (sustituyen a los emojis) + barra de nota compacta */
+.note-actionbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.vote-control { display: inline-flex; align-items: center; gap: 1px; }
+.vote-arrow {
+  display: inline-grid; place-items: center; width: 30px; height: 30px;
+  background: transparent; border: 0; border-radius: 6px; cursor: pointer; color: var(--ink-1);
+  transition: background var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard);
+}
+.vote-arrow:hover { background: var(--panel-1); color: var(--ink-0); }
+.vote-arrow.is-up { color: var(--success); }
+.vote-arrow.is-down { color: var(--danger); }
+.vote-score { min-width: 22px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 0.82rem; color: var(--ink-0); }
+.vote-score.is-up { color: var(--success); }
+.vote-score.is-down { color: var(--danger); }
