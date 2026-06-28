@@ -468,6 +468,7 @@ export interface BookChapter {
   title: string;
   doneByMe: boolean;
   completedCount: number;
+  readers?: { id: string; alias: string }[];
   notes: ChapterNote[];
 }
 

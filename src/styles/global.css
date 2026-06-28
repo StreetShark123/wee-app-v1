@@ -4595,3 +4595,20 @@ textarea:focus-visible {
 /* Toggle de numeración de capítulos */
 .chapter-number-toggle { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--ink-1); cursor: pointer; }
 .chapter-number-toggle input { width: auto; min-height: 0; }
+
+/* Color por usuario: insignia de autor + avatar inicial + lectores apilados */
+.user-badge { display: inline-flex; align-items: center; gap: 6px; }
+.user-badge-avatar {
+  display: inline-grid; place-items: center; width: 22px; height: 22px;
+  border-radius: 999px; border: 1px solid; color: #fff; font-size: 0.7rem; font-weight: 700; flex: 0 0 auto;
+}
+.user-badge-name { font-weight: 600; }
+
+.user-dot {
+  display: inline-grid; place-items: center; width: 22px; height: 22px;
+  border-radius: 999px; border: 1px solid; color: #fff; font-size: 0.64rem; font-weight: 700; flex: 0 0 auto;
+}
+.chapter-readers { display: inline-flex; align-items: center; }
+.chapter-readers .user-dot { margin-left: -7px; box-shadow: 0 0 0 1.5px var(--panel-0); }
+.chapter-readers .user-dot:first-child { margin-left: 0; }
+.chapter-readers-more { margin-left: 4px; font-size: 0.72rem; color: var(--ink-1); font-weight: 600; }

@@ -8,6 +8,7 @@ const CSS_FILE = join(SRC_DIR, "styles", "global.css");
 const ALLOWED_INLINE_STYLE_FILES = new Set([
   "src/components/Icon.tsx",
   "src/components/Avatar.tsx",
+  "src/components/UserBadge.tsx",
   "src/components/TopicBlock.tsx",
   "src/components/PageTransition.tsx",
   "src/components/PostCard.tsx",

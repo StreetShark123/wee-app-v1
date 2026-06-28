@@ -1783,9 +1783,11 @@ const handlers = {
 
     const completions = completionsRes.data ?? [];
     const countByChapter: Record<string, number> = {};
+    const readersByChapter: Record<string, { id: string; alias: string }[]> = {};
     const mineSet = new Set<string>();
     completions.forEach((row: Record<string, any>) => {
       countByChapter[row.chapter_id] = (countByChapter[row.chapter_id] ?? 0) + 1;
+      (readersByChapter[row.chapter_id] = readersByChapter[row.chapter_id] ?? []).push({ id: row.user_id, alias: aliasMap.get(row.user_id) ?? "—" });
       if (row.user_id === auth.user.id) mineSet.add(row.chapter_id);
     });
     const notesByChapter: Record<string, any[]> = {};
@@ -1807,6 +1809,7 @@ const handlers = {
       title: row.title,
       doneByMe: mineSet.has(row.id),
       completedCount: countByChapter[row.id] ?? 0,
+      readers: readersByChapter[row.id] ?? [],
       notes: notesByChapter[row.id] ?? []
     }));
 
