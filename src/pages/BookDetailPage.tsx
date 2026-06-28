@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ChapterTimeline } from "../components/ChapterTimeline";
 import { Icon } from "../components/Icon";
@@ -109,10 +109,15 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     void load();
   }, [load]);
 
-  // Si venimos de una notificación (#c-<id>), salta y resalta ese comentario. El hilo
-  // puede tardar en montarse (auto-expansión del capítulo/nota), así que reintentamos.
+  // Si venimos de una notificación (#c-<id>), salta y resalta ese comentario UNA sola vez.
+  // El hilo puede tardar en montarse (auto-expansión del capítulo/nota), así que reintentamos.
+  // Guard por hash: si no, cada cambio de `detail` (p.ej. añadir una nota) re-dispararía
+  // el salto y te reenviaría al comentario.
+  const handledHashRef = useRef<string | null>(null);
   useEffect(() => {
     if (!detail || !location.hash.startsWith("#c-")) return;
+    if (handledHashRef.current === location.hash) return;
+    handledHashRef.current = location.hash;
     const elId = location.hash.slice(1);
     let tries = 0;
     let timer = 0;
