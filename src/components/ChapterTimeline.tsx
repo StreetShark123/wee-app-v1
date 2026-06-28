@@ -8,7 +8,7 @@ import { ImageLightbox } from "./ImageLightbox";
 import { Linkify } from "./Linkify";
 import { MentionTextarea } from "./MentionTextarea";
 import { NoteThread } from "./CommentThread";
-import { UserBadge, UserDot } from "./UserBadge";
+import { UserBadge, UserDot, styleFor } from "./UserBadge";
 import { VoteControl } from "./VoteControl";
 
 interface ChapterTimelineProps {
@@ -164,7 +164,7 @@ const NoteCard = ({
     <li className={`chapter-note chapter-note-${note.kind}`}>
       <div className="chapter-note-head">
         <span className="chapter-note-by">
-          <UserBadge alias={note.alias} withAvatar />
+          <UserBadge alias={note.alias} {...styleFor(members, note.userId)} withAvatar />
           <span className="chapter-note-time"> · {timeAgo(note.createdAt, language)}</span>
           {note.editedAt ? <span className="chapter-note-edited"> · {pick(language, "editado", "edited", "editado")}</span> : null}
         </span>
@@ -299,7 +299,7 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
                   {chapter.doneByMe ? <span className="chapter-done-tag">{pick(language, "Leído", "Read", "Lido")}</span> : null}
                   {(chapter.readers ?? []).length > 0 ? (
                     <span className="chapter-readers" title={pick(language, `Lo han leído ${chapter.completedCount}`, `${chapter.completedCount} have read it`, `Léronno ${chapter.completedCount}`)}>
-                      {(chapter.readers ?? []).slice(0, 5).map((r) => <UserDot key={r.id} alias={r.alias} />)}
+                      {(chapter.readers ?? []).slice(0, 5).map((r) => <UserDot key={r.id} alias={r.alias} {...styleFor(members, r.id)} />)}
                       {(chapter.readers ?? []).length > 5 ? <span className="chapter-readers-more">+{(chapter.readers ?? []).length - 5}</span> : null}
                     </span>
                   ) : null}

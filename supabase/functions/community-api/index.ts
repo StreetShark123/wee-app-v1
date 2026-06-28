@@ -238,6 +238,24 @@ const clubUserAliasMap = async (communityId: string): Promise<Map<string, string
   return new Map((res.data ?? []).map((row: Record<string, any>) => [row.id as string, (row.alias as string) ?? "—"]));
 };
 
+// Metadatos por miembro para pintar autoría: alias, avatar y un color estable.
+// El color es el ORDEN de ingreso (created_at) → cada usuario un color de la paleta
+// distinto, repartido automáticamente sin colisiones (la paleta vive en el front).
+type ClubUserMeta = { alias: string; avatarUrl?: string; colorIndex: number };
+const clubUserMetaMap = async (communityId: string): Promise<Map<string, ClubUserMeta>> => {
+  const res = await db
+    .from("community_users")
+    .select("id,alias,avatar_url,created_at")
+    .eq("community_id", communityId)
+    .eq("status", "active")
+    .order("created_at", { ascending: true });
+  const map = new Map<string, ClubUserMeta>();
+  (res.data ?? []).forEach((row: Record<string, any>, i: number) => {
+    map.set(row.id as string, { alias: (row.alias as string) ?? "—", avatarUrl: row.avatar_url ?? undefined, colorIndex: i });
+  });
+  return map;
+};
+
 // Recalcula books.status SOLO entre 'reading' y 'finished' (la propuesta la decide la
 // votación / el admin, no el progreso). 'finished' cuando TODOS los que lo están
 // leyendo lo han terminado (y hay ≥1 lector). Si entra un lector nuevo, vuelve a 'reading'.
@@ -1739,7 +1757,7 @@ const handlers = {
     if (bookRes.error) return json(500, { message: bookRes.error.message });
     if (!bookRes.data) return json(404, { message: "Book not found" });
 
-    const [commentsRes, membersRes, chaptersRes, completionsRes, notesRes, aliasMap] = await Promise.all([
+    const [commentsRes, membersRes, chaptersRes, completionsRes, notesRes, metaMap] = await Promise.all([
       db
         .from("book_comments")
         .select("id,user_id,text,parent_id,chapter_id,note_id,created_at,edited_at,deleted_at")
@@ -1768,7 +1786,7 @@ const handlers = {
         .eq("community_id", auth.community.id)
         .eq("book_id", bookId)
         .order("created_at", { ascending: true }),
-      clubUserAliasMap(auth.community.id)
+      clubUserMetaMap(auth.community.id)
     ]);
     if (commentsRes.error) return json(500, { message: commentsRes.error.message });
     if (membersRes.error) return json(500, { message: membersRes.error.message });
@@ -1778,7 +1796,7 @@ const handlers = {
 
     const members = (membersRes.data ?? []).map((row: Record<string, any>) => ({
       ...rowToMemberBook(row),
-      alias: aliasMap.get(row.user_id) ?? "—"
+      alias: metaMap.get(row.user_id)?.alias ?? "—"
     }));
 
     const completions = completionsRes.data ?? [];
@@ -1787,7 +1805,7 @@ const handlers = {
     const mineSet = new Set<string>();
     completions.forEach((row: Record<string, any>) => {
       countByChapter[row.chapter_id] = (countByChapter[row.chapter_id] ?? 0) + 1;
-      (readersByChapter[row.chapter_id] = readersByChapter[row.chapter_id] ?? []).push({ id: row.user_id, alias: aliasMap.get(row.user_id) ?? "—" });
+      (readersByChapter[row.chapter_id] = readersByChapter[row.chapter_id] ?? []).push({ id: row.user_id, alias: metaMap.get(row.user_id)?.alias ?? "—" });
       if (row.user_id === auth.user.id) mineSet.add(row.chapter_id);
     });
     const notesByChapter: Record<string, any[]> = {};
@@ -1795,7 +1813,7 @@ const handlers = {
       (notesByChapter[row.chapter_id] = notesByChapter[row.chapter_id] ?? []).push({
         id: row.id,
         userId: row.user_id ?? undefined,
-        alias: aliasMap.get(row.user_id) ?? "—",
+        alias: metaMap.get(row.user_id)?.alias ?? "—",
         kind: row.kind ?? "note",
         text: row.text,
         imageUrl: row.image_url ?? undefined,
@@ -1850,14 +1868,14 @@ const handlers = {
     }));
     return json(200, {
       activeMemberCount,
-      clubMembers: Array.from(aliasMap, ([id, alias]) => ({ id, alias })),
+      clubMembers: Array.from(metaMap, ([id, m]) => ({ id, alias: m.alias, avatarUrl: m.avatarUrl, colorIndex: m.colorIndex })),
       book: rowToBook(bookRes.data as Record<string, any>),
       comments: (commentsRes.data ?? []).map((row: Record<string, any>) => {
         const deleted = !!row.deleted_at;
         return {
           id: row.id,
           userId: row.user_id,
-          alias: aliasMap.get(row.user_id) ?? "—",
+          alias: metaMap.get(row.user_id)?.alias ?? "—",
           text: deleted ? "" : row.text,
           parentId: row.parent_id ?? undefined,
           chapterId: row.chapter_id ?? undefined,

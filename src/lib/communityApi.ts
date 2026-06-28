@@ -475,6 +475,8 @@ export interface BookChapter {
 export interface ClubMemberLite {
   id: string;
   alias: string;
+  avatarUrl?: string;
+  colorIndex?: number;
 }
 
 export interface BookDetail {

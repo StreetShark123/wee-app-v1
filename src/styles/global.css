@@ -4606,6 +4606,7 @@ textarea:focus-visible {
   border-radius: 999px; border: 1px solid; color: #fff; font-size: 0.7rem; font-weight: 700; flex: 0 0 auto;
 }
 .user-badge-name { font-weight: 600; }
+.user-avatar-photo { object-fit: cover; }
 
 .user-dot {
   display: inline-grid; place-items: center; width: 22px; height: 22px;

@@ -6,7 +6,7 @@ import { timeAgo } from "../lib/timeAgo";
 import { Icon } from "./Icon";
 import { Linkify } from "./Linkify";
 import { MentionTextarea } from "./MentionTextarea";
-import { UserBadge } from "./UserBadge";
+import { UserBadge, styleFor } from "./UserBadge";
 import { VoteControl } from "./VoteControl";
 
 interface CommentThreadProps {
@@ -90,7 +90,7 @@ const CommentItem = ({
   return (
     <li id={`c-${comment.id}`} className={`comment-item${isReply ? " comment-item-reply" : ""}`}>
       <div className="comment-head">
-        <UserBadge alias={comment.alias} withAvatar={!isReply} />
+        <UserBadge alias={comment.alias} {...styleFor(members, comment.userId)} withAvatar={!isReply} />
         <span className="comment-time">{timeAgo(comment.createdAt, language)}</span>
         {chapterLabel ? <span className="comment-chapter-tag">{pick(language, `Cap. ${chapterLabel}`, `Ch. ${chapterLabel}`, `Cap. ${chapterLabel}`)}</span> : null}
         {comment.editedAt ? <span className="comment-edited-tag">{pick(language, "(editado)", "(edited)", "(editado)")}</span> : null}
