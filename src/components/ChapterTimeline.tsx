@@ -154,7 +154,8 @@ const NoteCard = ({
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(note.text);
   const [savingEdit, setSavingEdit] = useState(false);
-  const [threadOpen, setThreadOpen] = useState(!!defaultThreadOpen);
+  // Los hilos arrancan colapsados por definición; se abren al clicar el toggle.
+  const [threadOpen, setThreadOpen] = useState(false);
   const [noteCommentText, setNoteCommentText] = useState("");
   const [sendingComment, setSendingComment] = useState(false);
   const media = mediaUrlsOf(note);

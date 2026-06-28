@@ -4560,3 +4560,7 @@ textarea:focus-visible {
 /* El toggle de comentar se separa de las reacciones (a la derecha) */
 .note-actionbar .note-thread-toggle { margin-left: auto; }
 .note-thread-empty { margin: 0 0 4px; font-style: italic; }
+
+/* Fix bocadillo de emojis: dentro del picker la celda se ajusta a su columna (el
+   min-width:40px táctil rompía la rejilla y los emojis se salían). Alto táctil intacto. */
+.reaction-picker .reaction-emoji { min-width: 0; width: 100%; }
