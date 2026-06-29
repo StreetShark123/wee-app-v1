@@ -37,7 +37,7 @@ export const UserBadge = ({ alias, avatarUrl, colorIndex, withAvatar = false }: 
           </span>
         )
       ) : null}
-      <span className="user-badge-name" style={{ color: `hsl(${hue} 72% 72%)` }}>{alias}</span>
+      <span className="user-badge-name" style={{ color: `hsl(${hue} 55% 34%)` }}>{alias}</span>
     </span>
   );
 };
