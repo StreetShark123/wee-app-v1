@@ -1,7 +1,6 @@
 import { AnimatePresence, m } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { pick, useI18n } from "../lib/i18n";
-import { Icon } from "./Icon";
 
 interface CommunityLoadingScreenProps {
   communityName?: string;
@@ -87,13 +86,9 @@ export const CommunityLoadingScreen = ({
       transition={{ duration: 0.2, ease: "easeOut" }}
     >
       <div className="community-loading-core">
-        <div className="community-loading-orbit" aria-hidden="true">
-          <span className="community-loading-ring ring-a" />
-          <span className="community-loading-ring ring-b" />
-          <span className="community-loading-ring ring-c" />
-          <span className="community-loading-brand">
-            <Icon name="spiral" size={18} />
-          </span>
+        <div className="community-loading-type" aria-hidden="true">
+          <span className="community-loading-word">wee</span>
+          <span className="community-loading-caret" />
         </div>
         <h2>{pick(language, "Montando tu club", "Building your home", "Montando a túa home")}</h2>
         <p className="hint">{pick(language, "Un segundo y te acompañamos al debate.", "One sec and we’ll walk you into the thread.", "Un segundo e acompañámoste ao fío.")}</p>

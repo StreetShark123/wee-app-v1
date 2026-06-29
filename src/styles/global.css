@@ -162,70 +162,47 @@ h4 {
   font-size: 0.9rem;
 }
 
-.community-loading-orbit {
-  position: relative;
-  width: 86px;
-  height: 86px;
-  margin: 0 auto;
-}
-
-.community-loading-ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 16px;
-  border: 1px solid transparent;
-  transform-origin: center;
-}
-
-.community-loading-ring.ring-a {
-  border-color: color-mix(in srgb, var(--brand) 70%, transparent);
-  animation: loading-spin-a 2.8s linear infinite;
-}
-
-.community-loading-ring.ring-b {
-  inset: 10px;
-  border-color: color-mix(in srgb, var(--accent-amber) 60%, transparent);
-  border-radius: var(--radius-lg);
-  animation: loading-spin-b 2.2s linear infinite;
-}
-
-.community-loading-ring.ring-c {
-  inset: 20px;
-  border-color: color-mix(in srgb, var(--accent-violet) 60%, transparent);
-  border-radius: 12px;
-  animation: loading-spin-a 1.8s linear infinite reverse;
-}
-
-.community-loading-brand {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: var(--ink-0);
+/* Carga editorial: "wee" mecanografiándose + cursor de tinta parpadeante */
+.community-loading-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 auto 6px;
   font-family: var(--font-type);
-  animation: loading-brand-bounce 1.35s var(--ease-standard) infinite;
+  font-size: clamp(2.4rem, 9vw, 3.2rem);
+  line-height: 1;
+  color: var(--ink-0);
 }
 
-@keyframes loading-spin-a {
-  to {
-    transform: rotate(360deg);
-  }
+.community-loading-word {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  width: 3ch;
+  animation: loading-type 1.7s steps(3, end) infinite alternate;
 }
 
-@keyframes loading-spin-b {
-  to {
-    transform: rotate(-360deg);
-  }
+.community-loading-caret {
+  width: 0.42ch;
+  height: 0.9em;
+  flex: 0 0 auto;
+  background: var(--ink-scarlet);
+  animation: loading-caret-blink 0.92s steps(1, end) infinite;
 }
 
-@keyframes loading-brand-bounce {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
+@keyframes loading-type {
+  from { width: 0; }
+  to { width: 3ch; }
+}
+
+@keyframes loading-caret-blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .community-loading-word { width: 3ch; animation: none; }
+  .community-loading-caret { animation: none; opacity: 1; }
 }
 
 .community-loading-fade {
