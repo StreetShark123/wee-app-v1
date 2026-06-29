@@ -2375,6 +2375,20 @@ textarea::placeholder {
   gap: 0.42rem;
 }
 
+/* Invitar simple: código tipo cupón (toca para copiar) + enviar */
+.invite-simple { display: flex; flex-direction: column; gap: 10px; }
+.invite-code-chip {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  width: 100%; cursor: pointer; text-align: left;
+  font-family: var(--font-type);
+  background: var(--panel-1); border: 1px dashed var(--line); border-radius: var(--radius-md);
+  padding: 12px 14px; color: var(--ink-0);
+  transition: border-color var(--motion-fast) var(--ease-standard);
+}
+.invite-code-chip:hover { border-color: var(--brand); }
+.invite-code-value { font-size: 1.4rem; letter-spacing: 0.14em; }
+.invite-code-hint { display: inline-flex; align-items: center; gap: 4px; font-size: 0.74rem; color: var(--ink-1); flex: 0 0 auto; }
+
 .settings-modes {
   display: flex;
   flex-wrap: wrap;

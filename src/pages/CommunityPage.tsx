@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { TopBar } from "../components/TopBar";
 import { Icon } from "../components/Icon";
@@ -73,6 +73,17 @@ export const CommunityPage = ({
   useEffect(() => {
     setRulesInput(rulesText ?? "");
   }, [rulesText]);
+
+  // El código de invitación "sale solo": lo generamos una vez al entrar (silencioso).
+  // Si no se puede (política/permisos), queda el botón manual como respaldo.
+  const autoInviteRef = useRef(false);
+  useEffect(() => {
+    if (autoInviteRef.current || invite) return;
+    autoInviteRef.current = true;
+    void onCreateInvite()
+      .then((created) => setInvite({ code: created.code, token: created.token, link: created.link }))
+      .catch(() => { autoInviteRef.current = false; });
+  }, [invite, onCreateInvite]);
 
   const copy = async (value: string, label: string) => {
     if (!value) return;
@@ -285,30 +296,27 @@ export const CommunityPage = ({
         {/* 2 · Invitar gente — accesible y destacado */}
         <article className="settings-card community-invite-card">
           <h3><Icon name="link" /> {pick(language, "Invitar gente", "Invite people", "Convidar xente")}</h3>
-          <p className="hint">{pick(language, "Trae a tu gente al club: genera un código o un enlace y compártelo.", "Bring your people in: generate a code or link and share it.", "Trae á túa xente: xera un código ou ligazón e compárteo.")}</p>
+          <p className="hint">{pick(language, "Toca el código para copiarlo, o envía la invitación.", "Tap the code to copy it, or send the invite.", "Toca o código para copialo, ou envía a invitación.")}</p>
           <div className="stack community-settings-form">
-            <button type="button" className="btn btn-primary" onClick={generateInvite}>
-              <Icon name="plus" /> {pick(language, "Crear invitación", "Create invite", "Crear invitación")}
-            </button>
             {invite ? (
-              <>
-                <div className="hint">{pick(language, "Código del club", "Community code", "Código da comunidade")}: <strong>{invite.code}</strong></div>
-                <div className="auth-entry-actions community-invite-actions">
-                  <button type="button" className="btn btn-nav" onClick={() => copy(invite.code, pick(language, "Código", "Code", "Código"))}>
-                    <Icon name="link" /> {pick(language, "Copiar código", "Copy code", "Copiar código")}
-                  </button>
-                  <button type="button" className="btn btn-nav" onClick={() => void shareInviteLink(invite.link)}>
-                    <Icon name="send" /> {pick(language, "Compartir enlace", "Share link", "Compartir ligazón")}
-                  </button>
-                </div>
+              <div className="invite-simple">
+                <button type="button" className="invite-code-chip" onClick={() => copy(invite.code, pick(language, "Código", "Code", "Código"))} title={pick(language, "Tocar para copiar", "Tap to copy", "Tocar para copiar")}>
+                  <span className="invite-code-value">{invite.code}</span>
+                  <span className="invite-code-hint"><Icon name="link" size={12} /> {pick(language, "copiar", "copy", "copiar")}</span>
+                </button>
+                <button type="button" className="btn btn-primary" onClick={() => void shareInviteLink(invite.link)}>
+                  <Icon name="send" /> {pick(language, "Enviar invitación", "Send invite", "Enviar invitación")}
+                </button>
                 {copyNotice ? (
                   <p className="copy-inline-toast" role="status" aria-live="polite">
                     <Icon name="check" size={13} /> {copyNotice}
                   </p>
                 ) : null}
-              </>
+              </div>
             ) : (
-              <p className="hint">{pick(language, "Genera un código y pásaselo a quien quieras sumar.", "Generate a code and share it with people you want to bring in.", "Xera un código e pásallo a quen queiras sumar.")}</p>
+              <button type="button" className="btn btn-nav" onClick={generateInvite}>
+                <Icon name="plus" /> {pick(language, "Crear código", "Create code", "Crear código")}
+              </button>
             )}
           </div>
         </article>
