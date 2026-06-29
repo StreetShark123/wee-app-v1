@@ -26,8 +26,6 @@ export const BookCard = memo(({ book, member, onOpen }: BookCardProps) => {
   // Indicador sutil de "tú lo estás leyendo" (sin texto redundante).
   const mine = !!member && (member.shelf === "reading" || member.shelf === "finished" || member.chaptersDone > 0);
 
-  const flagLabel = book.featured === "gold" ? pick(language, "Principal", "Main read", "Principal") : null;
-
   // A1: dato según estantería. Leídos → nota media; En lectura → lectores + última actividad.
   let statLine: ReactNode = null;
   const st = book.stats;
@@ -54,7 +52,9 @@ export const BookCard = memo(({ book, member, onOpen }: BookCardProps) => {
       onClick={() => onOpen?.(book)}
       aria-label={mine ? pick(language, `${book.title} (lo estás leyendo)`, `${book.title} (you're reading it)`, `${book.title} (estalo a ler)`) : book.title}
     >
-      {flagLabel ? <span className="book-flag book-flag-gold">{flagLabel}</span> : null}
+      {book.featured === "gold" ? (
+        <span className="book-ribbon" aria-label={pick(language, "Lectura principal del club", "Club's main read", "Lectura principal do club")} title={pick(language, "Lectura principal", "Main read", "Lectura principal")} />
+      ) : null}
       {book.status === "proposed" && book.votes && book.votes.yes > 0 ? (
         <span className="book-vote-badge"><Icon name="check" size={11} /> {book.votes.yes}</span>
       ) : null}

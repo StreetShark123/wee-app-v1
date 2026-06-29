@@ -500,6 +500,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
           {book.coverUrl ? (
             <button type="button" className="book-cover book-cover-lg book-cover-btn" onClick={() => setCoverLightbox(true)} aria-label={pick(language, "Ver portada", "View cover", "Ver portada")}>
               <img src={book.coverUrl} alt="" />
+              {book.featured === "gold" ? <span className="book-ribbon" aria-hidden="true" /> : null}
             </button>
           ) : (
             <span className="book-cover book-cover-lg book-cover-empty" aria-hidden="true">
@@ -510,7 +511,6 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
           <div className="book-detail-meta">
             <div className="book-status-row">
               <span className={`book-card-status book-card-status-${book.status}`}>{statusLabel(book.status, language)}</span>
-              {book.featured === "gold" ? <span className="book-flag book-flag-gold">{pick(language, "Principal", "Main", "Principal")}</span> : null}
             </div>
             <h1>{book.title}</h1>
             <p className="book-detail-author">
