@@ -134,6 +134,7 @@ const NoteCard = ({
   const [threadOpen, setThreadOpen] = useState(() => Boolean(defaultThreadOpen) && thread.length > 0);
   const [noteCommentText, setNoteCommentText] = useState("");
   const [sendingComment, setSendingComment] = useState(false);
+  const [composerOpen, setComposerOpen] = useState(false);
   const media = mediaUrlsOf(note);
   const reactions = note.reactions ?? [];
   const threadCount = thread.length;
@@ -156,6 +157,7 @@ const NoteCard = ({
     try {
       await onCommentOnNote(clean);
       setNoteCommentText("");
+      setComposerOpen(false);
     } finally {
       setSendingComment(false);
     }
@@ -211,23 +213,34 @@ const NoteCard = ({
 
       {threadOpen && !editing ? (
         <div className="note-thread-wrap">
-          {threadCount === 0 ? (
-            <p className="hint note-thread-empty">{pick(language, "Aún sin comentarios. Abre tú el hilo.", "No comments yet. Start the thread.", "Aínda sen comentarios. Abre ti o fío.")}</p>
-          ) : (
+          {threadCount > 0 ? (
             <NoteThread comments={thread} members={members} activeUserId={activeUserId} onReply={onReplyComment} onReact={onReactComment} onEdit={onEditComment} onDelete={onDeleteComment} />
-          )}
-          <div className="note-comment-composer">
-            <MentionTextarea
-              value={noteCommentText}
-              onChange={setNoteCommentText}
-              members={members}
-              rows={2}
-              placeholder={pick(language, "Comenta esta nota... (@ menciona)", "Comment on this note... (@ to mention)", "Comenta esta nota... (@ menciona)")}
-            />
-            <button type="button" className="btn btn-primary btn-tiny" onClick={submitNoteComment} disabled={sendingComment || !noteCommentText.trim()}>
-              {pick(language, "Comentar", "Comment", "Comentar")}
+          ) : null}
+          {composerOpen || threadCount === 0 ? (
+            <div className="note-comment-composer">
+              <MentionTextarea
+                value={noteCommentText}
+                onChange={setNoteCommentText}
+                members={members}
+                rows={2}
+                placeholder={pick(language, "Comenta esta nota... (@ menciona)", "Comment on this note... (@ to mention)", "Comenta esta nota... (@ menciona)")}
+              />
+              <div className="chapter-note-actions">
+                {threadCount > 0 ? (
+                  <button type="button" className="btn" onClick={() => { setComposerOpen(false); setNoteCommentText(""); }}>
+                    {pick(language, "Cancelar", "Cancel", "Cancelar")}
+                  </button>
+                ) : null}
+                <button type="button" className="btn btn-primary btn-tiny" onClick={submitNoteComment} disabled={sendingComment || !noteCommentText.trim()}>
+                  {pick(language, "Comentar", "Comment", "Comentar")}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" className="note-thread-toggle note-add-comment" onClick={() => setComposerOpen(true)}>
+              <Icon name="plus" size={12} /> {pick(language, "Comentar", "Comment", "Comentar")}
             </button>
-          </div>
+          )}
         </div>
       ) : null}
     </li>
