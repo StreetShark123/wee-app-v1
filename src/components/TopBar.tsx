@@ -56,10 +56,7 @@ const TopBarInner = ({ user, communityName, onLeaveCommunity, searchValue, onSea
   return (
     <header className="topbar">
       <Link to="/home" className="brand">
-        <span className="brand-mark" aria-hidden="true">
-          <Icon name="spiral" size={13} />
-        </span>
-          <span className="brand-copy">
+        <span className="brand-copy">
           <span className="brand-text">Wee</span>
           <span className="brand-tag">{communityLabel ? `${communityLabel}` : pick(language, "tu club", "your community", "a túa comunidade")}</span>
         </span>

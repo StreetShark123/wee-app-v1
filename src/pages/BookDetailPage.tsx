@@ -721,6 +721,29 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               </details>
             </div>
 
+            {canSetChapters ? (
+              <>
+                <h3 className="edit-subhead edit-subhead-spaced">{pick(language, "Capítulos", "Chapters", "Capítulos")}</h3>
+                <label className="chapter-number-toggle">
+                  <input type="checkbox" checked={book.numberChapters !== false} disabled={busy} onChange={handleToggleNumbering} />
+                  {pick(language, "Numerar los capítulos con título", "Number titled chapters", "Numerar os capítulos con título")}
+                </label>
+                <details className="chapter-redefine">
+                  <summary>{pick(language, "Redefinir la lista de capítulos", "Redefine the chapter list", "Redefinir a lista de capítulos")}</summary>
+                  <p className="hint">{pick(language, "Ojo: reemplaza la lista y reinicia el progreso de todos.", "Careful: replaces the list and resets everyone's progress.", "Ollo: substitúe a lista e reinicia o progreso de todos.")}</p>
+                  <textarea
+                    rows={5}
+                    value={chaptersRaw}
+                    onChange={(event) => setChaptersRaw(event.target.value)}
+                    placeholder={pick(language, "Pega aquí el índice...", "Paste the table of contents here...", "Pega aquí o índice...")}
+                  />
+                  <button type="button" className="btn btn-danger" disabled={busy || parsedPreview.length === 0} onClick={handleCreateChapters}>
+                    {pick(language, `Reemplazar (${parsedPreview.length})`, `Replace (${parsedPreview.length})`, `Substituír (${parsedPreview.length})`)}
+                  </button>
+                </details>
+              </>
+            ) : null}
+
             {canDelete ? (
               <details className="book-manage book-delete-zone">
                 <summary className="book-delete-summary"><Icon name="trash" size={13} /> {pick(language, "Zona peligrosa", "Danger zone", "Zona perigosa")}</summary>
@@ -811,28 +834,6 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                   </button>
                 </>
               )}
-              {canSetChapters ? (
-                <details className="chapter-admin">
-                  <summary>{pick(language, "Ajustes de capítulos", "Chapter settings", "Axustes de capítulos")}</summary>
-                  <label className="chapter-number-toggle">
-                    <input type="checkbox" checked={book.numberChapters !== false} disabled={busy} onChange={handleToggleNumbering} />
-                    {pick(language, "Numerar los capítulos con título", "Number titled chapters", "Numerar os capítulos con título")}
-                  </label>
-                  <details className="chapter-redefine">
-                    <summary>{pick(language, "Redefinir la lista de capítulos", "Redefine the chapter list", "Redefinir a lista de capítulos")}</summary>
-                    <p className="hint">{pick(language, "Ojo: reemplaza la lista y reinicia el progreso de todos.", "Careful: replaces the list and resets everyone's progress.", "Ollo: substitúe a lista e reinicia o progreso de todos.")}</p>
-                    <textarea
-                      rows={5}
-                      value={chaptersRaw}
-                      onChange={(event) => setChaptersRaw(event.target.value)}
-                      placeholder={pick(language, "Pega aquí el índice...", "Paste the table of contents here...", "Pega aquí o índice...")}
-                    />
-                    <button type="button" className="btn btn-danger" disabled={busy || parsedPreview.length === 0} onClick={handleCreateChapters}>
-                      {pick(language, `Reemplazar (${parsedPreview.length})`, `Replace (${parsedPreview.length})`, `Substituír (${parsedPreview.length})`)}
-                    </button>
-                  </details>
-                </details>
-              ) : null}
             </div>
           ) : canSetChapters ? (
             <div className="stack">
