@@ -303,7 +303,7 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
         const defaultOpen = chapter.id === lastReadChapterId || chapterHasFocus;
         const notesOpen = openOverride[chapter.id] ?? defaultOpen;
         return (
-          <li key={chapter.id} className={`chapter-node${chapter.doneByMe ? " is-done" : ""}`}>
+          <li key={chapter.id} id={`ch-${chapter.id}`} className={`chapter-node${chapter.doneByMe ? " is-done" : ""}`}>
             <button
               type="button"
               className="chapter-check"

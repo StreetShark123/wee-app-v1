@@ -3365,6 +3365,7 @@ textarea:focus-visible {
   gap: 12px;
   padding: 0 0 16px 14px;
   border-left: 2px solid var(--line);
+  scroll-margin-top: 5rem;
 }
 
 .chapter-node:last-child {
@@ -4561,6 +4562,11 @@ textarea:focus-visible {
   border: 1px solid var(--line); border-radius: var(--radius-pill);
   padding: 2px var(--sp-2);
 }
+.book-chip-link {
+  text-decoration: none; cursor: pointer;
+  color: var(--brand-strong); border-color: color-mix(in srgb, var(--brand) 40%, var(--line));
+}
+.book-chip-link:hover { border-color: var(--brand); }
 .book-head-progress { display: flex; align-items: center; gap: var(--sp-2); margin-top: var(--sp-1); }
 .book-head-progress-label { font-size: 0.76rem; color: var(--ink-1); font-variant-numeric: tabular-nums; white-space: nowrap; }
 

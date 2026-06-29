@@ -759,9 +759,14 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
         ) : null}
 
         {/* Seguimiento de lectura por capítulos */}
-        <section className="page-section">
+        <section id="chapters" className="page-section">
           <div className="section-head">
             <h2><Icon name="timeline" /> {pick(language, "Capítulos", "Chapters", "Capítulos")}</h2>
+            {named && lastReadChapterId && !allDone ? (
+              <a className="book-chip book-chip-link" href={`#ch-${lastReadChapterId}`}>
+                <Icon name="timeline" size={12} /> {pick(language, "Continuar", "Continue", "Continuar")}
+              </a>
+            ) : null}
           </div>
 
           {named ? (
