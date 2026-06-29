@@ -108,6 +108,32 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     void load();
   }, [load]);
 
+  // Refresco "social": notas/comentarios nuevos aparecen sin recargar a mano. Silencioso
+  // (sin spinner ni error), al volver el foco/visibilidad y cada 20s con la pestaña visible.
+  // No pisa una mutación en curso (busyRef).
+  const busyRef = useRef(false);
+  useEffect(() => { busyRef.current = busy; }, [busy]);
+  useEffect(() => {
+    if (!bookId) return;
+    const refresh = async () => {
+      if (document.hidden || busyRef.current) return;
+      try {
+        const data = await getClubBook(bookId);
+        setDetail(data);
+        setCachedBook(bookId, data);
+      } catch { /* silencioso */ }
+    };
+    const onFocus = () => { void refresh(); };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    const id = window.setInterval(() => { void refresh(); }, 20000);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+      window.clearInterval(id);
+    };
+  }, [bookId]);
+
   // Si venimos de una notificación (#c-<id>), salta y resalta ese comentario UNA sola vez.
   // El hilo puede tardar en montarse (auto-expansión del capítulo/nota), así que reintentamos.
   // Guard por hash: si no, cada cambio de `detail` (p.ej. añadir una nota) re-dispararía
@@ -488,14 +514,14 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
           <button type="button" className="book-back" onClick={() => navigate("/home")}>
             <Icon name="arrowLeft" size={14} /> {pick(language, "Estantería del club", "Club shelf", "Estantería do club")}
           </button>
-          {canSetChapters && !editOpen ? (
-            <button type="button" className="btn book-edit-corner" onClick={openEdit}>
-              <Icon name="pencil" size={13} /> {pick(language, "Editar", "Edit", "Editar")}
-            </button>
-          ) : null}
         </div>
 
         <section className="page-section book-detail-head">
+          {isAdmin && !editOpen ? (
+            <button type="button" className="book-edit-corner" onClick={openEdit} aria-label={pick(language, "Editar libro", "Edit book", "Editar libro")} title={pick(language, "Editar", "Edit", "Editar")}>
+              <Icon name="pencil" size={15} />
+            </button>
+          ) : null}
           {book.coverUrl ? (
             <button type="button" className="book-cover book-cover-lg book-cover-btn" onClick={() => setCoverLightbox(true)} aria-label={pick(language, "Ver portada", "View cover", "Ver portada")}>
               <img src={book.coverUrl} alt="" />

@@ -198,6 +198,7 @@ h4 {
   display: grid;
   place-items: center;
   color: var(--ink-0);
+  font-family: var(--font-type);
   animation: loading-brand-bounce 1.35s var(--ease-standard) infinite;
 }
 
@@ -3169,19 +3170,38 @@ textarea:focus-visible {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .book-back {
   align-self: flex-start;
 }
+.book-action-bar { margin-bottom: -2px; }
 
 .book-detail-head {
+  position: relative;
   display: grid;
   grid-template-columns: 100px 1fr;
   gap: var(--sp-4);
   align-items: start;
 }
+
+.book-edit-corner {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--panel-0);
+  color: var(--ink-1);
+  cursor: pointer;
+}
+.book-edit-corner:hover { color: var(--ink-0); border-color: var(--ink-1); }
 
 .book-detail-meta {
   display: flex;

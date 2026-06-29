@@ -206,7 +206,7 @@ export const CommunityPage = ({
           <h2><Icon name="users" /> {pick(language, "El club", "Community", "Comunidade")}</h2>
           <div className="page-head-actions">
             <Link to="/home" className="btn btn-nav">
-              <Icon name="home" /> {pick(language, "Inicio", "Home", "Inicio")}
+              <Icon name="arrowLeft" /> {pick(language, "Estantería del club", "Club shelf", "Estantería do club")}
             </Link>
           </div>
         </div>
