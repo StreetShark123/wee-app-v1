@@ -3716,10 +3716,10 @@ textarea:focus-visible {
 
 .chapter-head {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 8px 10px;
-  flex-wrap: wrap;
+  gap: 10px;
+  flex-wrap: nowrap;
   width: 100%;
   text-align: left;
   background: transparent;
@@ -3737,8 +3737,7 @@ textarea:focus-visible {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 6px 8px;
-  flex: 0 1 auto;
-  min-width: 0;
+  flex: 0 0 auto;
 }
 
 .chapter-done-tag {
