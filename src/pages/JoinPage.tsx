@@ -23,11 +23,17 @@ export const JoinPage = ({ isLoggedIn, onPreviewCommunity, onJoinCommunity, onEn
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [joining, setJoining] = useState(false);
 
-  // ¿Llegamos por un enlace de invitación? Entonces el código ya viene en la URL.
-  const inviteFromUrl = useMemo(() => {
+  // ¿Llegamos por un enlace de invitación? Preservamos si vino como ?code= o ?invite=
+  // (token) en lugar de re-adivinar por longitud (un código largo se tomaba por token).
+  const inviteParsed = useMemo<{ code?: string; token?: string }>(() => {
     const params = new URLSearchParams(location.search);
-    return params.get("invite") ?? params.get("code") ?? "";
+    const token = params.get("invite")?.trim();
+    if (token) return { token };
+    const code = params.get("code")?.trim();
+    if (code) return { code: code.toUpperCase() };
+    return {};
   }, [location.search]);
+  const inviteFromUrl = inviteParsed.token ?? inviteParsed.code ?? "";
   const cameByLink = Boolean(inviteFromUrl);
 
   useEffect(() => {
@@ -35,12 +41,10 @@ export const JoinPage = ({ isLoggedIn, onPreviewCommunity, onJoinCommunity, onEn
   }, [inviteFromUrl]);
 
   useEffect(() => {
-    if (!inviteFromUrl) return;
-    const parsed = parseCommunityJoinInput(inviteFromUrl);
-    if (!parsed.code && !parsed.token) return;
+    if (!inviteParsed.code && !inviteParsed.token) return;
     setLoadingPreview(true);
     setError(null);
-    void onPreviewCommunity(parsed)
+    void onPreviewCommunity(inviteParsed)
       .then((data) => setPreview(data))
       .catch(() => {
         setPreview(null);
@@ -54,7 +58,7 @@ export const JoinPage = ({ isLoggedIn, onPreviewCommunity, onJoinCommunity, onEn
         );
       })
       .finally(() => setLoadingPreview(false));
-  }, [language, inviteFromUrl, onPreviewCommunity]);
+  }, [language, inviteParsed, onPreviewCommunity]);
 
   const submitPreview = async (event: FormEvent) => {
     event.preventDefault();

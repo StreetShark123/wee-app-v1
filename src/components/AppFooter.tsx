@@ -29,7 +29,7 @@ export const AppFooter = () => {
       <footer className="app-footer">
         <section className="footer-bar">
           <div className="footer-copy">
-            <p>{pick(language, "Wee · comparte lo que lees y debatidlo mejor en el club", "Wee · share it here first and decide better as a group", "Wee · pásao por aquí primeiro e decidides mellor en grupo")}</p>
+            <p>{pick(language, "Wee · vuestro club de lectura, capítulo a capítulo", "Wee · your reading club, chapter by chapter", "Wee · o voso club de lectura, capítulo a capítulo")}</p>
             <p className="footer-meta">
               {pick(
                 language,

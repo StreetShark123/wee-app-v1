@@ -1738,6 +1738,11 @@ const handlers = {
       }
       return json(400, { message: ins.error.message });
     }
+    // Quien propone el libro vota "sí" por defecto (lo propuso, lo quiere leer).
+    await db.from("book_votes").upsert(
+      { community_id: auth.community.id, book_id: ins.data.id, user_id: auth.user.id, vote: "yes", created_at: nowIso() },
+      { onConflict: "book_id,user_id" }
+    );
     return json(200, { book: rowToBook(ins.data as Record<string, any>) });
   },
 

@@ -134,12 +134,17 @@ export const CommunityPage = ({
 
   const shareInviteLink = async (link: string) => {
     if (!link) return;
+    // El backend devuelve un enlace relativo (#/join?code=...); lo hacemos ABSOLUTO
+    // para que el destinatario pueda abrirlo.
+    const url = /^https?:\/\//.test(link)
+      ? link
+      : `${window.location.origin}/${link.replace(/^\//, "")}`;
     try {
       if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
         await navigator.share({
           title: pick(language, "Invitación a Wee", "Wee invite", "Invitación a Wee"),
           text: pick(language, "Únete a nuestro club de lectura en Wee.", "Join our Wee community.", "Únete á nosa comunidade en Wee."),
-          url: link
+          url
         });
         onToast?.(pick(language, "Invitación compartida.", "Invite shared.", "Invitación compartida."));
         return;
@@ -147,7 +152,7 @@ export const CommunityPage = ({
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") return;
     }
-    await copy(link, pick(language, "Enlace", "Link", "Ligazón"));
+    await copy(url, pick(language, "Enlace", "Link", "Ligazón"));
   };
 
   const switchCommunity = async (communityId: string) => {
