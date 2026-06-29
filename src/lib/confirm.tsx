@@ -58,9 +58,9 @@ export const ConfirmProvider = ({ children }: { children: ReactNode }) => {
               className="modal-card modal-card-compact confirm-modal"
               role="alertdialog"
               aria-modal="true"
-              initial={{ opacity: 0, y: 16, scale: 0.985 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 12, scale: 0.99 }}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 12 }}
               transition={{ duration: MOTION_DURATION.base, ease: EASE_STANDARD }}
               onClick={(e) => e.stopPropagation()}
             >

@@ -10,9 +10,9 @@ export const Toast = ({ message }: ToastProps) => (
     {message ? (
       <m.div
         className="toast"
-        initial={{ opacity: 0, y: 18, scale: 0.985 }}
+        initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 10, scale: 0.995 }}
+        exit={{ opacity: 0, y: 10 }}
         transition={{ duration: MOTION_DURATION.fast, ease: EASE_STANDARD }}
       >
         {message}

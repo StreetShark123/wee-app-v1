@@ -77,9 +77,9 @@ export const AuthPage = ({ mode, onLogin, onRegister }: AuthPageProps) => {
               <m.span
                 key={`${language}-${claimIndex}`}
                 className="auth-hero-claim"
-                initial={{ opacity: 0, y: 6, filter: "blur(4px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                exit={{ opacity: 0, y: -6, filter: "blur(4px)" }}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
               >
                 {heroClaims[claimIndex]}

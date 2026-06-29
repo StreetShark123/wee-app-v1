@@ -69,9 +69,9 @@ export const AppFooter = () => {
               aria-modal="true"
               aria-labelledby="about-wee-title"
               tabIndex={-1}
-              initial={{ opacity: 0, y: 20, scale: 0.985 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 14, scale: 0.99 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 14 }}
               transition={{ duration: MOTION_DURATION.base, ease: EASE_STANDARD }}
               onClick={(event) => event.stopPropagation()}
             >

@@ -1,8 +1,10 @@
+import { m } from "framer-motion";
 import { useState } from "react";
 import type { BookComment, ClubMemberLite } from "../lib/communityApi";
 import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { timeAgo } from "../lib/timeAgo";
+import { EASE_STANDARD, MOTION_DURATION } from "../lib/motion";
 import { Icon } from "./Icon";
 import { Linkify } from "./Linkify";
 import { MentionTextarea } from "./MentionTextarea";
@@ -74,7 +76,13 @@ const CommentItem = ({
   }
 
   return (
-    <li id={`c-${comment.id}`} className={`comment-item${isReply ? " comment-item-reply" : ""}`}>
+    <m.li
+      id={`c-${comment.id}`}
+      className={`comment-item${isReply ? " comment-item-reply" : ""}`}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: MOTION_DURATION.base, ease: EASE_STANDARD }}
+    >
       <div className="comment-head">
         <UserBadge alias={comment.alias} {...styleFor(members, comment.userId)} withAvatar={!isReply} />
         <span className="comment-time">{timeAgo(comment.createdAt, language)}</span>
@@ -146,7 +154,7 @@ const CommentItem = ({
           </div>
         </div>
       ) : null}
-    </li>
+    </m.li>
   );
 };
 
