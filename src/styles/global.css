@@ -709,8 +709,16 @@ h3 svg,
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
   background: color-mix(in srgb, var(--panel-0) 90%, #0a101d 10%);
-  box-shadow: 0 12px 22px rgb(4 9 22 / 16%);
+  box-shadow: 0 1px 0 rgb(0 0 0 / 12%);
   transition: border-color var(--motion-base) var(--ease-standard), transform var(--motion-base) var(--ease-standard);
+}
+
+/* Estante = lista con encabezado, no panel envolviendo cards ya bordeadas (anti doble-marco) */
+.shelf-section.page-section {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
 }
 
 #popular-section {
@@ -1572,22 +1580,6 @@ textarea::placeholder {
   padding-right: 2.6rem;
 }
 
-.comment-item header {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.comment-item header strong {
-  font-size: 0.82rem;
-}
-
-.comment-item p {
-  margin: 0.32rem 0 0.45rem;
-  color: #d7e4fb;
-  font-size: 0.84rem;
-  line-height: 1.4;
-}
 
 .modal-overlay {
   position: fixed;
@@ -3459,7 +3451,7 @@ textarea:focus-visible {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
 }
 
 .chapter-note {
@@ -3467,11 +3459,9 @@ textarea:focus-visible {
   gap: 8px;
   align-items: baseline;
   font-size: 0.82rem;
-  padding: 5px 8px;
-  border-radius: var(--radius-sm);
-  background: var(--panel-0);
-  border: 1px solid var(--line);
+  padding: 8px 0;
 }
+.chapter-note + .chapter-note { border-top: 1px solid color-mix(in srgb, var(--line) 55%, transparent); }
 
 .chapter-note-kind {
   flex: 0 0 auto;
@@ -3489,7 +3479,8 @@ textarea:focus-visible {
 /* Tag por tipo de contenido: nota=neutro (el verde se reserva para "leído/sí"),
    referencia=púrpura, pregunta=amarillo. */
 .chapter-note-reference {
-  border-color: color-mix(in srgb, var(--accent-violet) 40%, var(--line));
+  border-left: 3px solid color-mix(in srgb, var(--accent-violet) 60%, var(--line));
+  padding-left: 10px;
 }
 .chapter-note-reference .chapter-note-kind {
   color: var(--accent-violet);
@@ -4076,12 +4067,13 @@ textarea:focus-visible {
 
 /* ─────────────────────────── Comentarios: hilos + reacciones ────────────────── */
 .comment-thread, .comment-thread-inner { list-style: none; margin: 0; padding: 0; }
-.comment-thread { display: flex; flex-direction: column; gap: 12px; }
-.comment-root { background: var(--panel-0); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 10px 12px; }
-.comment-thread-inner { display: flex; flex-direction: column; gap: 10px; }
+.comment-thread { display: flex; flex-direction: column; gap: 16px; }
+.comment-root { background: transparent; border: 0; border-radius: 0; padding: 0; }
+.comment-root + .comment-root { border-top: 1px solid color-mix(in srgb, var(--line) 55%, transparent); padding-top: 12px; }
+.comment-thread-inner { display: flex; flex-direction: column; gap: 8px; }
 
 .comment-item { display: flex; flex-direction: column; gap: 5px; }
-.comment-item-reply { padding-left: 14px; border-left: 2px solid var(--line); }
+.comment-item-reply { padding-left: 12px; margin-left: 2px; border-left: 1px solid color-mix(in srgb, var(--line) 60%, transparent); }
 .comment-head { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; }
 .comment-head strong { font-size: 0.82rem; color: var(--brand-strong); }
 .comment-text { margin: 0; font-size: 0.9rem; line-height: 1.5; }
@@ -4094,7 +4086,7 @@ textarea:focus-visible {
 .comment-reply-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
 /* C2: preguntas de debate (note kind=prompt) */
-.chapter-note-prompt { border-color: color-mix(in srgb, var(--accent-amber) 40%, var(--line)); background: color-mix(in srgb, var(--accent-amber) 7%, transparent); }
+.chapter-note-prompt { border-left: 3px solid color-mix(in srgb, var(--accent-amber) 60%, var(--line)); padding-left: 10px; }
 .chapter-note-prompt .chapter-note-kind { color: var(--accent-amber); border-color: color-mix(in srgb, var(--accent-amber) 50%, var(--line)); background: color-mix(in srgb, var(--accent-amber) 14%, transparent); }
 .chapter-note-prompt .chapter-note-text { font-weight: 500; }
 
@@ -4514,11 +4506,10 @@ textarea:focus-visible {
 .note-actionbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .note-thread-toggle {
   display: inline-flex; align-items: center; gap: 5px;
-  padding: 3px 10px; min-height: 28px;
-  border: 1px solid var(--line); border-radius: var(--radius-pill);
-  background: transparent; color: var(--ink-1); font-size: 0.74rem; cursor: pointer;
+  padding: 4px 0; min-height: 28px;
+  border: 0; background: transparent; color: var(--ink-1); font-size: 0.76rem; font-weight: 600; cursor: pointer;
 }
-.note-thread-toggle:hover, .note-thread-toggle.is-open { border-color: var(--brand); color: var(--brand-strong); }
+.note-thread-toggle:hover, .note-thread-toggle.is-open { color: var(--brand-strong); }
 .note-mini-action {
   display: inline-flex; align-items: center; gap: 4px; padding: 3px 6px; min-height: 28px;
   background: transparent; border: 0; color: var(--ink-1); font-size: 0.72rem; cursor: pointer;
@@ -4526,7 +4517,7 @@ textarea:focus-visible {
 .note-mini-action:hover { color: var(--brand-strong); }
 .note-mini-action-del:hover { color: var(--danger); }
 .note-thread-wrap {
-  margin-top: 8px; padding: 8px 0 0 10px;
+  margin-top: 8px; padding: 6px 0 0 8px;
   border-left: 2px solid color-mix(in srgb, var(--brand) 30%, var(--line));
 }
 .note-thread { margin: 0; padding: 0; }
