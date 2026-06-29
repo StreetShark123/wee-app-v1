@@ -41,7 +41,7 @@ export const BookCard = memo(({ book, member, onOpen }: BookCardProps) => {
   } else if (book.status === "reading" && st) {
     statLine = (
       <span className="book-card-stat">
-        <Icon name="users" size={11} /> {st.readers} {pick(language, "leyendo", "reading", "lendo")}
+        <span className="book-card-stat-n"><Icon name="users" size={11} /> {st.readers} {pick(language, "leyendo", "reading", "lendo")}</span>
         {st.lastActivityAt ? <span className="book-card-stat-sub">· {timeAgo(st.lastActivityAt, language)}</span> : null}
       </span>
     );

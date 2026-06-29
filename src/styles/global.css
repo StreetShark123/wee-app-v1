@@ -4034,11 +4034,14 @@ textarea:focus-visible {
 .book-card-stat {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 2px 6px;
   font-size: 0.74rem;
   color: var(--ink-1);
   margin-top: 2px;
 }
+.book-card-stat-n,
+.book-card-stat-sub { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .book-card-rating { color: var(--accent-amber); font-weight: 700; }
 .book-card-stat-sub { color: var(--ink-1); }
 

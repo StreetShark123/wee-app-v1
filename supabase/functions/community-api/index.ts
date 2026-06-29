@@ -1947,7 +1947,10 @@ const handlers = {
     if (ins.error) return json(400, { message: ins.error.message });
 
     // Voto propio por defecto (estilo Reddit): el autor arranca con +1.
-    await db.from("comment_reactions").insert({ comment_id: ins.data.id, user_id: auth.user.id, emoji: "up" });
+    await db.from("comment_reactions").upsert(
+      { community_id: auth.community.id, comment_id: ins.data.id, user_id: auth.user.id, emoji: "up", created_at: nowIso() },
+      { onConflict: "comment_id,user_id,emoji" }
+    );
 
     // ── Notificaciones (sanas: solo dirigidas a ti): @menciones + respuesta ──
     try {
@@ -2504,7 +2507,10 @@ const handlers = {
     if (ins.error) return json(400, { message: ins.error.message });
 
     // Voto propio por defecto (estilo Reddit): el autor arranca con +1.
-    await db.from("note_reactions").insert({ note_id: ins.data.id, user_id: auth.user.id, emoji: "up" });
+    await db.from("note_reactions").upsert(
+      { community_id: auth.community.id, note_id: ins.data.id, user_id: auth.user.id, emoji: "up", created_at: nowIso() },
+      { onConflict: "note_id,user_id,emoji" }
+    );
 
     return json(200, {
       note: {

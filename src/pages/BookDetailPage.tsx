@@ -763,9 +763,13 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
           <div className="section-head">
             <h2><Icon name="timeline" /> {pick(language, "Capítulos", "Chapters", "Capítulos")}</h2>
             {named && lastReadChapterId && !allDone ? (
-              <a className="book-chip book-chip-link" href={`#ch-${lastReadChapterId}`}>
+              <button
+                type="button"
+                className="book-chip book-chip-link"
+                onClick={() => document.getElementById(`ch-${lastReadChapterId}`)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              >
                 <Icon name="timeline" size={12} /> {pick(language, "Continuar", "Continue", "Continuar")}
-              </a>
+              </button>
             ) : null}
           </div>
 
