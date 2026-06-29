@@ -2323,9 +2323,26 @@ textarea::placeholder {
   margin: 0 auto 0.72rem;
 }
 
+/* Club: el contenedor exterior deja de ser panel; cada settings-card ES la card
+   (un solo nivel de caja, no panel-dentro-de-panel) */
 .community-page-section {
   margin-top: 0.48rem;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
+.community-page-section .settings-card {
+  background: var(--panel-0);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-warm);
+  padding: 1rem;
+}
+.community-page-section .settings-grid { margin-bottom: 0; }
 
 .community-settings-head {
   display: flex;
