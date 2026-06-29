@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Special+Elite&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Special+Elite&display=swap");
 
 :root {
   color-scheme: light;
@@ -21,6 +21,10 @@
   --success: #3e6b4f;
   --warning: #b07a2b;
   --stamp: #9a3b2e;
+  --ink-scarlet: #b5382b;
+  --tag-font-type: 0.72rem;
+  --shadow-warm: 0 2px 10px rgb(74 54 30 / 9%);
+  --shadow-warm-lg: 0 10px 24px rgb(74 54 30 / 14%);
   --font-sans: "Spectral", Georgia, "Times New Roman", serif;
   --font-type: "Special Elite", "Courier New", monospace;
   --radius-sm: 10px;
@@ -314,22 +318,6 @@ h4 {
 }
 .topbar::after { display: none; }
 
-.topbar::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  background: linear-gradient(
-    120deg,
-    rgb(47 106 102 / 6%),
-    transparent 43%,
-    rgb(176 122 43 / 6%) 86%,
-    transparent
-  );
-  z-index: -1;
-}
-
 .brand {
   display: inline-flex;
   align-items: center;
@@ -350,13 +338,14 @@ h4 {
   color: #fff;
   background: linear-gradient(180deg, var(--brand), var(--brand-strong));
   border: 1px solid var(--brand-strong);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 12%);
+  box-shadow: var(--shadow-warm);
 }
 
 .brand-text {
   font-family: var(--font-type);
+  font-weight: 400;
   font-size: 1.18rem;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   line-height: 1.02;
 }
 
@@ -515,7 +504,7 @@ h3 svg,
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: var(--panel-0);
-  box-shadow: 0 10px 24px rgb(0 0 0 / 12%);
+  box-shadow: var(--shadow-warm-lg);
   backdrop-filter: blur(8px);
   padding: 0.45rem;
   z-index: 35;
@@ -621,7 +610,7 @@ h3 svg,
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: var(--panel-0);
-  box-shadow: 0 10px 24px rgb(0 0 0 / 12%);
+  box-shadow: var(--shadow-warm-lg);
   backdrop-filter: blur(8px);
   padding: 0.42rem;
   display: grid;
@@ -695,7 +684,8 @@ h3 svg,
   color: #fff;
   display: grid;
   place-items: center;
-  font-weight: 700;
+  font-family: var(--font-type);
+  font-weight: 400;
 }
 
 .page-section {
@@ -1100,7 +1090,7 @@ textarea::placeholder {
   border-radius: 12px;
   padding: 0.82rem;
   background: var(--panel-0);
-  box-shadow: 0 1px 0 rgb(0 0 0 / 8%);
+  box-shadow: var(--shadow-warm);
   transition: transform var(--motion-base) var(--ease-standard), border-color var(--motion-base) var(--ease-standard), box-shadow var(--motion-base) var(--ease-standard);
   position: relative;
   overflow: visible;
@@ -1263,9 +1253,9 @@ textarea::placeholder {
 }
 
 .chip-topic {
-  border-color: hsl(var(--topic-h) 45% 70%);
-  background: hsl(var(--topic-h) 60% 90%);
-  color: hsl(var(--topic-h) 55% 28%);
+  background: color-mix(in srgb, hsl(var(--topic-h) 40% 55%) 14%, var(--panel-0));
+  border-color: color-mix(in srgb, hsl(var(--topic-h) 40% 55%) 40%, var(--line));
+  color: hsl(var(--topic-h) 35% 30%);
   box-shadow: none;
 }
 
@@ -1349,7 +1339,7 @@ textarea::placeholder {
   color: var(--ink-0);
   font-size: 0.75rem;
   line-height: 1.35;
-  box-shadow: 0 8px 14px rgb(0 0 0 / 12%);
+  box-shadow: var(--shadow-warm-lg);
   opacity: 0;
   visibility: hidden;
   transform: translateY(-3px);
@@ -1426,7 +1416,7 @@ textarea::placeholder {
   color: #fff;
   border-color: var(--brand-strong);
   font-weight: 600;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 12%);
+  box-shadow: var(--shadow-warm);
 }
 
 .btn-icon-compact {
@@ -1500,7 +1490,7 @@ textarea::placeholder {
   border-radius: 7px;
   font-size: 0.74rem;
   white-space: nowrap;
-  box-shadow: 0 8px 16px rgb(0 0 0 / 12%);
+  box-shadow: var(--shadow-warm-lg);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -1591,7 +1581,7 @@ textarea::placeholder {
   border: 1px solid var(--line);
   background: var(--panel-0);
   padding: 1rem;
-  box-shadow: 0 12px 32px rgb(0 0 0 / 16%);
+  box-shadow: var(--shadow-warm-lg);
 }
 
 .modal-card-compact {
@@ -1849,7 +1839,7 @@ textarea::placeholder {
 }
 
 .auth-card-main {
-  box-shadow: 0 8px 20px rgb(0 0 0 / 10%);
+  box-shadow: var(--shadow-warm-lg);
 }
 
 @keyframes auth-card-in {
@@ -1954,7 +1944,7 @@ textarea::placeholder {
 
 .community-picker-card-item:hover {
   border-color: hsl(var(--community-accent-hue, 220) 50% 58% / 82%);
-  box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
+  box-shadow: var(--shadow-warm);
 }
 
 .community-picker-card-item.is-active {
@@ -2108,6 +2098,8 @@ textarea::placeholder {
   background: var(--brand);
   display: grid;
   place-items: center;
+  font-family: var(--font-type);
+  font-weight: 400;
   color: #fff;
   font-weight: 700;
   overflow: hidden;
@@ -2604,7 +2596,7 @@ textarea::placeholder {
   border: 1px solid var(--line);
   padding: 0.6rem 0.8rem;
   border-radius: var(--radius-md);
-  box-shadow: 0 8px 20px rgb(0 0 0 / 14%);
+  box-shadow: var(--shadow-warm-lg);
 }
 
 button:focus-visible,
@@ -2856,7 +2848,7 @@ textarea:focus-visible {
     background:
       radial-gradient(320px 160px at 0% 0%, rgb(47 106 102 / 8%), transparent 72%),
       var(--panel-0);
-    box-shadow: 0 12px 32px rgb(0 0 0 / 16%);
+    box-shadow: var(--shadow-warm-lg);
   }
 
   .modal-card-share .modal-head {
@@ -3034,10 +3026,11 @@ textarea:focus-visible {
 .book-card-status {
   align-self: flex-start;
   font-family: var(--font-type);
-  font-size: var(--tag-font);
+  font-weight: 400;
+  font-size: var(--tag-font-type);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 2px 7px;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
   border-radius: 3px;
   border: 1.5px solid var(--line);
   color: var(--ink-1);
@@ -3047,11 +3040,19 @@ textarea:focus-visible {
 .book-card-status-reading {
   color: var(--accent-amber);
   border-color: var(--accent-amber);
+  background: color-mix(in srgb, var(--accent-amber) 12%, var(--panel-0));
 }
 
 .book-card-status-finished {
   color: var(--success);
   border-color: var(--success);
+  background: color-mix(in srgb, var(--success) 12%, var(--panel-0));
+}
+
+.book-card-status-proposed {
+  color: var(--accent-violet);
+  border-color: var(--accent-violet);
+  background: color-mix(in srgb, var(--accent-violet) 12%, var(--panel-0));
 }
 
 .book-card-title {
@@ -3229,11 +3230,11 @@ textarea:focus-visible {
 }
 .book-detail-synopsis p::first-letter {
   float: left;
-  font-weight: 600;
-  font-size: 3em;
-  line-height: 0.8;
-  padding: 6px 10px 0 0;
-  color: #b5382b;
+  font-weight: 500;
+  font-size: 2.6em;
+  line-height: 0.86;
+  padding: 4px 8px 0 0;
+  color: var(--ink-scarlet);
 }
 
 .book-card-progress {
@@ -3485,10 +3486,11 @@ textarea:focus-visible {
 
 .chapter-note-kind {
   flex: 0 0 auto;
+  font-family: var(--font-type);
   font-size: var(--tag-font);
-  font-weight: 700;
+  font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   padding: 2px var(--sp-2);
   border-radius: var(--radius-pill);
   border: 1px solid var(--line);
@@ -3601,9 +3603,9 @@ textarea:focus-visible {
   position: absolute;
   width: 15px;
   height: 30px;
-  background: var(--stamp);
+  background: var(--ink-scarlet);
   clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 22%);
+  box-shadow: 0 1px 2px rgb(74 54 30 / 22%);
   z-index: 2;
   pointer-events: none;
 }
@@ -3656,9 +3658,10 @@ textarea:focus-visible {
 }
 
 .invite-eyebrow {
+  font-family: var(--font-type);
   font-size: 0.8rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.03em;
   color: var(--ink-1);
 }
 
@@ -3745,10 +3748,11 @@ textarea:focus-visible {
 }
 
 .chapter-done-tag {
+  font-family: var(--font-type);
   font-size: 0.64rem;
-  font-weight: 700;
+  font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   color: var(--success);
   border: 1px solid var(--success);
   border-radius: var(--radius-pill);
@@ -3843,9 +3847,9 @@ textarea:focus-visible {
 /* Votación */
 .vote-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
 .vote-btn { font-weight: 600; }
-.vote-btn.yes.is-on { background: var(--success); border-color: var(--success); color: #0b1a12; }
-.vote-btn.no.is-on { background: var(--danger); border-color: var(--danger); color: #2a0b10; }
-.vote-btn.later.is-on { background: var(--warning); border-color: var(--warning); color: #2a1f08; }
+.vote-btn.yes.is-on { background: var(--success); border-color: var(--success); color: var(--panel-0); }
+.vote-btn.no.is-on { background: var(--danger); border-color: var(--danger); color: var(--panel-0); }
+.vote-btn.later.is-on { background: var(--warning); border-color: var(--warning); color: var(--panel-0); }
 
 /* Controles de admin */
 .book-admin-controls { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
@@ -4111,7 +4115,7 @@ textarea:focus-visible {
   background: var(--panel-1);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  box-shadow: 0 10px 24px rgb(0 0 0 / 14%);
+  box-shadow: var(--shadow-warm-lg);
 }
 .mention-option {
   display: block;
@@ -4152,9 +4156,10 @@ textarea:focus-visible {
 .comment-chapter-warn { margin-top: 4px; }
 
 .comment-chapter-tag {
+  font-family: var(--font-type);
   font-size: var(--tag-font);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   color: var(--accent-cyan);
   border: 1px solid var(--accent-cyan);
   border-radius: var(--radius-pill);
@@ -4227,7 +4232,7 @@ textarea:focus-visible {
 .member-mini-fill { display: block; height: 100%; background: var(--brand); border-radius: var(--radius-pill); }
 
 /* Perfil público: lecturas */
-.profile-reads-sub { margin: 12px 0 8px; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-1); }
+.profile-reads-sub { margin: 12px 0 8px; font-family: var(--font-type); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.02em; color: var(--ink-1); }
 .profile-book-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
 .profile-book {
   display: flex;
@@ -4386,14 +4391,14 @@ textarea:focus-visible {
     max(16px, env(safe-area-inset-right))
     max(16px, env(safe-area-inset-bottom))
     max(16px, env(safe-area-inset-left));
-  background: rgb(6 12 24 / 86%);
+  background: rgb(42 36 27 / 86%);
   backdrop-filter: blur(4px);
   animation: dropdown-in 0.14s ease-out;
 }
 .image-lightbox-inner { display: flex; flex-direction: column; gap: 12px; max-width: 96vw; max-height: 90dvh; }
 .image-lightbox-img {
   max-width: 96vw; max-height: 78dvh; width: auto; height: auto;
-  object-fit: contain; border-radius: var(--radius-sm); background: #0b1424;
+  object-fit: contain; border-radius: var(--radius-sm); background: var(--panel-1);
   box-shadow: 0 24px 60px rgb(0 0 0 / 55%);
 }
 .image-lightbox-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
@@ -4470,7 +4475,7 @@ textarea:focus-visible {
 .confirm-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
 
 /* Subtítulos del panel de gestión (Datos del libro / Gestión de la lectura) */
-.edit-subhead { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-1); margin: 4px 0 8px; font-weight: 700; }
+.edit-subhead { font-family: var(--font-type); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.02em; color: var(--ink-1); margin: 4px 0 8px; font-weight: 400; }
 .field-help { font-size: 0.78rem; color: var(--ink-1); line-height: 1.3; }
 .edit-fields-row { display: grid; grid-template-columns: 1fr; gap: 10px; }
 @media (min-width: 480px) { .edit-fields-row { grid-template-columns: 1fr 1fr; } }
@@ -4492,7 +4497,7 @@ textarea:focus-visible {
 .member-you { font-weight: 400; }
 .member-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
-.badge-owner { color: #2a1c05; background: var(--accent-amber); border: 1px solid color-mix(in srgb, var(--accent-amber) 70%, #000); }
+.badge-owner { color: var(--ink-0); background: var(--accent-amber); border: 1px solid color-mix(in srgb, var(--accent-amber) 70%, var(--ink-0)); }
 .badge-admin { color: var(--brand-strong); background: color-mix(in srgb, var(--brand) 16%, transparent); border: 1px solid color-mix(in srgb, var(--brand) 45%, var(--line)); }
 .badge-member { color: var(--ink-1); background: var(--panel-1); border: 1px solid var(--line); }
 

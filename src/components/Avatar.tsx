@@ -22,7 +22,7 @@ export const Avatar = ({ user, size = 36 }: AvatarProps) => {
   return (
     <div
       className="avatar avatar-fallback"
-      style={{ width: size, height: size, background: user.avatarColor ?? "#334155" }}
+      style={{ width: size, height: size, background: user.avatarColor ?? "var(--brand)" }}
       aria-label={user.alias}
       title={user.alias}
     >
