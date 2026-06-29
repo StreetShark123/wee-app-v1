@@ -23,9 +23,9 @@
   --stamp: #9a3b2e;
   --font-sans: "Spectral", Georgia, "Times New Roman", serif;
   --font-type: "Special Elite", "Courier New", monospace;
-  --radius-sm: 8px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
+  --radius-sm: 10px;
+  --radius-md: 13px;
+  --radius-lg: 18px;
   --radius-pill: 999px;
   /* Anillo de foco único en toda la app */
   --focus: var(--brand-strong);
@@ -300,18 +300,18 @@ h4 {
   justify-content: space-between;
   align-items: center;
   gap: 0.8rem;
-  background:
-    color-mix(in srgb, var(--panel-0) 92%, var(--bg-1) 8%);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  padding: 0.9rem 1rem;
+  background: color-mix(in srgb, var(--bg-0) 82%, transparent);
+  border: 0;
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.7rem;
   position: sticky;
-  top: 0.75rem;
+  top: 0.5rem;
   z-index: 20;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 1px 0 rgb(0 0 0 / 10%);
+  backdrop-filter: blur(8px);
+  box-shadow: none;
   isolation: isolate;
 }
+.topbar::after { display: none; }
 
 .topbar::after {
   content: "";
@@ -360,16 +360,12 @@ h4 {
 }
 
 .brand-tag {
-  font-family: var(--font-type);
-  font-size: 0.64rem;
-  text-transform: lowercase;
-  letter-spacing: 0.06em;
+  font-family: var(--font-sans);
+  font-style: italic;
+  font-size: 0.8rem;
+  text-transform: none;
+  letter-spacing: 0;
   color: var(--ink-1);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-pill);
-  padding: 2px var(--sp-2);
-  background: var(--panel-1);
-  box-shadow: none;
 }
 
 .brand-copy {
@@ -707,7 +703,7 @@ h3 svg,
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
   background: var(--panel-0);
-  box-shadow: 0 1px 0 rgb(0 0 0 / 8%);
+  box-shadow: 0 2px 12px rgb(74 54 30 / 9%);
   transition: border-color var(--motion-base) var(--ease-standard), transform var(--motion-base) var(--ease-standard);
 }
 
@@ -3004,8 +3000,9 @@ textarea:focus-visible {
   background: var(--panel-0);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
+  box-shadow: 0 2px 10px rgb(74 54 30 / 8%);
   transition: border-color var(--motion-fast) var(--ease-standard),
-    transform var(--motion-fast) var(--ease-standard);
+    transform var(--motion-fast) var(--ease-standard), box-shadow var(--motion-fast) var(--ease-standard);
 }
 
 .book-card:hover {
@@ -3205,14 +3202,18 @@ textarea:focus-visible {
 }
 
 .book-detail-synopsis p {
-  color: var(--ink-1);
-  font-size: 0.9rem;
-  line-height: 1.5;
+  color: var(--ink-0);
+  font-size: 0.96rem;
+  line-height: 1.6;
   margin: 0;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  overflow: hidden;
+}
+.book-detail-synopsis p::first-letter {
+  float: left;
+  font-weight: 600;
+  font-size: 3em;
+  line-height: 0.8;
+  padding: 6px 10px 0 0;
+  color: #b5382b;
 }
 
 .book-card-progress {
@@ -3693,7 +3694,7 @@ textarea:focus-visible {
 .chapter-node.is-done .chapter-check {
   background: var(--success);
   border-color: var(--success);
-  color: #0b1a12;                /* check bien visible */
+  color: #fff;                   /* check bien visible sobre el verde */
 }
 
 .chapter-head {
@@ -4547,16 +4548,14 @@ textarea:focus-visible {
   padding: 2px var(--sp-2);
 }
 .book-chip-link {
+  font-family: var(--font-type);
   text-decoration: none; cursor: pointer;
-  color: var(--brand-strong); border-color: color-mix(in srgb, var(--brand) 40%, var(--line));
+  color: var(--ink-1); border-color: var(--line);
 }
-.book-chip-link:hover { border-color: var(--brand); }
+.book-chip-link:hover { color: var(--ink-0); border-color: var(--ink-1); }
 .book-head-progress { display: flex; align-items: center; gap: var(--sp-2); margin-top: var(--sp-1); }
 .book-head-progress-label { font-family: var(--font-type); font-size: 0.76rem; color: var(--ink-1); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-/* Sinopsis plegable (3 líneas + leer más) */
-.book-detail-synopsis.is-open p { -webkit-line-clamp: unset; }
-.synopsis-toggle { align-self: flex-start; font-size: 0.8rem; color: var(--brand-strong); }
 
 /* Toggle de numeración de capítulos */
 .chapter-number-toggle { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--ink-1); cursor: pointer; }

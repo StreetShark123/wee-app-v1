@@ -78,7 +78,6 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const [minutesPerDay, setMinutesPerDay] = useState(30);
   const [calcPreview, setCalcPreview] = useState<{ date: string; days: number } | null>(null);
   const [coverLightbox, setCoverLightbox] = useState(false);
-  const [synopsisOpen, setSynopsisOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!bookId) return;
@@ -518,13 +517,8 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               {book.publishedYear ? ` · ${book.publishedYear}` : ""}
             </p>
             {book.description ? (
-              <div className={`book-detail-synopsis${synopsisOpen ? " is-open" : ""}`}>
+              <div className="book-detail-synopsis">
                 <p>{book.description}</p>
-                {book.description.length > 200 ? (
-                  <button type="button" className="link-btn synopsis-toggle" onClick={() => setSynopsisOpen((v) => !v)}>
-                    {synopsisOpen ? pick(language, "leer menos", "show less", "ler menos") : pick(language, "leer más", "read more", "ler máis")}
-                  </button>
-                ) : null}
               </div>
             ) : null}
             {(facilitatorAlias && book.status !== "proposed") || hasCadence ? (
