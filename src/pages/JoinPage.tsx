@@ -44,21 +44,34 @@ export const JoinPage = ({ isLoggedIn, onPreviewCommunity, onJoinCommunity, onEn
     if (!inviteParsed.code && !inviteParsed.token) return;
     setLoadingPreview(true);
     setError(null);
-    void onPreviewCommunity(inviteParsed)
-      .then((data) => setPreview(data))
-      .catch(() => {
-        setPreview(null);
-        setError(
-          pick(
-            language,
-            "No encontramos ese club o la invitación ya no vale.",
-            "We couldn't find that community, or the invite is no longer valid.",
-            "Non atopamos esa comunidade ou a invitación xa non vale."
-          )
-        );
-      })
-      .finally(() => setLoadingPreview(false));
-  }, [language, inviteParsed, onPreviewCommunity]);
+    // Robusto: probamos la interpretación primaria (code o token) y, si falla, la otra.
+    const fallback = inviteParsed.code ? { token: inviteFromUrl } : { code: inviteFromUrl.toUpperCase() };
+    const run = async () => {
+      try {
+        setPreview(await onPreviewCommunity(inviteParsed));
+        return;
+      } catch (primaryErr) {
+        try {
+          setPreview(await onPreviewCommunity(fallback));
+          return;
+        } catch (secondErr) {
+          setPreview(null);
+          const detail = secondErr instanceof Error ? secondErr.message : String(primaryErr);
+          setError(
+            pick(
+              language,
+              `No encontramos ese club o la invitación ya no vale. (${detail})`,
+              `We couldn't find that community, or the invite is no longer valid. (${detail})`,
+              `Non atopamos esa comunidade ou a invitación xa non vale. (${detail})`
+            )
+          );
+        }
+      } finally {
+        setLoadingPreview(false);
+      }
+    };
+    void run();
+  }, [language, inviteParsed, inviteFromUrl, onPreviewCommunity]);
 
   const submitPreview = async (event: FormEvent) => {
     event.preventDefault();
