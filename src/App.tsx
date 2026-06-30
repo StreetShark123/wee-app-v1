@@ -15,7 +15,7 @@ import { useAppData } from "./lib/appData";
 import { I18nContext, pick } from "./lib/i18n";
 import { NotificationsContext, type AppNotification } from "./lib/notifications";
 import { trackPageView } from "./lib/usageAnalytics";
-import type { AppLanguage, ExportBundle } from "./lib/types";
+import type { AppLanguage } from "./lib/types";
 import { resolveRootRoute, shouldAutoEnterDefaultCommunity } from "./lib/communityNavigation";
 import { RequireAuth } from "./pages/RequireAuth";
 
@@ -64,19 +64,16 @@ const AppRoutes = () => {
     updateCommunityDetails,
     createCommunityInvite,
     loginWithUserId,
-    logout,
     createPost,
     savePost,
     removePost,
     removeComment,
-    removeUser,
     updateUserAvatar,
     updateUserAlias,
     updatePostPrimaryTopic,
     filterPosts,
     updatePreferences,
     exportJson,
-    importJson,
     userQualityValueById,
     userCommunityStatsById,
     userInfluenceAuraById
@@ -342,20 +339,6 @@ const AppRoutes = () => {
     window.setTimeout(() => setToast(null), 1800);
   };
 
-  const onImport = async (file: File): Promise<void> => {
-    const text = await file.text();
-    const bundle = JSON.parse(text) as ExportBundle;
-    await importJson(bundle);
-    setToast(pick(language, "Importación completada. Ya tienes los datos cargados.", "Import completed. Your data is now loaded."));
-    window.setTimeout(() => setToast(null), 1800);
-  };
-
-  const onDeleteMyData = async (): Promise<void> => {
-    if (!activeUser) return;
-    await removeUser(activeUser.id);
-    logout();
-    showToast(pick(language, "Tus datos se han borrado del club.", "Your data has been deleted.", "Elimináronse os teus datos."));
-  };
 
   const onAdminDeleteUser = async (userId: string): Promise<{ ok: boolean; message: string }> => {
     if (!activeUser || activeUser.role !== "admin") {
@@ -669,8 +652,6 @@ const AppRoutes = () => {
                 <SettingsPage
                   activeUser={activeUser as NonNullable<typeof activeUser>}
                   onExport={onExport}
-                  onImport={onImport}
-                  onDeleteMyData={onDeleteMyData}
                   onOpenShareModal={() => setShareModalOpen(true)}
                   onLogout={logoutGlobal}
                 />

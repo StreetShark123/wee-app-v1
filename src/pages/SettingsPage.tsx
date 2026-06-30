@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Icon } from "../components/Icon";
 import { pick, useI18n } from "../lib/i18n";
-import { useConfirm } from "../lib/confirm";
 import { TopBar } from "../components/TopBar";
 import { isAnalyticsOptedOut, setAnalyticsOptOut } from "../lib/usageAnalytics";
 import type { User } from "../lib/types";
@@ -9,8 +8,6 @@ import type { User } from "../lib/types";
 interface SettingsPageProps {
   activeUser: User;
   onExport: () => Promise<void>;
-  onImport: (file: File) => Promise<void>;
-  onDeleteMyData: () => Promise<void>;
   onOpenShareModal?: () => void;
   onLogout: () => void;
 }
@@ -18,13 +15,10 @@ interface SettingsPageProps {
 export const SettingsPage = ({
   activeUser,
   onExport,
-  onImport,
-  onDeleteMyData,
   onOpenShareModal,
   onLogout
 }: SettingsPageProps) => {
   const { language } = useI18n();
-  const confirm = useConfirm();
   const [message, setMessage] = useState<string | null>(null);
   const [optedOut, setOptedOut] = useState(isAnalyticsOptedOut());
 
@@ -76,24 +70,11 @@ export const SettingsPage = ({
 
         <article className="settings-card">
           <h3><Icon name="book" /> {pick(language, "Copia de tus datos", "Your data backup", "Copia dos teus datos")}</h3>
-          <p className="hint">{pick(language, "Exporta o importa una copia cuando quieras. Tus datos son tuyos.", "Export or import a copy whenever you want. Your data is yours.", "Exporta ou importa unha copia cando queiras. Os teus datos son teus.")}</p>
+          <p className="hint">{pick(language, "Descarga una copia de tus datos cuando quieras. Son tuyos.", "Download a copy of your data whenever you want. It's yours.", "Descarga unha copia dos teus datos cando queiras. Son teus.")}</p>
           <div className="settings-known-topics">
             <button type="button" className="btn" onClick={() => void onExport()}>
               <Icon name="download" /> {pick(language, "Exportar copia", "Export backup", "Exportar copia")}
             </button>
-            <label className="btn">
-              <Icon name="upload" /> {pick(language, "Importar copia", "Import backup", "Importar copia")}
-              <input
-                type="file"
-                accept="application/json"
-                style={{ display: "none" }}
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (!file) return;
-                  void onImport(file);
-                }}
-              />
-            </label>
           </div>
         </article>
 
@@ -110,28 +91,8 @@ export const SettingsPage = ({
           <ul className="rules-list">
             <li>{pick(language, "Acceso/portabilidad: exporta tu copia JSON.", "Access/portability: export your JSON copy.", "Acceso/portabilidade: exporta a túa copia JSON.")}</li>
             <li>{pick(language, "Rectificación: edita tu alias y tu foto en tu perfil.", "Rectification: edit your alias and photo on your profile.", "Rectificación: edita o teu alias e foto no teu perfil.")}</li>
-            <li>{pick(language, "Supresión: elimina tu cuenta y tus datos del club.", "Erasure: delete your account and club data.", "Supresión: elimina a túa conta e os teus datos do club.")}</li>
+            <li>{pick(language, "Baja: puedes salir de cualquier club desde sus ajustes.", "Leave: you can exit any club from its settings.", "Baixa: podes saír de calquera club desde os seus axustes.")}</li>
           </ul>
-          <button
-            type="button"
-            className="btn"
-            onClick={async () => {
-              const okDelete = await confirm({
-                title: pick(language, "¿Eliminar tu cuenta y datos?", "Delete your account and data?", "Eliminar a túa conta e datos?"),
-                message: pick(language, "Esto eliminará tu cuenta y tus datos asociados en el club. No se puede deshacer.", "This will delete your account and your related club data. It can't be undone.", "Isto eliminará a túa conta e os teus datos asociados no club. Non se pode desfacer."),
-                confirmLabel: pick(language, "Eliminar todo", "Delete everything", "Eliminar todo"),
-                danger: true
-              });
-              if (!okDelete) return;
-              try {
-                await onDeleteMyData();
-              } catch {
-                setMessage(pick(language, "No se pudo eliminar. Inténtalo otra vez.", "Couldn't delete. Please try again.", "Non se puido eliminar. Inténtao outra vez."));
-              }
-            }}
-          >
-            <Icon name="trash" /> {pick(language, "Eliminar mis datos", "Delete my data", "Eliminar os meus datos")}
-          </button>
         </article>
         </div>
 
