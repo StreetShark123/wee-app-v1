@@ -1,4 +1,6 @@
-@import url("https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Special+Elite&display=swap");
+/* Las fuentes (Spectral + Special Elite) se cargan vía <link> en index.html con
+   preconnect, no con @import aquí: evita encadenar round-trips y acelera el
+   primer pintado. */
 
 :root {
   color-scheme: light;
@@ -126,6 +128,8 @@ h4 {
 
 .community-loading-screen.is-finishing {
   animation: community-loading-out 420ms var(--ease-standard) forwards;
+  /* La web ya está montada debajo: deja pasar los clics mientras se desvanece. */
+  pointer-events: none;
 }
 
 @keyframes community-loading-out {
@@ -2290,6 +2294,58 @@ textarea::placeholder {
 .invite-code-value.invite-url { font-size: 0.98rem; letter-spacing: 0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .invite-code-chip:has(.invite-url) { gap: 8px; }
 .invite-code-hint { display: inline-flex; align-items: center; gap: 4px; font-size: 0.74rem; color: var(--ink-1); flex: 0 0 auto; }
+
+/* Generar código (clubs cerrados) */
+.invite-code-block { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+
+/* Visibilidad del club: tres opciones tipo ficha */
+.visibility-options { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.visibility-option {
+  display: flex; align-items: flex-start; gap: 10px; width: 100%; text-align: left; cursor: pointer;
+  background: var(--panel-0); border: 1px solid var(--line); border-radius: var(--radius-md);
+  padding: 11px 13px; color: var(--ink-0);
+  transition: border-color var(--motion-fast) var(--ease-standard), background var(--motion-fast) var(--ease-standard);
+}
+.visibility-option:hover:not(:disabled) { border-color: var(--brand); }
+.visibility-option.active { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 8%, var(--panel-0)); }
+.visibility-option:disabled { cursor: default; opacity: 0.65; }
+.visibility-option.active:disabled { opacity: 1; }
+.visibility-option > svg { flex: 0 0 auto; margin-top: 2px; color: var(--ink-1); }
+.visibility-option.active > svg { color: var(--brand); }
+.visibility-option-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.visibility-option-text strong { font-size: 0.9rem; }
+.visibility-option-text .hint { margin: 0; font-size: 0.74rem; }
+
+/* Slug editable con prefijo /c/ */
+.slug-field {
+  display: flex; align-items: center; gap: 0;
+  border: 1px solid var(--line); border-radius: var(--radius-md); overflow: hidden;
+  background: var(--panel-0); font-family: var(--font-type);
+}
+.slug-field:focus-within { border-color: var(--brand); }
+.slug-prefix { padding: 0 4px 0 11px; color: var(--ink-1); font-size: 0.92rem; flex: 0 0 auto; }
+.slug-field input {
+  flex: 1 1 auto; min-width: 0; border: none; background: transparent;
+  padding: 9px 11px 9px 2px; font-family: var(--font-type); font-size: 0.92rem; color: var(--ink-0);
+}
+.slug-field input:focus { outline: none; }
+
+/* Solicitudes de unión (admin) */
+.request-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.request-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--panel-0); border: 1px solid var(--line); border-radius: var(--radius-md);
+  padding: 8px 11px;
+}
+.request-name { font-weight: 600; font-size: 0.9rem; color: var(--ink-0); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.request-actions { display: inline-flex; gap: 6px; flex: 0 0 auto; }
+.request-approve { color: var(--success); }
+.request-approve:hover:not(:disabled) { background: color-mix(in srgb, var(--success) 14%, transparent); border-color: var(--success); }
+.request-decline { color: var(--stamp); }
+.request-decline:hover:not(:disabled) { background: color-mix(in srgb, var(--stamp) 14%, transparent); border-color: var(--stamp); }
+
+/* Confirmación de solicitud enviada (landing) */
+.invite-requested { display: inline-flex; align-items: center; gap: 6px; color: var(--success); }
 
 .settings-modes {
   display: flex;

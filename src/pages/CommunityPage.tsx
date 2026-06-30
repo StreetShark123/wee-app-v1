@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { TopBar } from "../components/TopBar";
 import { Icon } from "../components/Icon";
 import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
+import { listJoinRequests, decideJoinRequest, type JoinRequestItem } from "../lib/communityApi";
 import type { User } from "../lib/types";
 
 interface CommunityPageProps {
@@ -13,7 +14,7 @@ interface CommunityPageProps {
   ownerId?: string | null;
   communities: Array<{ community_id: string; name: string; role: "admin" | "member" }>;
   rulesText: string;
-  onUpdateCommunity: (input: { name?: string; description?: string; rulesText?: string }) => Promise<unknown>;
+  onUpdateCommunity: (input: { name?: string; description?: string; rulesText?: string; visibility?: "public" | "private" | "invite"; slug?: string }) => Promise<unknown>;
   onCreateInvite: () => Promise<{ id: string; code: string; token: string; link: string }>;
   onSwitchCommunity: (communityId: string) => Promise<void>;
   onLeaveCommunity: () => Promise<void> | void;
@@ -33,6 +34,7 @@ export const CommunityPage = ({
   communities,
   rulesText,
   onUpdateCommunity,
+  onCreateInvite,
   onSwitchCommunity,
   onLeaveCommunity,
   onSetUserRole,
@@ -56,6 +58,12 @@ export const CommunityPage = ({
   const [switchingCommunityId, setSwitchingCommunityId] = useState<string | null>(null);
   const [copyNotice, setCopyNotice] = useState<string | null>(null);
   const [isEditingSettings, setIsEditingSettings] = useState(false);
+  const [visibilityInput, setVisibilityInput] = useState<"public" | "private" | "invite">(selectedCommunity?.visibility ?? "public");
+  const [slugInput, setSlugInput] = useState(selectedCommunity?.slug ?? "");
+  const [joinRequests, setJoinRequests] = useState<JoinRequestItem[]>([]);
+  const [busyRequestId, setBusyRequestId] = useState<string | null>(null);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [generatingCode, setGeneratingCode] = useState(false);
   const otherCommunities = communities.filter((entry) => entry.community_id !== selectedCommunity?.id);
 
   // Orden: admin principal → admins → miembros.
@@ -65,8 +73,42 @@ export const CommunityPage = ({
   useEffect(() => {
     setNameInput(selectedCommunity?.name ?? "");
     setDescriptionInput(selectedCommunity?.description ?? "");
+    setVisibilityInput(selectedCommunity?.visibility ?? "public");
+    setSlugInput(selectedCommunity?.slug ?? "");
     setIsEditingSettings(false);
-  }, [selectedCommunity?.name, selectedCommunity?.description]);
+  }, [selectedCommunity?.name, selectedCommunity?.description, selectedCommunity?.visibility, selectedCommunity?.slug]);
+
+  // Solicitudes de unión pendientes (solo admin, solo clubs privados).
+  const loadJoinRequests = useCallback(async () => {
+    if (!isAdmin) return;
+    try {
+      const { requests } = await listJoinRequests();
+      setJoinRequests(requests);
+    } catch {
+      setJoinRequests([]);
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (isAdmin && selectedCommunity?.visibility === "private") void loadJoinRequests();
+    else setJoinRequests([]);
+  }, [isAdmin, selectedCommunity?.id, selectedCommunity?.visibility, loadJoinRequests]);
+
+  const decideRequest = async (requestId: string, approve: boolean) => {
+    setBusyRequestId(requestId);
+    try {
+      await decideJoinRequest(requestId, approve);
+      setJoinRequests((prev) => prev.filter((r) => r.id !== requestId));
+      onToast?.(approve
+        ? pick(language, "Solicitud aprobada.", "Request approved.", "Solicitude aprobada.")
+        : pick(language, "Solicitud rechazada.", "Request declined.", "Solicitude rexeitada."));
+      if (approve) await onRefreshMembers?.();
+    } catch (error) {
+      onToast?.(error instanceof Error ? error.message : pick(language, "No se pudo. Inténtalo otra vez.", "Couldn't do that. Try again.", "Non se puido. Inténtao outra vez."));
+    } finally {
+      setBusyRequestId(null);
+    }
+  };
 
   useEffect(() => {
     setRulesInput(rulesText ?? "");
@@ -91,10 +133,13 @@ export const CommunityPage = ({
   const saveCommunity = async () => {
     setSaving(true);
     try {
+      const trimmedSlug = slugInput.trim().toLowerCase();
       await onUpdateCommunity({
         name: nameInput.trim(),
         description: descriptionInput.trim(),
-        rulesText: rulesInput.trim()
+        rulesText: rulesInput.trim(),
+        visibility: visibilityInput,
+        ...(trimmedSlug && trimmedSlug !== selectedCommunity?.slug ? { slug: trimmedSlug } : {})
       });
       onToast?.(pick(language, "Club actualizado.", "Community updated.", "Comunidade actualizada."));
       setIsEditingSettings(false);
@@ -105,6 +150,18 @@ export const CommunityPage = ({
     }
   };
 
+
+  const generateCode = async () => {
+    setGeneratingCode(true);
+    try {
+      const invite = await onCreateInvite();
+      setInviteCode(invite.code);
+    } catch (error) {
+      onToast?.(error instanceof Error ? error.message : pick(language, "No se pudo generar el código.", "Couldn't generate the code.", "Non se puido xerar o código."));
+    } finally {
+      setGeneratingCode(false);
+    }
+  };
 
   const shareInviteLink = async (link: string) => {
     if (!link) return;
@@ -253,6 +310,46 @@ export const CommunityPage = ({
                 placeholder={pick(language, "Visible solo para miembros. Ejemplo: respeto, cero spam, sin destripar el final.", "Visible to members only. Example: be respectful, no spam, no spoilers.", "Visible só para membros. Exemplo: respecto, cero spam, sen spoilers.")}
               />
             </label>
+            <div className="form-field">
+              <span>{pick(language, "Visibilidad", "Visibility", "Visibilidade")}</span>
+              <div className="visibility-options" role="radiogroup">
+                {([
+                  { key: "public", icon: "eye", title: pick(language, "Público", "Public", "Público"), desc: pick(language, "Cualquiera con el enlace entra directo.", "Anyone with the link joins directly.", "Calquera coa ligazón entra directo.") },
+                  { key: "private", icon: "shield", title: pick(language, "Privado", "Private", "Privado"), desc: pick(language, "Visible, pero hay que pedir entrada.", "Visible, but people must request to join.", "Visible, pero hai que pedir entrada.") },
+                  { key: "invite", icon: "tag", title: pick(language, "Cerrado", "Invite-only", "Pechado"), desc: pick(language, "Solo se entra con código de invitación.", "Join only with an invite code.", "Só se entra con código de invitación.") }
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    role="radio"
+                    aria-checked={visibilityInput === opt.key}
+                    className={`visibility-option${visibilityInput === opt.key ? " active" : ""}`}
+                    onClick={() => setVisibilityInput(opt.key)}
+                    disabled={!isAdmin || !isEditingSettings}
+                  >
+                    <Icon name={opt.icon} size={15} />
+                    <span className="visibility-option-text">
+                      <strong>{opt.title}</strong>
+                      <span className="hint">{opt.desc}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <label className="form-field">
+              {pick(language, "Enlace del club", "Club link", "Ligazón do club")}
+              <span className="slug-field">
+                <span className="slug-prefix">/c/</span>
+                <input
+                  value={slugInput}
+                  onChange={(event) => setSlugInput(event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
+                  disabled={!isAdmin || !isEditingSettings}
+                  placeholder="mi-club"
+                  spellCheck={false}
+                  autoCapitalize="none"
+                />
+              </span>
+            </label>
             {isAdmin && isEditingSettings ? (
               <div className="community-settings-actions">
                 <button type="button" className="btn btn-nav" onClick={() => setIsEditingSettings(false)} disabled={saving}>
@@ -275,7 +372,13 @@ export const CommunityPage = ({
         {/* 2 · Invitar gente — accesible y destacado */}
         <article className="settings-card community-invite-card">
           <h3><Icon name="link" /> {pick(language, "Invitar gente", "Invite people", "Convidar xente")}</h3>
-          <p className="hint">{pick(language, "Comparte el enlace del club: quien lo abra puede unirse.", "Share the club link: anyone who opens it can join.", "Comparte a ligazón do club: quen a abra pode unirse.")}</p>
+          <p className="hint">
+            {selectedCommunity?.visibility === "invite"
+              ? pick(language, "Club cerrado: comparte el enlace y un código de invitación.", "Invite-only club: share the link and an invite code.", "Club pechado: comparte a ligazón e un código de invitación.")
+              : selectedCommunity?.visibility === "private"
+                ? pick(language, "Comparte el enlace: verán el club y podrán solicitar entrar.", "Share the link: people see the club and can request to join.", "Comparte a ligazón: verán o club e poderán solicitar entrar.")
+                : pick(language, "Comparte el enlace del club: quien lo abra puede unirse.", "Share the club link: anyone who opens it can join.", "Comparte a ligazón do club: quen a abra pode unirse.")}
+          </p>
           <div className="stack community-settings-form">
             {selectedCommunity?.slug ? (
               <div className="invite-simple">
@@ -295,8 +398,46 @@ export const CommunityPage = ({
             ) : (
               <p className="hint">{pick(language, "Preparando el enlace del club...", "Preparing the club link...", "Preparando a ligazón do club...")}</p>
             )}
+            {selectedCommunity?.visibility === "invite" && isAdmin ? (
+              <div className="invite-code-block">
+                {inviteCode ? (
+                  <button type="button" className="invite-code-chip" onClick={() => copy(inviteCode, pick(language, "Código", "Code", "Código"))} title={pick(language, "Tocar para copiar", "Tap to copy", "Tocar para copiar")}>
+                    <span className="invite-code-value">{inviteCode}</span>
+                    <span className="invite-code-hint"><Icon name="copy" size={12} /> {pick(language, "copiar código", "copy code", "copiar código")}</span>
+                  </button>
+                ) : null}
+                <button type="button" className="btn btn-nav" onClick={() => void generateCode()} disabled={generatingCode}>
+                  <Icon name="dice" /> {inviteCode
+                    ? pick(language, "Nuevo código", "New code", "Novo código")
+                    : pick(language, "Generar código de invitación", "Generate invite code", "Xerar código de invitación")}
+                </button>
+              </div>
+            ) : null}
           </div>
         </article>
+
+        {/* 2b · Solicitudes de unión (clubs privados) */}
+        {isAdmin && joinRequests.length > 0 ? (
+          <article className="settings-card community-requests-card">
+            <h3><Icon name="user" /> {pick(language, "Solicitudes de unión", "Join requests", "Solicitudes de unión")}</h3>
+            <p className="hint">{pick(language, "Gente que quiere entrar en el club. Acepta o descarta.", "People who want to join. Approve or decline.", "Xente que quere entrar no club. Acepta ou descarta.")}</p>
+            <ul className="request-list">
+              {joinRequests.map((reqItem) => (
+                <li key={reqItem.id} className="request-row">
+                  <span className="request-name">{reqItem.username}</span>
+                  <span className="request-actions">
+                    <button type="button" className="btn btn-icon-compact request-approve" onClick={() => void decideRequest(reqItem.id, true)} disabled={busyRequestId === reqItem.id} title={pick(language, "Aceptar", "Approve", "Aceptar")}>
+                      <Icon name="check" size={15} />
+                    </button>
+                    <button type="button" className="btn btn-icon-compact request-decline" onClick={() => void decideRequest(reqItem.id, false)} disabled={busyRequestId === reqItem.id} title={pick(language, "Rechazar", "Decline", "Rexeitar")}>
+                      <Icon name="x" size={15} />
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </article>
+        ) : null}
 
         {/* 3 · Miembros (con gestión) */}
         <article className="settings-card community-members-card">

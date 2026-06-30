@@ -8,7 +8,7 @@ import { Icon } from "./components/Icon";
 import { PageTransition } from "./components/PageTransition";
 import { AddBookModal } from "./components/AddBookModal";
 import type { BookDraft } from "./lib/bookSearch";
-import { createClubBook, demoteMember, exportMyData, joinPublicCommunity, listClubBooks, listNotifications, markNotificationsRead, previewCommunityBySlug, promoteMember, removeMember, type ClubBook, type MemberBook } from "./lib/communityApi";
+import { createClubBook, demoteMember, exportMyData, joinPublicCommunity, listClubBooks, listNotifications, markNotificationsRead, previewCommunityBySlug, promoteMember, removeMember, requestJoinCommunity, type ClubBook, type MemberBook } from "./lib/communityApi";
 import { clearBooksCache, getCachedList, setCachedList } from "./lib/booksCache";
 import { Toast } from "./components/Toast";
 import { useAppData } from "./lib/appData";
@@ -29,6 +29,11 @@ const CommunitiesPickerPage = lazy(async () => ({ default: (await import("./page
 const InvitePage = lazy(async () => ({ default: (await import("./pages/InvitePage")).InvitePage }));
 const JoinPage = lazy(async () => ({ default: (await import("./pages/JoinPage")).JoinPage }));
 const ClubLandingPage = lazy(async () => ({ default: (await import("./pages/ClubLandingPage")).ClubLandingPage }));
+
+// Splash: tiempo mínimo en pantalla (deja que el "wee." acabe de teclearse) y
+// duración del fade de salida (debe casar con la animación CSS `is-finishing`).
+const MIN_SPLASH_MS = 1300;
+const SPLASH_FADE_MS = 440;
 
 const AppRoutes = () => {
   const location = useLocation();
@@ -89,6 +94,10 @@ const AppRoutes = () => {
   const [communitiesLoading, setCommunitiesLoading] = useState(false);
   const [autoEnteringDefaultCommunity, setAutoEnteringDefaultCommunity] = useState(false);
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(true);
+  // Fase de salida del splash: dispara el fade CSS mientras la web ya está montada
+  // detrás, para revelarla sin fogonazo en blanco.
+  const [loaderFinishing, setLoaderFinishing] = useState(false);
+  const bootStartRef = useRef(Date.now());
   // Tope de seguridad: por muy lento (o roto) que vaya el backend, soltamos el
   // splash pasado este tiempo y caemos a skeletons antes que atrapar al usuario.
   const [loaderMaxReached, setLoaderMaxReached] = useState(false);
@@ -99,6 +108,24 @@ const AppRoutes = () => {
   useEffect(() => {
     trackPageView(location.pathname);
   }, [location.pathname]);
+
+  // Prefetch en idle del chunk de la ficha de libro (la navegación más común desde
+  // la Home): así al tocar un libro no esperas a descargar su JS (el spinner de ruta).
+  useEffect(() => {
+    const prefetch = () => {
+      void import("./pages/BookDetailPage");
+    };
+    const w = window as typeof window & {
+      requestIdleCallback?: (cb: () => void) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    if (w.requestIdleCallback) {
+      const id = w.requestIdleCallback(prefetch);
+      return () => w.cancelIdleCallback?.(id);
+    }
+    const t = window.setTimeout(prefetch, 1200);
+    return () => window.clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     if (!activeUser) return;
@@ -188,10 +215,20 @@ const AppRoutes = () => {
   useEffect(() => {
     if (shouldKeepLoaderVisible) {
       setShowLoadingOverlay(true);
+      setLoaderFinishing(false);
       return;
     }
-    const timeout = window.setTimeout(() => setShowLoadingOverlay(false), 920);
-    return () => window.clearTimeout(timeout);
+    // Contenido listo y ya montado DETRÁS del overlay. Respeta el mínimo en
+    // pantalla, luego funde el splash y, al terminar el fade, lo desmonta. Como
+    // la web está pintada detrás, el fundido la revela sin hueco en blanco.
+    const elapsed = Date.now() - bootStartRef.current;
+    const untilFade = Math.max(0, MIN_SPLASH_MS - elapsed);
+    const fadeTimer = window.setTimeout(() => setLoaderFinishing(true), untilFade);
+    const unmountTimer = window.setTimeout(() => setShowLoadingOverlay(false), untilFade + SPLASH_FADE_MS);
+    return () => {
+      window.clearTimeout(fadeTimer);
+      window.clearTimeout(unmountTimer);
+    };
   }, [shouldKeepLoaderVisible]);
 
   // Tope absoluto desde el montaje: si el contenido no llega a tiempo, dejamos
@@ -381,27 +418,6 @@ const AppRoutes = () => {
     showToast(`"${created.title}" añadido al club.`);
   };
 
-  if (showLoadingOverlay) {
-    return (
-      <I18nContext.Provider value={i18nValue}>
-        <NotificationsContext.Provider
-          value={{
-            notifications: [],
-            unreadCount: 0,
-            markAllAsRead: () => {}
-          }}
-        >
-          <CommunityLoadingScreen
-            communityName={selectedCommunity?.name}
-            topics={Array.from(new Set(posts.flatMap((post) => post.topics))).slice(0, 3)}
-            usersCount={users.length}
-            finishing={!shouldKeepLoaderVisible}
-          />
-        </NotificationsContext.Provider>
-      </I18nContext.Provider>
-    );
-  }
-
   if (backendError) {
     const backendErrorMessage =
       backendError === "BACKEND_CONFIG_MISSING"
@@ -582,6 +598,7 @@ const AppRoutes = () => {
                 isLoggedIn={Boolean(globalSession)}
                 onPreviewBySlug={previewCommunityBySlug}
                 onJoinPublic={joinPublicCommunity}
+                onRequestJoin={requestJoinCommunity}
                 onEnterCommunity={setCommunityAsActive}
                 onReloadCommunities={reloadMyCommunities}
               />
@@ -704,6 +721,14 @@ const AppRoutes = () => {
           onAddBook={onAddBook}
           onToast={showToast}
         />
+        {showLoadingOverlay ? (
+          <CommunityLoadingScreen
+            communityName={selectedCommunity?.name}
+            topics={Array.from(new Set(posts.flatMap((post) => post.topics))).slice(0, 3)}
+            usersCount={users.length}
+            finishing={loaderFinishing}
+          />
+        ) : null}
       </NotificationsContext.Provider>
     </I18nContext.Provider>
   );

@@ -417,11 +417,13 @@ export const useAppData = () => {
   }, []);
 
   const updateCommunityDetails = useCallback(
-    async (input: { name?: string; description?: string; rulesText?: string }) => {
+    async (input: { name?: string; description?: string; rulesText?: string; visibility?: "public" | "private" | "invite"; slug?: string }) => {
       const community = await updateCommunity({
         name: input.name,
         description: input.description,
-        rules_text: input.rulesText
+        rules_text: input.rulesText,
+        visibility: input.visibility,
+        slug: input.slug
       });
       setSelectedCommunityState(community);
       setSelectedCommunity(community);

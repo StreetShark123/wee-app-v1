@@ -269,6 +269,8 @@ export const updateCommunity = async (payload: {
   name?: string;
   description?: string;
   rules_text?: string;
+  visibility?: "public" | "private" | "invite";
+  slug?: string;
 }): Promise<CommunitySelection> => {
   const data = await request<{
     community: {
@@ -277,6 +279,8 @@ export const updateCommunity = async (payload: {
       description?: string;
       rules_text?: string;
       invite_policy: "admins_only" | "members_allowed";
+      slug?: string;
+      visibility?: "public" | "private" | "invite";
     };
   }>("/community/update", payload);
   const community: CommunitySelection = {
@@ -284,11 +288,30 @@ export const updateCommunity = async (payload: {
     name: data.community.name,
     description: data.community.description,
     rulesText: data.community.rules_text,
-    invitePolicy: data.community.invite_policy
+    invitePolicy: data.community.invite_policy,
+    slug: data.community.slug,
+    visibility: data.community.visibility
   };
   setSelectedCommunity(community);
   return community;
 };
+
+export interface JoinRequestItem {
+  id: string;
+  userId: string;
+  username: string;
+  createdAt?: number;
+}
+
+// Solicitud de unión a un club privado (usuario global). Público → entra directo.
+export const requestJoinCommunity = async (slug: string): Promise<{ requested?: boolean; joined?: boolean; community_id?: string }> =>
+  request<{ requested?: boolean; joined?: boolean; community_id?: string }>("/community/join_request", { slug });
+
+export const listJoinRequests = async (): Promise<{ requests: JoinRequestItem[] }> =>
+  request<{ requests: JoinRequestItem[] }>("/community/join_request/list", {});
+
+export const decideJoinRequest = async (requestId: string, approve: boolean): Promise<{ approved: boolean }> =>
+  request<{ approved: boolean }>("/community/join_request/decide", { request_id: requestId, approve });
 
 export const promoteMember = async (targetUserId: string): Promise<void> => {
   await request<{ ok: true }>("/community/admin/promote", { target_user_id: targetUserId });

@@ -9,12 +9,13 @@ interface ClubLandingPageProps {
   isLoggedIn: boolean;
   onPreviewBySlug: (slug: string) => Promise<CommunitySlugPreview>;
   onJoinPublic: (slug: string) => Promise<CommunitySelection>;
+  onRequestJoin: (slug: string) => Promise<{ requested?: boolean; joined?: boolean }>;
   onEnterCommunity: (communityId: string) => Promise<void>;
   onReloadCommunities: () => Promise<void>;
 }
 
 // Landing pública de un club por su URL propia (#/c/<slug>).
-export const ClubLandingPage = ({ isLoggedIn, onPreviewBySlug, onJoinPublic, onEnterCommunity, onReloadCommunities }: ClubLandingPageProps) => {
+export const ClubLandingPage = ({ isLoggedIn, onPreviewBySlug, onJoinPublic, onRequestJoin, onEnterCommunity, onReloadCommunities }: ClubLandingPageProps) => {
   const { language } = useI18n();
   const navigate = useNavigate();
   const { slug = "" } = useParams<{ slug: string }>();
@@ -22,6 +23,7 @@ export const ClubLandingPage = ({ isLoggedIn, onPreviewBySlug, onJoinPublic, onE
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
+  const [requested, setRequested] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -44,6 +46,25 @@ export const ClubLandingPage = ({ isLoggedIn, onPreviewBySlug, onJoinPublic, onE
       navigate("/home");
     } catch (err) {
       setError(err instanceof Error ? err.message : pick(language, "No pudimos unirte ahora. Prueba otra vez.", "Could not join right now. Please try again.", "Non puidemos unirte agora. Proba outra vez."));
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  const requestJoin = async () => {
+    if (!club || joining || !isLoggedIn) return;
+    setJoining(true);
+    setError(null);
+    try {
+      const res = await onRequestJoin(club.slug);
+      if (res.joined) {
+        await onReloadCommunities();
+        navigate("/home");
+        return;
+      }
+      setRequested(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : pick(language, "No pudimos enviar la solicitud. Prueba otra vez.", "Could not send the request. Please try again.", "Non puidemos enviar a solicitude. Proba outra vez."));
     } finally {
       setJoining(false);
     }
@@ -77,6 +98,27 @@ export const ClubLandingPage = ({ isLoggedIn, onPreviewBySlug, onJoinPublic, onE
                 <Icon name="check" /> {joining
                   ? pick(language, "Entrando", "Joining", "Entrando")
                   : pick(language, `Unirme a ${club.name}`, `Join ${club.name}`, `Unirme a ${club.name}`)}
+              </button>
+            ) : (
+              <div className="invite-choice">
+                <button type="button" className="btn btn-primary invite-cta" onClick={() => navigate(`/login?club=${encodeURIComponent(club.slug)}`)}>
+                  <Icon name="user" /> {pick(language, "Ya tengo cuenta", "I have an account", "Xa teño conta")}
+                </button>
+                <button type="button" className="btn invite-cta" onClick={() => navigate(`/signup?club=${encodeURIComponent(club.slug)}`)}>
+                  <Icon name="plus" /> {pick(language, "Crear cuenta", "Create account", "Crear conta")}
+                </button>
+              </div>
+            )
+          ) : club.visibility === "private" ? (
+            requested ? (
+              <p className="hint invite-requested">
+                <Icon name="check" /> {pick(language, "Solicitud enviada. Un administrador la revisará.", "Request sent. An admin will review it.", "Solicitude enviada. Un administrador revisaraa.")}
+              </p>
+            ) : isLoggedIn ? (
+              <button type="button" className="btn btn-primary invite-cta" onClick={() => void requestJoin()} disabled={joining}>
+                <Icon name="send" /> {joining
+                  ? pick(language, "Enviando", "Sending", "Enviando")
+                  : pick(language, "Solicitar unirme", "Request to join", "Solicitar unirme")}
               </button>
             ) : (
               <div className="invite-choice">

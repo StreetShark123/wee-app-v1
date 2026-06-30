@@ -980,7 +980,7 @@ const handlers = {
     );
     if (roleUpsert.error) return json(500, { message: roleUpsert.error.message });
     // El creador es el "admin principal" (owner) del club.
-    await db.from("communities").update({ created_by: profileRes.data.community_user_id }).eq("id", communityId).is("created_by", null);
+    await db.from("communities").update({ created_by_user_id: profileRes.data.community_user_id }).eq("id", communityId).is("created_by_user_id", null);
 
     const inviteInsert = await db.from("community_invites").insert({
       community_id: communityId,
@@ -1136,6 +1136,107 @@ const handlers = {
     });
   },
 
+  // Solicitar unirse a un club PRIVADO (requiere login). Público → se une directo;
+  // cerrado/invitación → 403 (necesita código).
+  "/community/join_request": async (req: Request) => {
+    const globalAuth = await requireGlobalSession(req);
+    if (globalAuth instanceof Response) return globalAuth;
+    const body = await parseBody(req);
+    const slug = slugify(String(body.slug ?? ""));
+    if (!slug) return bad("slug required");
+    const { data: comm, error } = await db
+      .from("communities")
+      .select("id,name,visibility")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (error || !comm) return json(404, { message: "Community not found" });
+    const visibility = (comm.visibility ?? "public") as string;
+
+    // Ya es miembro activo → no hace falta solicitar.
+    const memberRes = await db
+      .from("community_members")
+      .select("status")
+      .eq("community_id", comm.id)
+      .eq("user_id", globalAuth.user.id)
+      .maybeSingle();
+    if (memberRes.data?.status === "active") return json(200, { joined: true });
+
+    if (visibility === "public") {
+      await db.from("community_members").upsert({ community_id: comm.id, user_id: globalAuth.user.id, status: "active" }, { onConflict: "community_id,user_id" });
+      await ensureCommunityProfileForGlobalUser(comm.id, globalAuth.user);
+      return json(200, { joined: true });
+    }
+    if (visibility !== "private") return json(403, { message: "Community is invite-only" });
+
+    const up = await db.from("join_requests").upsert(
+      { community_id: comm.id, user_id: globalAuth.user.id, status: "pending", created_at: nowIso(), decided_at: null, decided_by: null },
+      { onConflict: "community_id,user_id" }
+    );
+    if (up.error) return json(400, { message: up.error.message });
+    return json(200, { requested: true });
+  },
+
+  // Lista de solicitudes pendientes (admin del club).
+  "/community/join_request/list": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const denied = ensureAdmin(auth.role);
+    if (denied) return denied;
+    const { data, error } = await db
+      .from("join_requests")
+      .select("id,user_id,created_at")
+      .eq("community_id", auth.community.id)
+      .eq("status", "pending")
+      .order("created_at", { ascending: true });
+    if (error) return json(500, { message: error.message });
+    const rows = data ?? [];
+    const ids = rows.map((r: Record<string, any>) => r.user_id);
+    const names = new Map<string, string>();
+    if (ids.length > 0) {
+      const usersRes = await db.from("global_users").select("id,username").in("id", ids);
+      (usersRes.data ?? []).forEach((u: Record<string, any>) => names.set(u.id, u.username));
+    }
+    return json(200, {
+      requests: rows.map((r: Record<string, any>) => ({
+        id: r.id,
+        userId: r.user_id,
+        username: names.get(r.user_id) ?? "—",
+        createdAt: toMillis(r.created_at)
+      }))
+    });
+  },
+
+  // Aprobar/rechazar una solicitud (admin del club).
+  "/community/join_request/decide": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const denied = ensureAdmin(auth.role);
+    if (denied) return denied;
+    const body = await parseBody(req);
+    const requestId = String(body.request_id ?? "").trim();
+    const approve = body.approve === true;
+    if (!requestId) return bad("request_id required");
+    const reqRes = await db
+      .from("join_requests")
+      .select("id,community_id,user_id,status")
+      .eq("id", requestId)
+      .eq("community_id", auth.community.id)
+      .maybeSingle();
+    if (reqRes.error || !reqRes.data) return json(404, { message: "Request not found" });
+    if (reqRes.data.status !== "pending") return json(409, { message: "Already decided" });
+
+    if (approve) {
+      await db.from("community_members").upsert(
+        { community_id: auth.community.id, user_id: reqRes.data.user_id, status: "active" },
+        { onConflict: "community_id,user_id" }
+      );
+      const globalUserRes = await db.from("global_users").select("id,username").eq("id", reqRes.data.user_id).maybeSingle();
+      if (globalUserRes.data) await ensureCommunityProfileForGlobalUser(auth.community.id, globalUserRes.data as { id: string; username: string });
+    }
+    await db.from("join_requests").update({ status: approve ? "approved" : "rejected", decided_at: nowIso(), decided_by: auth.user.id }).eq("id", requestId);
+    return json(200, { ok: true, approved: approve });
+  },
+
   "/auth/register": async (req: Request) => {
     return gone("LEGACY_COMMUNITY_AUTH_DISABLED");
   },
@@ -1163,12 +1264,12 @@ const handlers = {
         .eq("community_id", auth.community.id)
         .eq("status", "active")
         .order("created_at", { ascending: true }),
-      db.from("communities").select("approval_mode,created_by,slug,visibility").eq("id", auth.community.id).maybeSingle()
+      db.from("communities").select("approval_mode,created_by_user_id,slug,visibility").eq("id", auth.community.id).maybeSingle()
     ]);
 
     const memberList = (members ?? []).map((m: any) => ({ id: m.id, alias: m.alias, role: m.community_user_roles?.[0]?.role ?? "member" }));
     // Owner = created_by; si falta (clubs antiguos), el admin más antiguo (members van por created_at asc).
-    const ownerId = (commRes.data?.created_by as string) ?? memberList.find((m) => m.role === "admin")?.id ?? null;
+    const ownerId = (commRes.data?.created_by_user_id as string) ?? memberList.find((m) => m.role === "admin")?.id ?? null;
 
     return json(200, {
       community: {
@@ -1216,13 +1317,21 @@ const handlers = {
     if (description !== undefined) payload.description = description || null;
     if (rulesText !== undefined) payload.rules_text = rulesText || null;
     if (body.approval_mode === "all" || body.approval_mode === "majority") payload.approval_mode = body.approval_mode;
+    if (["public", "private", "invite"].includes(body.visibility)) payload.visibility = body.visibility;
+    if (body.slug !== undefined) {
+      const newSlug = slugify(String(body.slug));
+      if (!newSlug || newSlug === "club") return bad("slug invalid");
+      const { data: clash } = await db.from("communities").select("id").eq("slug", newSlug).neq("id", auth.community.id).maybeSingle();
+      if (clash) return json(409, { message: "SLUG_TAKEN" });
+      payload.slug = newSlug;
+    }
     if (Object.keys(payload).length === 0) return bad("No changes");
 
     const { data, error } = await db
       .from("communities")
       .update(payload)
       .eq("id", auth.community.id)
-      .select("id,name,description,rules_text,invite_policy,approval_mode")
+      .select("id,name,description,rules_text,invite_policy,approval_mode,slug,visibility")
       .single();
     if (error || !data) return json(400, { message: error?.message ?? "Community update failed" });
 
@@ -1233,7 +1342,9 @@ const handlers = {
         description: data.description ?? undefined,
         rules_text: data.rules_text ?? undefined,
         invite_policy: data.invite_policy,
-        approval_mode: data.approval_mode ?? "majority"
+        approval_mode: data.approval_mode ?? "majority",
+        slug: data.slug ?? null,
+        visibility: data.visibility ?? "public"
       }
     });
   },

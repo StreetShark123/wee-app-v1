@@ -12,9 +12,40 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Wee" />
     <title>Wee — club de lectura</title>
+    <!-- Fuentes: preconnect + link en el <head> (antes iban por @import dentro de
+         global.css, que encadenaba round-trips y retrasaba el primer pintado). -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Special+Elite&display=swap"
+    />
+    <!-- Splash instantáneo: se pinta con el HTML, antes de que monte React, para
+         que no haya un fogonazo en blanco. React reemplaza #root al montar y este
+         marcado desaparece solo, empalmando con la pantalla de carga animada. -->
+    <style>
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(820px 340px at 5% 0%, rgb(47 106 102 / 10%) 0%, transparent 70%),
+          radial-gradient(720px 300px at 95% 100%, rgb(47 106 102 / 8%) 0%, transparent 68%),
+          linear-gradient(160deg, #efe6d2, #e9dec8 55%, #efe6d2 100%);
+      }
+      #boot-splash span {
+        font-family: "Special Elite", "Courier New", monospace;
+        font-size: clamp(2.6rem, 12vw, 3.8rem);
+        line-height: 1;
+        color: #2a241b;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot-splash"><span>wee.</span></div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
