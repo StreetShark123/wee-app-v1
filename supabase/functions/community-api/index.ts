@@ -75,7 +75,74 @@ const sha256Hex = async (value: string): Promise<string> => {
     .join("");
 };
 
+// ── Password hashing: PBKDF2-SHA256, salt por usuario ──────────────────────
+// Formato: pbkdf2$<iters>$<saltB64>$<hashB64>. Las contraseñas viejas son
+// SHA-256 hex pelado (64 chars) y se re-hashean al primer login correcto.
+const PBKDF2_ITERS = 150_000;
+const b64encode = (buf: ArrayBuffer): string => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const b64decode = (s: string): Uint8Array => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+
+const pbkdf2Hash = async (password: string, salt: Uint8Array, iters: number): Promise<string> => {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt, iterations: iters, hash: "SHA-256" }, key, 256);
+  return b64encode(bits);
+};
+
+const hashPassword = async (password: string): Promise<string> => {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const hash = await pbkdf2Hash(password, salt, PBKDF2_ITERS);
+  return `pbkdf2$${PBKDF2_ITERS}$${b64encode(salt.buffer)}$${hash}`;
+};
+
+// Comparación en tiempo constante (evita timing oracle sobre el hash).
+const timingSafeEqual = (a: string, b: string): boolean => {
+  if (a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+};
+
+const verifyPassword = async (password: string, stored: string): Promise<{ ok: boolean; needsRehash: boolean }> => {
+  if (stored.startsWith("pbkdf2$")) {
+    const [, itersStr, saltB64, hashB64] = stored.split("$");
+    const iters = Number.parseInt(itersStr, 10) || PBKDF2_ITERS;
+    const calc = await pbkdf2Hash(password, b64decode(saltB64), iters);
+    return { ok: timingSafeEqual(calc, hashB64 ?? ""), needsRehash: iters < PBKDF2_ITERS };
+  }
+  // Legacy SHA-256 hex
+  const calc = await sha256Hex(password);
+  const ok = timingSafeEqual(calc, stored);
+  return { ok, needsRehash: ok };
+};
+
 const nowIso = (): string => new Date().toISOString();
+
+// ── Rate limiting server-side (tabla auth_throttle) ────────────────────────
+const clientIp = (req: Request): string =>
+  req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+  req.headers.get("x-real-ip")?.trim() ||
+  "unknown";
+
+// Devuelve true si la clave SUPERA el límite (debe bloquearse). Fail-open ante
+// error de BD para no tumbar el login por un fallo del contador.
+const isRateLimited = async (key: string, max: number, windowSec = 900): Promise<boolean> => {
+  try {
+    const now = Date.now();
+    const { data } = await db.from("auth_throttle").select("count,window_start").eq("key", key).maybeSingle();
+    if (!data || now - Date.parse(data.window_start as string) > windowSec * 1000) {
+      await db.from("auth_throttle").upsert({ key, count: 1, window_start: new Date(now).toISOString() }, { onConflict: "key" });
+      return false;
+    }
+    if ((data.count as number) >= max) return true;
+    await db.from("auth_throttle").update({ count: (data.count as number) + 1 }).eq("key", key);
+    return false;
+  } catch {
+    return false;
+  }
+};
+
+const tooManyAttempts = () =>
+  json(429, { message: "Demasiados intentos. Espera unos minutos e inténtalo de nuevo." });
 
 const extractSessionToken = (req: Request): string | null => {
   const header = req.headers.get("x-wee-session");
@@ -688,15 +755,16 @@ const createCommunitySession = async (
 
 const handlers = {
   "/auth/register_global": async (req: Request) => {
+    if (await isRateLimited(`reg:${clientIp(req)}`, 10)) return tooManyAttempts();
     const body = await parseBody(req);
     const username = String(body.username ?? "").trim();
     const email = body.email ? String(body.email).trim().toLowerCase() : null;
     const password = String(body.password ?? "");
     if (username.length < 2) return bad("username too short");
-    if (password.length < 4) return bad("password too short");
+    if (password.length < 8) return bad("password too short");
 
     const usernameNorm = normalizeAlias(username);
-    const passwordHash = await sha256Hex(password);
+    const passwordHash = await hashPassword(password);
     const exists = await db
       .from("global_users")
       .select("id")
@@ -748,14 +816,22 @@ const handlers = {
     if (!username || !password) return bad("username and password required");
 
     const usernameNorm = normalizeAlias(username);
-    const passwordHash = await sha256Hex(password);
+    // Doble freno: por IP (volumen) y por usuario (ataque dirigido entre IPs).
+    if (await isRateLimited(`login_ip:${clientIp(req)}`, 15)) return tooManyAttempts();
+    if (await isRateLimited(`login_user:${usernameNorm}`, 8)) return tooManyAttempts();
     const userRes = await db
       .from("global_users")
       .select("id,username,password_hash")
       .eq("username_norm", usernameNorm)
       .maybeSingle();
     if (userRes.error || !userRes.data) return json(401, { message: "Invalid credentials" });
-    if (userRes.data.password_hash !== passwordHash) return json(401, { message: "Invalid credentials" });
+    const verdict = await verifyPassword(password, String(userRes.data.password_hash ?? ""));
+    if (!verdict.ok) return json(401, { message: "Invalid credentials" });
+    // Migración transparente: re-hash de contraseñas SHA-256 viejas al loguear.
+    if (verdict.needsRehash) {
+      const fresh = await hashPassword(password);
+      await db.from("global_users").update({ password_hash: fresh }).eq("id", userRes.data.id);
+    }
 
     const token = randomToken();
     const tokenHash = await sha256Hex(token);
@@ -1000,6 +1076,7 @@ const handlers = {
   },
 
   "/community/preview": async (req: Request) => {
+    if (await isRateLimited(`preview:${clientIp(req)}`, 30)) return tooManyAttempts();
     const body = await parseBody(req);
     const code = body.code ? normalizeCode(String(body.code)) : null;
     const token = body.token ? String(body.token).trim() : null;

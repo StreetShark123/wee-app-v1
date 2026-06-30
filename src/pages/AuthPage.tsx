@@ -49,6 +49,10 @@ export const AuthPage = ({ mode, onLogin, onRegister }: AuthPageProps) => {
       setError(pick(language, "Te falta usuario o contraseña.", "You are missing username or password.", "Fáltache usuario ou contrasinal."));
       return;
     }
+    if (mode === "signup" && password.length < 8) {
+      setError(pick(language, "La contraseña necesita al menos 8 caracteres.", "Password needs at least 8 characters.", "O contrasinal precisa polo menos 8 caracteres."));
+      return;
+    }
     setLoading(true);
     try {
       if (mode === "signup") {
@@ -113,7 +117,7 @@ export const AuthPage = ({ mode, onLogin, onRegister }: AuthPageProps) => {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                placeholder={pick(language, "Mínimo 6 caracteres", "At least 6 characters", "Mínimo 6 caracteres")}
+                placeholder={pick(language, "Mínimo 8 caracteres", "At least 8 characters", "Mínimo 8 caracteres")}
               />
               <button type="button" className="btn dice-btn" onClick={() => setShowPassword((prev) => !prev)} title={pick(language, "Mostrar u ocultar contraseña", "Show or hide password", "Mostrar ou ocultar contrasinal")}>
                 <Icon name={showPassword ? "eyeOff" : "eye"} size={14} />
