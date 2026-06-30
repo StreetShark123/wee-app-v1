@@ -3606,12 +3606,17 @@ textarea:focus-visible {
 }
 
 /* ───────────────────────────── Pantalla de invitación ────────────────────────── */
+/* Contenedor de centrado, NO panel: el hero ya es la tarjeta (anti doble-marco). */
 .invite-screen {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   min-height: 60vh;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
 }
 
 .invite-loading {
