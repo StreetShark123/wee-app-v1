@@ -8,7 +8,7 @@ import { Icon } from "./components/Icon";
 import { PageTransition } from "./components/PageTransition";
 import { AddBookModal } from "./components/AddBookModal";
 import type { BookDraft } from "./lib/bookSearch";
-import { createClubBook, demoteMember, exportMyData, listClubBooks, listNotifications, markNotificationsRead, promoteMember, removeMember, type ClubBook, type MemberBook } from "./lib/communityApi";
+import { createClubBook, demoteMember, exportMyData, joinPublicCommunity, listClubBooks, listNotifications, markNotificationsRead, previewCommunityBySlug, promoteMember, removeMember, type ClubBook, type MemberBook } from "./lib/communityApi";
 import { clearBooksCache, getCachedList, setCachedList } from "./lib/booksCache";
 import { Toast } from "./components/Toast";
 import { useAppData } from "./lib/appData";
@@ -28,6 +28,7 @@ const CommunityPage = lazy(async () => ({ default: (await import("./pages/Commun
 const CommunitiesPickerPage = lazy(async () => ({ default: (await import("./pages/CommunitiesPickerPage")).CommunitiesPickerPage }));
 const InvitePage = lazy(async () => ({ default: (await import("./pages/InvitePage")).InvitePage }));
 const JoinPage = lazy(async () => ({ default: (await import("./pages/JoinPage")).JoinPage }));
+const ClubLandingPage = lazy(async () => ({ default: (await import("./pages/ClubLandingPage")).ClubLandingPage }));
 
 const AppRoutes = () => {
   const location = useLocation();
@@ -88,6 +89,9 @@ const AppRoutes = () => {
   const [communitiesLoading, setCommunitiesLoading] = useState(false);
   const [autoEnteringDefaultCommunity, setAutoEnteringDefaultCommunity] = useState(false);
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(true);
+  // Tope de seguridad: por muy lento (o roto) que vaya el backend, soltamos el
+  // splash pasado este tiempo y caemos a skeletons antes que atrapar al usuario.
+  const [loaderMaxReached, setLoaderMaxReached] = useState(false);
   const autoEnterAttempts = useRef<Set<string>>(new Set());
   // App en español único (de momento): el selector de idioma se ha retirado.
   const language: AppLanguage = "es";
@@ -164,10 +168,22 @@ const AppRoutes = () => {
     return () => window.cancelAnimationFrame(raf);
   }, [location.pathname]);
 
+  // Mientras corre la animación del logo, esperamos también a que el contenido
+  // del destino (la lista de libros de la Home) esté listo, para entrar SIN
+  // skeletons. El debounce de 920ms de abajo cubre la ventana de arranque en la
+  // que `reloadBooks` aún no ha puesto `booksLoading` en true.
+  const waitingForHomeContent =
+    Boolean(activeUser) &&
+    location.pathname === "/home" &&
+    booksLoading &&
+    books.length === 0;
+
   const shouldKeepLoaderVisible =
-    autoEnteringDefaultCommunity ||
-    (loading && !activeUser) ||
-    (Boolean(globalSession) && location.pathname === "/home" && !activeUser);
+    !loaderMaxReached &&
+    (autoEnteringDefaultCommunity ||
+      (loading && !activeUser) ||
+      (Boolean(globalSession) && location.pathname === "/home" && !activeUser) ||
+      waitingForHomeContent);
 
   useEffect(() => {
     if (shouldKeepLoaderVisible) {
@@ -177,6 +193,13 @@ const AppRoutes = () => {
     const timeout = window.setTimeout(() => setShowLoadingOverlay(false), 920);
     return () => window.clearTimeout(timeout);
   }, [shouldKeepLoaderVisible]);
+
+  // Tope absoluto desde el montaje: si el contenido no llega a tiempo, dejamos
+  // de retener el splash y la app entra mostrando skeletons.
+  useEffect(() => {
+    const cap = window.setTimeout(() => setLoaderMaxReached(true), 5000);
+    return () => window.clearTimeout(cap);
+  }, []);
 
   useEffect(() => {
     if (!globalSession || activeUser || loading || communitiesLoading) return;
@@ -439,11 +462,13 @@ const AppRoutes = () => {
             globalSession ? (
               <Navigate
                 to={
-                  new URLSearchParams(location.search).get("invite") || new URLSearchParams(location.search).get("code")
-                    ? `/join${location.search}`
-                    : activeUser
-                      ? "/home"
-                      : "/communities"
+                  new URLSearchParams(location.search).get("club")
+                    ? `/c/${new URLSearchParams(location.search).get("club")}`
+                    : new URLSearchParams(location.search).get("invite") || new URLSearchParams(location.search).get("code")
+                      ? `/join${location.search}`
+                      : activeUser
+                        ? "/home"
+                        : "/communities"
                 }
                 replace
               />
@@ -469,11 +494,13 @@ const AppRoutes = () => {
             globalSession ? (
               <Navigate
                 to={
-                  new URLSearchParams(location.search).get("invite") || new URLSearchParams(location.search).get("code")
-                    ? `/join${location.search}`
-                    : activeUser
-                      ? "/home"
-                      : "/communities"
+                  new URLSearchParams(location.search).get("club")
+                    ? `/c/${new URLSearchParams(location.search).get("club")}`
+                    : new URLSearchParams(location.search).get("invite") || new URLSearchParams(location.search).get("code")
+                      ? `/join${location.search}`
+                      : activeUser
+                        ? "/home"
+                        : "/communities"
                 }
                 replace
               />
@@ -540,6 +567,21 @@ const AppRoutes = () => {
                 isLoggedIn={Boolean(globalSession)}
                 onPreviewCommunity={previewCommunityInvite}
                 onJoinCommunity={confirmCommunityInvite}
+                onEnterCommunity={setCommunityAsActive}
+                onReloadCommunities={reloadMyCommunities}
+              />
+            </PageTransition>
+          }
+        />
+
+        <Route
+          path="/c/:slug"
+          element={
+            <PageTransition>
+              <ClubLandingPage
+                isLoggedIn={Boolean(globalSession)}
+                onPreviewBySlug={previewCommunityBySlug}
+                onJoinPublic={joinPublicCommunity}
                 onEnterCommunity={setCommunityAsActive}
                 onReloadCommunities={reloadMyCommunities}
               />

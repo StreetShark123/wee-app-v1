@@ -30,6 +30,27 @@ const normalizeAlias = (alias: string): string =>
     .trim();
 
 const normalizeCode = (code: string): string => code.trim().toUpperCase();
+
+// Slug de club (URL propia): minúsculas, sin acentos básicos, guiones.
+const slugify = (name: string): string =>
+  (name ?? "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "club";
+
+const uniqueSlug = async (name: string): Promise<string> => {
+  const base = slugify(name);
+  let slug = base;
+  for (let i = 1; i <= 60; i++) {
+    const { data } = await db.from("communities").select("id").eq("slug", slug).maybeSingle();
+    if (!data) return slug;
+    slug = `${base}-${i}`;
+  }
+  return `${base}-${crypto.randomUUID().slice(0, 6)}`;
+};
 const normalizeCommunityName = (value: string): string =>
   value
     .normalize("NFD")
@@ -936,8 +957,8 @@ const handlers = {
 
     const createCommunityRes = await db
       .from("communities")
-      .insert({ name, name_norm: normalizeCommunityName(name), description, rules_text: rulesText, invite_policy: invitePolicy })
-      .select("id,name,description")
+      .insert({ name, name_norm: normalizeCommunityName(name), description, rules_text: rulesText, invite_policy: invitePolicy, slug: await uniqueSlug(name), visibility: "public" })
+      .select("id,name,description,slug,visibility")
       .single();
     if (createCommunityRes.error || !createCommunityRes.data) {
       return json(500, { message: createCommunityRes.error?.message ?? "Create community failed" });
@@ -1061,6 +1082,60 @@ const handlers = {
     });
   },
 
+  // Landing pública por slug (sin sesión): escaparate del club.
+  "/community/by_slug": async (req: Request) => {
+    const body = await parseBody(req);
+    const slug = slugify(String(body.slug ?? ""));
+    if (!slug) return bad("slug required");
+    const { data, error } = await db
+      .from("communities")
+      .select("id,name,description,visibility,slug")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (error || !data) return json(404, { message: "Community not found" });
+    const { count } = await db
+      .from("community_users")
+      .select("id", { count: "exact", head: true })
+      .eq("community_id", data.id)
+      .eq("status", "active");
+    return json(200, {
+      community_id: data.id,
+      name: data.name,
+      description: data.description ?? undefined,
+      visibility: data.visibility ?? "public",
+      slug: data.slug,
+      memberCount: count ?? 0
+    });
+  },
+
+  // Unirse a un club PÚBLICO por slug (requiere estar logueado, sin invitación).
+  "/community/join_public": async (req: Request) => {
+    const globalAuth = await requireGlobalSession(req);
+    if (globalAuth instanceof Response) return globalAuth;
+    const body = await parseBody(req);
+    const slug = slugify(String(body.slug ?? ""));
+    if (!slug) return bad("slug required");
+    const { data: comm, error } = await db
+      .from("communities")
+      .select("id,name,description,visibility")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (error || !comm) return json(404, { message: "Community not found" });
+    if ((comm.visibility ?? "public") !== "public") return json(403, { message: "Community is not public" });
+    const memberUpsert = await db.from("community_members").upsert(
+      { community_id: comm.id, user_id: globalAuth.user.id, status: "active" },
+      { onConflict: "community_id,user_id" }
+    );
+    if (memberUpsert.error) return json(400, { message: memberUpsert.error.message });
+    await ensureCommunityProfileForGlobalUser(comm.id, globalAuth.user);
+    return json(200, {
+      community_id: comm.id,
+      name: comm.name,
+      description: comm.description ?? undefined,
+      joined: true
+    });
+  },
+
   "/auth/register": async (req: Request) => {
     return gone("LEGACY_COMMUNITY_AUTH_DISABLED");
   },
@@ -1088,7 +1163,7 @@ const handlers = {
         .eq("community_id", auth.community.id)
         .eq("status", "active")
         .order("created_at", { ascending: true }),
-      db.from("communities").select("approval_mode,created_by").eq("id", auth.community.id).maybeSingle()
+      db.from("communities").select("approval_mode,created_by,slug,visibility").eq("id", auth.community.id).maybeSingle()
     ]);
 
     const memberList = (members ?? []).map((m: any) => ({ id: m.id, alias: m.alias, role: m.community_user_roles?.[0]?.role ?? "member" }));
@@ -1103,6 +1178,8 @@ const handlers = {
         rulesText: auth.community.rules_text ?? "",
         invite_policy: auth.community.invite_policy,
         approval_mode: (commRes.data?.approval_mode as string) ?? "majority",
+        slug: (commRes.data?.slug as string) ?? null,
+        visibility: (commRes.data?.visibility as string) ?? "public",
         ownerId
       },
       members: memberList

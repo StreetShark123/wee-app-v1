@@ -406,7 +406,9 @@ export const useAppData = () => {
         id: data.community.id,
         name: data.community.name,
         description: data.community.description,
-        rulesText: data.community.rulesText
+        rulesText: data.community.rulesText,
+        slug: data.community.slug,
+        visibility: data.community.visibility
       };
       setSelectedCommunityState(selected);
       setSelectedCommunity(selected);

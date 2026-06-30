@@ -206,6 +206,23 @@ export const createCommunity = async (input: {
 export const previewCommunity = async (input: { code?: string; token?: string }): Promise<CommunityPreviewResponse> =>
   request<CommunityPreviewResponse>("/community/preview", input);
 
+export interface CommunitySlugPreview {
+  community_id: string;
+  name: string;
+  description?: string;
+  visibility: "public" | "private" | "invite";
+  slug: string;
+  memberCount: number;
+}
+
+export const previewCommunityBySlug = async (slug: string): Promise<CommunitySlugPreview> =>
+  request<CommunitySlugPreview>("/community/by_slug", { slug });
+
+export const joinPublicCommunity = async (slug: string): Promise<CommunitySelection> => {
+  const data = await request<{ community_id: string; name: string; description?: string }>("/community/join_public", { slug });
+  return { id: data.community_id, name: data.name, description: data.description };
+};
+
 export const confirmJoinCommunity = async (input: { code?: string; token?: string }): Promise<CommunitySelection> => {
   const globalSession = getGlobalSession();
   const data = await request<{ community_id: string; name: string; description?: string }>(

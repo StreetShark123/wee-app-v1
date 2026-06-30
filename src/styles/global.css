@@ -2287,6 +2287,8 @@ textarea::placeholder {
 }
 .invite-code-chip:hover { border-color: var(--brand); }
 .invite-code-value { font-size: 1.4rem; letter-spacing: 0.14em; }
+.invite-code-value.invite-url { font-size: 0.98rem; letter-spacing: 0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.invite-code-chip:has(.invite-url) { gap: 8px; }
 .invite-code-hint { display: inline-flex; align-items: center; gap: 4px; font-size: 0.74rem; color: var(--ink-1); flex: 0 0 auto; }
 
 .settings-modes {

@@ -4,6 +4,8 @@ export interface CommunitySelection {
   description?: string;
   invitePolicy?: "admins_only" | "members_allowed";
   rulesText?: string;
+  slug?: string;
+  visibility?: "public" | "private" | "invite";
 }
 
 export interface CommunityAuthSession {

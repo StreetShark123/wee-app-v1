@@ -8,7 +8,7 @@ import type { User } from "../lib/types";
 
 interface CommunityPageProps {
   activeUser: User;
-  selectedCommunity: { id: string; name: string; description?: string; rulesText?: string } | null;
+  selectedCommunity: { id: string; name: string; description?: string; rulesText?: string; slug?: string; visibility?: "public" | "private" | "invite" } | null;
   members: Array<{ id: string; alias: string; role: "admin" | "member" }>;
   ownerId?: string | null;
   communities: Array<{ community_id: string; name: string; role: "admin" | "member" }>;
@@ -33,7 +33,6 @@ export const CommunityPage = ({
   communities,
   rulesText,
   onUpdateCommunity,
-  onCreateInvite,
   onSwitchCommunity,
   onLeaveCommunity,
   onSetUserRole,
@@ -52,7 +51,6 @@ export const CommunityPage = ({
   const [nameInput, setNameInput] = useState(selectedCommunity?.name ?? "");
   const [descriptionInput, setDescriptionInput] = useState(selectedCommunity?.description ?? "");
   const [rulesInput, setRulesInput] = useState(rulesText ?? "");
-  const [invite, setInvite] = useState<{ code: string; token: string; link: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [busyMemberId, setBusyMemberId] = useState<string | null>(null);
   const [switchingCommunityId, setSwitchingCommunityId] = useState<string | null>(null);
@@ -73,17 +71,6 @@ export const CommunityPage = ({
   useEffect(() => {
     setRulesInput(rulesText ?? "");
   }, [rulesText]);
-
-  // El código de invitación "sale solo": lo generamos una vez al entrar (silencioso).
-  // Si no se puede (política/permisos), queda el botón manual como respaldo.
-  const autoInviteRef = useRef(false);
-  useEffect(() => {
-    if (autoInviteRef.current || invite) return;
-    autoInviteRef.current = true;
-    void onCreateInvite()
-      .then((created) => setInvite({ code: created.code, token: created.token, link: created.link }))
-      .catch(() => { autoInviteRef.current = false; });
-  }, [invite, onCreateInvite]);
 
   const copy = async (value: string, label: string) => {
     if (!value) return;
@@ -118,19 +105,6 @@ export const CommunityPage = ({
     }
   };
 
-  const generateInvite = async () => {
-    try {
-      const created = await onCreateInvite();
-      setInvite({ code: created.code, token: created.token, link: created.link });
-      onToast?.(pick(language, "Código listo. Compártelo con tu gente.", "Code ready. Share it with your people.", "Código listo. Compárteo coa túa xente."));
-    } catch (error) {
-      onToast?.(
-        error instanceof Error
-          ? error.message
-          : pick(language, "No pudimos crear la invitación ahora mismo.", "We couldn't create the invite right now.", "Non puidemos crear a invitación agora mesmo.")
-      );
-    }
-  };
 
   const shareInviteLink = async (link: string) => {
     if (!link) return;
@@ -301,16 +275,16 @@ export const CommunityPage = ({
         {/* 2 · Invitar gente — accesible y destacado */}
         <article className="settings-card community-invite-card">
           <h3><Icon name="link" /> {pick(language, "Invitar gente", "Invite people", "Convidar xente")}</h3>
-          <p className="hint">{pick(language, "Toca el código para copiarlo, o envía la invitación.", "Tap the code to copy it, or send the invite.", "Toca o código para copialo, ou envía a invitación.")}</p>
+          <p className="hint">{pick(language, "Comparte el enlace del club: quien lo abra puede unirse.", "Share the club link: anyone who opens it can join.", "Comparte a ligazón do club: quen a abra pode unirse.")}</p>
           <div className="stack community-settings-form">
-            {invite ? (
+            {selectedCommunity?.slug ? (
               <div className="invite-simple">
-                <button type="button" className="invite-code-chip" onClick={() => copy(invite.code, pick(language, "Código", "Code", "Código"))} title={pick(language, "Tocar para copiar", "Tap to copy", "Tocar para copiar")}>
-                  <span className="invite-code-value">{invite.code}</span>
+                <button type="button" className="invite-code-chip" onClick={() => copy(`${window.location.origin}/#/c/${selectedCommunity.slug}`, pick(language, "Enlace", "Link", "Ligazón"))} title={pick(language, "Tocar para copiar", "Tap to copy", "Tocar para copiar")}>
+                  <span className="invite-code-value invite-url">/c/{selectedCommunity.slug}</span>
                   <span className="invite-code-hint"><Icon name="link" size={12} /> {pick(language, "copiar", "copy", "copiar")}</span>
                 </button>
-                <button type="button" className="btn btn-primary" onClick={() => void shareInviteLink(invite.link)}>
-                  <Icon name="send" /> {pick(language, "Enviar invitación", "Send invite", "Enviar invitación")}
+                <button type="button" className="btn btn-primary" onClick={() => void shareInviteLink(`#/c/${selectedCommunity.slug}`)}>
+                  <Icon name="send" /> {pick(language, "Enviar enlace del club", "Send club link", "Enviar ligazón do club")}
                 </button>
                 {copyNotice ? (
                   <p className="copy-inline-toast" role="status" aria-live="polite">
@@ -319,9 +293,7 @@ export const CommunityPage = ({
                 ) : null}
               </div>
             ) : (
-              <button type="button" className="btn btn-nav" onClick={generateInvite}>
-                <Icon name="plus" /> {pick(language, "Crear código", "Create code", "Crear código")}
-              </button>
+              <p className="hint">{pick(language, "Preparando el enlace del club...", "Preparing the club link...", "Preparando a ligazón do club...")}</p>
             )}
           </div>
         </article>
