@@ -4525,8 +4525,23 @@ textarea:focus-visible {
 
 /* Fallback ligero de ruta perezosa (evita repetir la pantalla de carga completa) */
 .route-fallback { display: grid; place-items: center; min-height: 50vh; }
+/* Entre pantallas: elipsis que se teclea (puntuación de máquina de escribir) */
 .route-spinner {
-  width: 0.5ch; height: 1.4rem;
-  background: var(--ink-scarlet);
-  animation: loading-caret-blink 0.92s steps(1, end) infinite;
+  font-family: var(--font-type);
+  font-size: 2.2rem;
+  line-height: 1;
+  color: var(--ink-1);
+}
+.route-spinner::before {
+  content: "...";
+  display: inline-block;
+  width: 3ch;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+  animation: route-dots 1.5s steps(4, end) infinite;
+}
+@keyframes route-dots { 0% { width: 0; } 80%, 100% { width: 3ch; } }
+@media (prefers-reduced-motion: reduce) {
+  .route-spinner::before { width: 3ch; animation: none; }
 }
