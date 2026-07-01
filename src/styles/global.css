@@ -641,6 +641,16 @@ h3 svg,
 .user-menu-item-danger {
   color: var(--danger);
 }
+/* Las acciones destructivas tiñen en rojo al pasar, no en teal. */
+.user-menu-item-danger:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, var(--panel-0));
+}
+/* Marca de identidad en la cabecera del menú. */
+.user-menu-header { border-left: 3px solid var(--brand); }
+.user-menu-item svg { color: var(--brand-strong); }
+.user-menu-item-danger svg { color: var(--danger); }
 
 .user-menu-item-danger:hover {
   border-color: var(--danger);
@@ -4635,19 +4645,31 @@ textarea:focus-visible {
 /* Perfil público: lecturas */
 .profile-reads-sub { margin: 12px 0 8px; font-family: var(--font-type); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.02em; color: var(--ink-1); }
 .profile-book-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+/* Fila plana, no card anidada dentro de la tarjeta de lecturas (panel-1). */
 .profile-book {
   display: flex;
   gap: 10px;
   align-items: flex-start;
   padding: 8px;
   border-radius: var(--radius-md);
-  border: 1px solid var(--line);
-  background: var(--panel-0);
+  border: 1px solid transparent;
+  background: transparent;
   text-decoration: none;
   color: var(--ink-0);
-  transition: border-color var(--motion-fast) var(--ease-standard);
+  transition: border-color var(--motion-fast) var(--ease-standard), background-color var(--motion-fast) var(--ease-standard);
 }
-.profile-book:hover { border-color: var(--brand); }
+.profile-book:hover { background: var(--panel-0); border-color: var(--line); }
+
+/* ── Color del design system en ajustes/perfil/comunidad ── */
+/* Iconos de cabecera de tarjeta en teal (identidad, no relleno). */
+.settings-card .section-head svg { color: var(--brand); }
+/* Sub-títulos de lecturas por estado: menta (leyendo) / violeta (leídos). */
+.profile-reads-sub { display: inline-flex; align-items: center; gap: 6px; }
+.profile-reads-sub::before { content: ""; width: 7px; height: 7px; border-radius: 2px; flex: 0 0 auto; background: var(--ink-1); }
+.profile-reads-sub-reading { color: var(--status-reading); }
+.profile-reads-sub-reading::before { background: var(--status-reading); }
+.profile-reads-sub-finished { color: var(--status-finished); }
+.profile-reads-sub-finished::before { background: var(--status-finished); }
 .profile-book-cover { width: 38px; height: 56px; flex: 0 0 auto; object-fit: cover; border-radius: var(--radius-sm); background: var(--panel-1); }
 .profile-book-cover-empty { display: grid; place-items: center; color: var(--ink-1); }
 .profile-book-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }

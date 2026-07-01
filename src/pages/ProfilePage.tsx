@@ -4,7 +4,6 @@ import { Avatar } from "../components/Avatar";
 import { Icon } from "../components/Icon";
 import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
-import { generateAlias } from "../lib/aliasGenerator";
 import { TopBar } from "../components/TopBar";
 import { getUserProfile, type UserProfile } from "../lib/communityApi";
 import type { User } from "../lib/types";
@@ -161,9 +160,6 @@ export const ProfilePage = ({
                       onChange={(event) => setAliasInput(event.target.value)}
                       placeholder={pick(language, "Tu alias visible", "Your visible alias", "O teu alias visible")}
                     />
-                    <button type="button" className="btn dice-btn" onClick={() => setAliasInput(generateAlias())} title={pick(language, "Generar alias aleatorio", "Generate random alias", "Xerar alias aleatorio")}>
-                      <Icon name="dice" size={14} />
-                    </button>
                     <button type="submit" className="btn btn-primary">
                       {pick(language, "Guardar", "Save", "Gardar")}
                     </button>
@@ -185,7 +181,7 @@ export const ProfilePage = ({
 
               {readingBooks.length > 0 ? (
                 <>
-                  <h4 className="profile-reads-sub">{pick(language, "Leyendo ahora", "Reading now", "Lendo agora")}</h4>
+                  <h4 className="profile-reads-sub profile-reads-sub-reading">{pick(language, "Leyendo ahora", "Reading now", "Lendo agora")}</h4>
                   <div className="profile-book-list">
                     {readingBooks.map((b) => (
                       <Link key={b.bookId} to={`/book/${b.bookId}`} className="profile-book">
@@ -202,7 +198,7 @@ export const ProfilePage = ({
 
               {finishedBooks.length > 0 ? (
                 <>
-                  <h4 className="profile-reads-sub">{pick(language, "Leídos", "Read", "Lidos")}</h4>
+                  <h4 className="profile-reads-sub profile-reads-sub-finished">{pick(language, "Leídos", "Read", "Lidos")}</h4>
                   <div className="profile-book-list">
                     {finishedBooks.map((b) => (
                       <Link key={b.bookId} to={`/book/${b.bookId}`} className="profile-book">
