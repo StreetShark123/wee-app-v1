@@ -4678,6 +4678,40 @@ textarea:focus-visible {
 /* Fallback ligero de ruta perezosa (evita repetir la pantalla de carga completa) */
 .route-fallback { display: grid; place-items: center; min-height: 50vh; }
 /* Entre pantallas: elipsis que se teclea (puntuación de máquina de escribir) */
+/* Carga a pantalla completa: solo el glifo centrado en rojo, ciclando signos de
+   puntuación. Overlay fijo → tapa footer/topbar (no se ve nada más). */
+.book-loading-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: var(--bg-0);
+}
+.book-loading-glyph {
+  font-family: var(--font-type);
+  font-size: 3.2rem;
+  line-height: 1;
+  color: var(--ink-scarlet);
+  min-width: 3ch;
+  text-align: center;
+}
+.book-loading-glyph::before {
+  content: "()";
+  animation: book-loading-punct 3s infinite;
+}
+@keyframes book-loading-punct {
+  0%, 15%    { content: "()"; }
+  16.7%, 32% { content: ","; }
+  33.4%, 48% { content: "*"; }
+  50%, 65%   { content: "?"; }
+  66.7%, 82% { content: "..."; }
+  83.4%, 100% { content: ";"; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .book-loading-glyph::before { animation: none; content: "..."; }
+}
+
 .route-spinner {
   font-family: var(--font-type);
   font-size: 2.2rem;

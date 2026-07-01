@@ -181,14 +181,13 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   };
 
   if (loading && !detail) {
-    // Primera carga (sin caché): animación de puntuación hasta que llegue la ficha,
-    // en vez de esqueletos. Cuando está cacheada, `load()` pinta al instante desde
-    // caché y este bloque ni se ve.
+    // Primera carga (sin caché): SOLO el glifo de puntuación centrado a pantalla
+    // completa (overlay que tapa footer/topbar), en vez de esqueletos. Cuando está
+    // cacheada, `load()` pinta al instante desde caché y este bloque ni se ve.
     return (
-      <main>
-        <TopBar user={activeUser} onOpenShare={onOpenAddBook} onLogout={onLogout} />
-        <div className="route-fallback" aria-busy="true"><span className="route-spinner" /></div>
-      </main>
+      <div className="book-loading-screen" aria-busy="true" role="status" aria-label={pick(language, "Cargando", "Loading", "Cargando")}>
+        <span className="book-loading-glyph" aria-hidden="true" />
+      </div>
     );
   }
 
