@@ -2,7 +2,7 @@ import { createContext, useContext } from "react";
 
 export interface AppNotification {
   id: string;
-  kind: "mention" | "reply" | "reaction" | "note_comment" | "book_proposed" | "book_approved" | "book_finished" | "join_approved" | "promoted" | "reminder";
+  kind: "mention" | "reply" | "reaction" | "note_comment" | "book_proposed" | "book_approved" | "book_finished" | "join_approved" | "promoted" | "reminder" | "meeting_set";
   bookId?: string;
   commentId?: string;
   bookTitle?: string;

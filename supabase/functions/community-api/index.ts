@@ -350,6 +350,9 @@ const rowToBook = (row: Record<string, any>): Record<string, any> => ({
   voteDeadline: row.vote_deadline ? toMillis(row.vote_deadline) : undefined,
   decidedBy: row.decided_by ?? undefined,
   authorUrl: row.author_url ?? undefined,
+  meetingAt: row.meeting_at ? toMillis(row.meeting_at) : undefined,
+  meetingUrl: row.meeting_url ?? undefined,
+  meetingPlace: row.meeting_place ?? undefined,
   createdAt: toMillis(row.created_at)
 });
 
@@ -2603,8 +2606,17 @@ const handlers = {
     Object.values(notesByChapter).forEach((arr) => arr.forEach((n: Record<string, any>) => {
       n.reactions = Object.values(reactionsByNote[n.id] ?? {});
     }));
+    // RSVP de la cita (quién va).
+    const rsvpRes = await db.from("book_meeting_rsvp").select("user_id,status").eq("community_id", auth.community.id).eq("book_id", bookId);
+    const rsvpRows = rsvpRes.data ?? [];
+    const meetingRsvp = {
+      going: rsvpRows.filter((r: Record<string, any>) => r.status === "yes").length,
+      mine: (rsvpRows.find((r: Record<string, any>) => r.user_id === auth.user.id)?.status as string) ?? null,
+      goingAliases: rsvpRows.filter((r: Record<string, any>) => r.status === "yes").map((r: Record<string, any>) => metaMap.get(r.user_id)?.alias ?? "—").slice(0, 8)
+    };
     return json(200, {
       activeMemberCount,
+      meetingRsvp,
       clubMembers: Array.from(metaMap, ([id, m]) => ({ id, alias: m.alias, avatarUrl: m.avatarUrl, colorIndex: m.colorIndex })),
       book: rowToBook(bookRes.data as Record<string, any>),
       comments: (commentsRes.data ?? []).map((row: Record<string, any>) => {
@@ -3493,6 +3505,72 @@ const handlers = {
     const upd = await db.from("books").update(patch).eq("community_id", auth.community.id).eq("id", bookId).select("*").single();
     if (upd.error) return dbFail(400, upd.error);
     return json(200, { book: rowToBook(upd.data as Record<string, any>) });
+  },
+
+  // "La cita": fecha de discusión del libro. La gestiona quien lo propuso (facilitador)
+  // o un admin (que cubre su ausencia). Al fijarla, avisa al club.
+  "/books/set_meeting": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    if (!bookId) return bad("book_id required");
+    const bookRes = await db.from("books").select("id,added_by,meeting_at").eq("community_id", auth.community.id).eq("id", bookId).maybeSingle();
+    if (bookRes.error || !bookRes.data) return json(404, { message: "Book not found" });
+    if (bookRes.data.added_by !== auth.user.id && auth.role !== "admin") {
+      return json(403, { message: "Solo quien propuso el libro (o un admin) puede fijar la cita" });
+    }
+    // meeting_at: ISO válido o null (para cancelar). url validada http(s). place texto.
+    let meetingAt: string | null = null;
+    if (body.meeting_at) {
+      const t = new Date(String(body.meeting_at)).getTime();
+      meetingAt = Number.isFinite(t) ? new Date(t).toISOString() : null;
+    }
+    const patch: Record<string, any> = {
+      meeting_at: meetingAt,
+      meeting_url: body.meeting_url !== undefined ? safeHttpUrl(body.meeting_url) : (bookRes.data as Record<string, any>).meeting_url ?? null,
+      meeting_place: body.meeting_place !== undefined ? (String(body.meeting_place ?? "").trim().slice(0, 200) || null) : undefined
+    };
+    if (patch.meeting_place === undefined) delete patch.meeting_place;
+    const upd = await db.from("books").update(patch).eq("community_id", auth.community.id).eq("id", bookId).select("*").single();
+    if (upd.error) return dbFail(400, upd.error);
+    // Avisa al club solo cuando se FIJA una fecha nueva (no al cancelar).
+    if (meetingAt) {
+      const active = await activeMemberIdSet(auth.community.id);
+      await notify(auth.community.id, [...active].filter((uid) => uid !== auth.user.id).map((uid) => ({ user_id: uid, kind: "meeting_set", actor_id: auth.user.id, book_id: bookId })));
+    }
+    return json(200, { book: rowToBook(upd.data as Record<string, any>) });
+  },
+
+  // RSVP a la cita: cualquier miembro dice si va o no.
+  "/books/meeting/rsvp": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    if (!bookId) return bad("book_id required");
+    const status = ["yes", "no"].includes(body.status) ? body.status : null;
+    const bookRes = await db.from("books").select("id").eq("community_id", auth.community.id).eq("id", bookId).maybeSingle();
+    if (bookRes.error || !bookRes.data) return json(404, { message: "Book not found" });
+    if (status === null) {
+      // Sin status → quitar el RSVP.
+      await db.from("book_meeting_rsvp").delete().eq("community_id", auth.community.id).eq("book_id", bookId).eq("user_id", auth.user.id);
+    } else {
+      await db.from("book_meeting_rsvp").upsert(
+        { community_id: auth.community.id, book_id: bookId, user_id: auth.user.id, status, updated_at: nowIso() },
+        { onConflict: "community_id,book_id,user_id" }
+      );
+    }
+    const all = await db.from("book_meeting_rsvp").select("user_id,status").eq("community_id", auth.community.id).eq("book_id", bookId);
+    const rows = all.data ?? [];
+    const metaMap = await clubUserMetaMap(auth.community.id);
+    return json(200, {
+      rsvp: {
+        going: rows.filter((r: Record<string, any>) => r.status === "yes").length,
+        mine: rows.find((r: Record<string, any>) => r.user_id === auth.user.id)?.status ?? null,
+        goingAliases: rows.filter((r: Record<string, any>) => r.status === "yes").map((r: Record<string, any>) => metaMap.get(r.user_id)?.alias ?? "—").slice(0, 8)
+      }
+    });
   },
 
   // Voto sobre una propuesta de libro (yes/no/later). Si TODOS los miembros activos

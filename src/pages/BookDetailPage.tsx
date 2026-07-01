@@ -12,6 +12,7 @@ import { parseChapterList } from "../lib/parseChapters";
 import { getCachedBook, setCachedBook } from "../lib/booksCache";
 import { NoteThread } from "../components/CommentThread";
 import { ImageLightbox } from "../components/ImageLightbox";
+import { MeetingCard } from "../components/MeetingCard";
 import { MentionTextarea } from "../components/MentionTextarea";
 import { applyVoteLocal } from "../components/VoteControl";
 import {
@@ -30,6 +31,8 @@ import {
   getClubBook,
   proposalQuorum,
   remindVoters,
+  rsvpMeeting,
+  setBookMeeting,
   setBookChaptersList,
   setBookFeatured,
   setBookStatus,
@@ -209,7 +212,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     );
   }
 
-  const { book, comments, members, myMember, chapters, votes, activeMemberCount, clubMembers } = detail;
+  const { book, comments, members, myMember, chapters, votes, activeMemberCount, clubMembers, meetingRsvp } = detail;
   // Decisión por quórum de VOTANTES: gana la mayoría simple una vez que vota al
   // menos un tercio del club. Lo que falta son votos (de cualquier signo), no síes.
   const quorum = proposalQuorum(activeMemberCount);
@@ -256,6 +259,17 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     run(async () => {
       const r = await setBookStatus(book.id, status);
       patch((d) => ({ ...d, book: r.book }));
+    });
+  const handleSetMeeting = async (input: { meetingAt?: string | null; meetingUrl?: string | null; meetingPlace?: string | null }) => {
+    await run(async () => {
+      const r = await setBookMeeting(book.id, input);
+      patch((d) => ({ ...d, book: { ...d.book, meetingAt: r.book.meetingAt, meetingUrl: r.book.meetingUrl, meetingPlace: r.book.meetingPlace } }));
+    });
+  };
+  const handleRsvp = (status: "yes" | "no" | null) =>
+    run(async () => {
+      const r = await rsvpMeeting(book.id, status);
+      patch((d) => ({ ...d, meetingRsvp: r.rsvp }));
     });
   const handleCompleteAll = (done: boolean) =>
     run(async () => {
@@ -928,6 +942,17 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               </button>
             ) : null}
           </section>
+        ) : null}
+
+        {book.status === "reading" || book.status === "finished" ? (
+          <MeetingCard
+            book={book}
+            rsvp={meetingRsvp}
+            canManage={isAdder || isAdmin}
+            onSetMeeting={handleSetMeeting}
+            onRsvp={handleRsvp}
+            busy={busy}
+          />
         ) : null}
 
         {/* Seguimiento de lectura por capítulos */}

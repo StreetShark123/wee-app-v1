@@ -70,6 +70,8 @@ export const NotificationsMenu = () => {
                         ? pick(language, `A ${notification.actorAlias} le gustó tu comentario`, `${notification.actorAlias} liked your comment`, `A ${notification.actorAlias} gustoulle o teu comentario`)
                         : notification.kind === "note_comment"
                         ? pick(language, `${notification.actorAlias} comentó tu nota`, `${notification.actorAlias} commented on your note`, `${notification.actorAlias} comentou a túa nota`)
+                        : notification.kind === "meeting_set"
+                          ? pick(language, "Hay cita para comentar un libro", "There's a date to discuss a book", "Hai cita para comentar un libro")
                         : notification.kind === "reminder"
                           ? pick(language, "Recordatorio: una propuesta espera tu voto", "Reminder: a proposal is waiting for your vote", "Recordatorio: hai unha proposta esperando o teu voto")
                         : notification.kind === "book_proposed"

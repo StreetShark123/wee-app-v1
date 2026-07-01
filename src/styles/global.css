@@ -2469,6 +2469,22 @@ textarea::placeholder {
 .book-resource-by { font-size: 0.76rem; color: var(--ink-1); flex: 0 0 auto; }
 .book-convo-hint { margin-top: 0; }
 
+/* La cita del club: tarjeta con acento (es el momento social del libro). */
+.meeting-card { border-left: 3px solid var(--brand); background: color-mix(in srgb, var(--brand) 5%, var(--panel-0)); }
+.meeting-when { margin: 4px 0; font-size: 1rem; color: var(--ink-0); }
+.meeting-when strong { text-transform: capitalize; }
+.meeting-countdown { color: var(--brand-strong); font-weight: 700; }
+.meeting-place { display: inline-flex; align-items: center; gap: 5px; margin: 2px 0 8px; color: var(--ink-1); font-size: 0.9rem; }
+.meeting-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.meeting-rsvp { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.meeting-rsvp .is-on { background: var(--panel-1); border-color: var(--ink-1); }
+.meeting-going { flex: 1 1 100%; margin-top: 2px; }
+.meeting-form { display: grid; gap: 8px; }
+.meeting-form label { display: grid; gap: 4px; font-size: 0.82rem; color: var(--ink-1); }
+.meeting-form input { width: 100%; }
+.meeting-form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.meeting-cancel { color: var(--danger); margin-right: auto; }
+
 /* Onboarding como modal (reusa el chrome de readers-modal). */
 .onboarding-modal { max-width: 460px; }
 .onboarding-modal-done { width: 100%; margin-top: 12px; justify-content: center; }

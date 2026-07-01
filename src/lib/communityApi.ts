@@ -503,6 +503,9 @@ export interface ClubBook {
   publishedYear?: number;
   pageCount?: number;
   authorUrl?: string;
+  meetingAt?: number;
+  meetingUrl?: string;
+  meetingPlace?: string;
   totalChapters?: number;
   source: BookSourceTag;
   manuallyEdited: boolean;
@@ -638,7 +641,28 @@ export interface BookDetail {
   votes: BookVotes;
   activeMemberCount: number;
   clubMembers: ClubMemberLite[];
+  meetingRsvp?: MeetingRsvp;
 }
+
+export interface MeetingRsvp {
+  going: number;
+  mine: "yes" | "no" | null;
+  goingAliases: string[];
+}
+
+export const setBookMeeting = async (
+  bookId: string,
+  input: { meetingAt?: string | null; meetingUrl?: string | null; meetingPlace?: string | null }
+): Promise<{ book: ClubBook }> =>
+  request<{ book: ClubBook }>("/books/set_meeting", {
+    book_id: bookId,
+    ...(input.meetingAt !== undefined ? { meeting_at: input.meetingAt } : {}),
+    ...(input.meetingUrl !== undefined ? { meeting_url: input.meetingUrl } : {}),
+    ...(input.meetingPlace !== undefined ? { meeting_place: input.meetingPlace } : {})
+  });
+
+export const rsvpMeeting = async (bookId: string, status: "yes" | "no" | null): Promise<{ rsvp: MeetingRsvp }> =>
+  request<{ rsvp: MeetingRsvp }>("/books/meeting/rsvp", { book_id: bookId, ...(status ? { status } : {}) });
 
 export const getClubBook = async (bookId: string): Promise<BookDetail> =>
   request<BookDetail>("/books/get", { book_id: bookId });
