@@ -401,7 +401,7 @@ export const updateCommunityProfile = async (payload: {
 
 // ───────────────────────────── Club de lectura: libros ─────────────────────────
 export type BookSourceTag = "google_books" | "open_library" | "manual";
-export type BookStatus = "proposed" | "reading" | "finished";
+export type BookStatus = "proposed" | "reading" | "finished" | "rejected";
 export type BookFeatured = "gold" | "silver";
 
 export interface ClubBook {
@@ -436,11 +436,10 @@ export interface BookStats {
   lastActivityAt: number | null;
 }
 
-export type BookVote = "yes" | "no" | "later";
+export type BookVote = "yes" | "no";
 export interface BookVotes {
   yes: number;
   no: number;
-  later: number;
   myVote: BookVote | null;
 }
 
@@ -489,6 +488,7 @@ export interface BookComment {
   parentId?: string;
   chapterId?: string;
   noteId?: string;
+  phase?: "proposed" | "reading";
   reactions: CommentReaction[];
   createdAt: number;
   editedAt?: number;

@@ -2295,6 +2295,15 @@ textarea::placeholder {
 .invite-code-chip:has(.invite-url) { gap: 8px; }
 .invite-code-hint { display: inline-flex; align-items: center; gap: 4px; font-size: 0.74rem; color: var(--ink-1); flex: 0 0 auto; }
 
+/* Pista breve bajo el label de un campo (anima sin obligar) */
+.field-hint {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 400;
+  color: var(--ink-1);
+  margin: 2px 0 4px;
+}
+
 /* Marca Wee (W en cuadrado de papel) */
 .wee-mark { flex: 0 0 auto; vertical-align: middle; }
 .wee-mark-square { fill: var(--panel-1); }

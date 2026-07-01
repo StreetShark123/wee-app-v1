@@ -324,6 +324,12 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const noteCommentIds = new Set<string>();
   noteThreads.forEach((arr) => arr.forEach((c) => noteCommentIds.add(c.id)));
   const generalComments = comments.filter((c) => !noteCommentIds.has(c.id));
+  // Conversación unificada: la discusión de la PROPUESTA (phase==="proposed") se pliega
+  // en un archivo colapsable una vez el libro sale de "propuesto"; el resto es la
+  // conversación viva del club. Sin secciones de comentarios duplicadas por fase.
+  const proposalComments = generalComments.filter((c) => c.phase === "proposed");
+  const clubComments = generalComments.filter((c) => c.phase !== "proposed");
+  const isProposalPhase = book.status === "proposed";
   const lastReadChapterId = [...chapters].reverse().find((c) => c.doneByMe)?.id ?? null;
   // Comentario objetivo si venimos de una notificación (#c-<id>): para auto-abrir su hilo.
   const focusCommentId = location.hash.startsWith("#c-") ? location.hash.slice(3) : null;
@@ -771,7 +777,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                 {facilitatorAlias ? <span className="book-proposal-by">{facilitatorAlias}: </span> : null}«{book.proposalNote}»
               </blockquote>
             ) : null}
-            <p className="hint">{pick(language, "Se aprueba por mayoría de síes, o cuando un admin lo aprueba.", "Approved by majority of yes votes, or when an admin approves it.", "Apróbase por maioría de síes, ou cando un admin o aproba.")}</p>
+            <p className="hint">{pick(language, "Se aprueba por mayoría de síes (o si un admin lo aprueba); se descarta por mayoría de noes.", "Approved by a majority of yes votes (or if an admin approves it); declined by a majority of no votes.", "Apróbase por maioría de síes (ou se un admin o aproba); descártase por maioría de noes.")}</p>
             {activeMemberCount > 0 ? (
               <div className="vote-quorum">
                 <span className="vote-quorum-bar"><span className="vote-quorum-fill" style={{ width: `${Math.min(100, Math.round((votes.yes / activeMemberCount) * 100))}%` }} /></span>
@@ -788,14 +794,27 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               <button type="button" className={`btn vote-btn no${votes.myVote === "no" ? " is-on" : ""}`} disabled={busy} onClick={() => handleVote("no")}>
                 {pick(language, "No", "No", "Non")} · {votes.no}
               </button>
-              <button type="button" className={`btn vote-btn later${votes.myVote === "later" ? " is-on" : ""}`} disabled={busy} onClick={() => handleVote("later")}>
-                {pick(language, "Ahora no", "Not now", "Agora non")} · {votes.later}
-              </button>
+              {isAdmin ? (
+                <>
+                  <button type="button" className="btn btn-primary vote-btn-admin" disabled={busy} onClick={() => handleStatus("reading")} title={pick(language, "Aprobar y poner en lectura", "Approve and start reading", "Aprobar e poñer en lectura")}>
+                    <Icon name="check" /> {pick(language, "Aprobar", "Approve", "Aprobar")}
+                  </button>
+                  <button type="button" className="btn vote-btn-admin vote-btn-discard" disabled={busy} onClick={() => handleStatus("rejected")} title={pick(language, "Descartar la propuesta", "Decline the proposal", "Descartar a proposta")}>
+                    <Icon name="x" /> {pick(language, "Descartar", "Decline", "Descartar")}
+                  </button>
+                </>
+              ) : null}
             </div>
-            <p className="hint vote-help">{pick(language, "«Ahora no» lo guarda en «Para más adelante» sin descartarlo.", "«Not now» keeps it in «For later» without dropping it.", "«Agora non» gárdao en «Para máis adiante» sen descartalo.")}</p>
+          </section>
+        ) : book.status === "rejected" ? (
+          <section className="page-section book-vote book-rejected-panel">
+            <div className="section-head">
+              <h2><Icon name="x" /> {pick(language, "Propuesta descartada", "Proposal declined", "Proposta descartada")}</h2>
+            </div>
+            <p className="hint">{pick(language, "El club no la sacó adelante. Un admin puede reabrir la votación.", "The club didn't take it forward. An admin can reopen the vote.", "O club non a sacou adiante. Un admin pode reabrir a votación.")}</p>
             {isAdmin ? (
-              <button type="button" className="btn btn-primary" disabled={busy} onClick={() => handleStatus("reading")}>
-                <Icon name="check" /> {pick(language, "Aprobar y poner en lectura", "Approve and start reading", "Aprobar e poñer en lectura")}
+              <button type="button" className="btn btn-primary" disabled={busy} onClick={() => handleStatus("proposed")}>
+                <Icon name="dice" /> {pick(language, "Reabrir votación", "Reopen voting", "Reabrir votación")}
               </button>
             ) : null}
           </section>
@@ -924,39 +943,67 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
             en sus notas, arriba. */}
         <section className="page-section community-secondary">
           <div className="section-head">
-            <h2><Icon name="comment" /> {pick(language, "Sobre el libro entero", "About the whole book", "Sobre o libro enteiro")}</h2>
+            <h2><Icon name="comment" /> {isProposalPhase
+              ? pick(language, "Discusión de la propuesta", "Proposal discussion", "Discusión da proposta")
+              : pick(language, "Conversación del club", "Club conversation", "Conversa do club")}</h2>
           </div>
-          <p className="hint">{pick(language, "Ideas que abarcan todo el libro. Para debatir un capítulo, comenta en sus notas (arriba). Sin spoilers 👀", "Thoughts that span the whole book. To discuss a chapter, comment on its notes (above). No spoilers 👀", "Ideas que abarcan todo o libro. Para debater un capítulo, comenta nas súas notas (arriba). Sen spoilers 👀")}</p>
-          <form
-            id="comments-composer"
-            className="book-comment-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const clean = commentText.trim();
-              if (!clean) return;
-              setCommentText("");
-              void handleAddComment(clean);
-            }}
-          >
-            <MentionTextarea
-              value={commentText}
-              onChange={setCommentText}
-              members={clubMembers}
-              rows={2}
-              placeholder={pick(language, "Una idea sobre el libro entero... (@ menciona)", "A thought about the whole book... (@ to mention)", "Unha idea sobre o libro enteiro... (@ menciona)")}
-            />
-            <div className="book-comment-foot">
-              <span />
-              <button type="submit" className="btn btn-primary" disabled={busy || !commentText.trim()}>
-                {pick(language, "Comentar", "Comment", "Comentar")}
-              </button>
-            </div>
-          </form>
-          {generalComments.length === 0 ? (
-            <p className="hint">{pick(language, "Aún no hay comentarios generales. Abre tú el debate sobre el libro.", "No general comments yet. Open the conversation about the book.", "Aínda non hai comentarios xerais. Abre ti o debate sobre o libro.")}</p>
+          <p className="hint">{isProposalPhase
+            ? pick(language, "¿Lo leemos? Comentad por qué sí o por qué no antes de votar.", "Shall we read it? Discuss the pros and cons before voting.", "Lémolo? Comentade os prós e contras antes de votar.")
+            : pick(language, "Ideas sobre todo el libro. Para debatir un capítulo, comenta en sus notas (arriba). Sin spoilers 👀", "Thoughts about the whole book. To discuss a chapter, comment on its notes (above). No spoilers 👀", "Ideas sobre todo o libro. Para debater un capítulo, comenta nas súas notas (arriba). Sen spoilers 👀")}</p>
+
+          {/* Archivo plegado de la propuesta: la discusión de "¿lo leemos?" queda guardada
+              pero fuera de en medio una vez el libro sale de propuesto. */}
+          {!isProposalPhase && proposalComments.length > 0 ? (
+            <details className="proposal-archive">
+              <summary>{pick(language, `Cómo se propuso · ${proposalComments.length}`, `How it was proposed · ${proposalComments.length}`, `Como se propuxo · ${proposalComments.length}`)}</summary>
+              <NoteThread
+                comments={proposalComments}
+                members={clubMembers}
+                activeUserId={activeUser.id}
+                onReply={handleReply}
+                onReact={handleReact}
+                onEdit={handleEditComment}
+                onDelete={handleDeleteComment}
+              />
+            </details>
+          ) : null}
+
+          {book.status !== "finished" ? (
+            <form
+              id="comments-composer"
+              className="book-comment-form"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const clean = commentText.trim();
+                if (!clean) return;
+                setCommentText("");
+                void handleAddComment(clean);
+              }}
+            >
+              <MentionTextarea
+                value={commentText}
+                onChange={setCommentText}
+                members={clubMembers}
+                rows={2}
+                placeholder={isProposalPhase
+                  ? pick(language, "¿Por qué sí o por qué no? (@ menciona)", "Why yes or why no? (@ to mention)", "Por que si ou por que non? (@ menciona)")
+                  : pick(language, "Una idea sobre el libro... (@ menciona)", "A thought about the book... (@ to mention)", "Unha idea sobre o libro... (@ menciona)")}
+              />
+              <div className="book-comment-foot">
+                <span />
+                <button type="submit" className="btn btn-primary" disabled={busy || !commentText.trim()}>
+                  {pick(language, "Comentar", "Comment", "Comentar")}
+                </button>
+              </div>
+            </form>
+          ) : null}
+          {(isProposalPhase ? proposalComments : clubComments).length === 0 ? (
+            <p className="hint">{isProposalPhase
+              ? pick(language, "Aún no hay comentarios. Abre tú el debate sobre la propuesta.", "No comments yet. Open the conversation about the proposal.", "Aínda non hai comentarios. Abre ti o debate sobre a proposta.")
+              : pick(language, "Aún no hay comentarios del club sobre el libro.", "No club comments about the book yet.", "Aínda non hai comentarios do club sobre o libro.")}</p>
           ) : (
             <NoteThread
-              comments={generalComments}
+              comments={isProposalPhase ? proposalComments : clubComments}
               members={clubMembers}
               activeUserId={activeUser.id}
               onReply={handleReply}

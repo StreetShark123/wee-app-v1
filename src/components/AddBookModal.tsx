@@ -312,16 +312,17 @@ export const AddBookModal = ({ open, onClose, onAddBook, onToast }: AddBookModal
                 </label>
 
                 <label>
-                  {pick(language, "¿Por qué lo propones?", "Why are you proposing it?", "Por que o propós?")}
+                  {pick(language, "¿Por qué lo recomiendas?", "Why do you recommend it?", "Por que o recomendas?")}
+                  <span className="field-hint">{pick(language, "Un buen motivo convence al club y ayuda a que salga adelante.", "A good reason convinces the club and helps it get picked.", "Un bo motivo convence ao club e axuda a que saia adiante.")}</span>
                   <textarea
                     rows={2}
                     value={draft.proposalNote}
                     onChange={(event) => editField("proposalNote", event.target.value)}
                     placeholder={pick(
                       language,
-                      "Una frase para convencer al club (se ve al votar).",
-                      "One line to convince the club (shown when voting).",
-                      "Unha frase para convencer ao club (vese ao votar)."
+                      "Ej.: «Me marcó por cómo trata la memoria y el duelo, y se lee del tirón.»",
+                      "E.g.: “It stuck with me for how it handles memory and grief, and it's a page-turner.”",
+                      "Ex.: «Marcoume por como trata a memoria e o dó, e lese do tirón.»"
                     )}
                   />
                 </label>
