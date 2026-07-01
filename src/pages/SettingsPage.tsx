@@ -25,7 +25,7 @@ export const SettingsPage = ({
   return (
     <main>
       <TopBar user={activeUser} onOpenShare={onOpenShareModal} onLogout={onLogout} />
-      <section className="page-section">
+      <section className="page-section settings-page">
         <h2><Icon name="settings" /> {pick(language, "Ajustes", "Settings", "Axustes")}</h2>
         <p className="section-intro">
           {pick(language, "Tu cuenta y tus datos.", "Your account and your data.", "A túa conta e os teus datos.")}

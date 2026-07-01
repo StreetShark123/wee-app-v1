@@ -55,7 +55,8 @@
   --sp-6: 24px;
   /* Tamaño base de las etiquetas/tags pequeñas */
   --tag-font: 0.66rem;
-  --control-height: 40px;
+  --control-height: 44px;   /* = objetivo táctil accesible (antes 40px, incoherente con .btn) */
+  --content-max: 820px;     /* ancho de lectura común: perfil/ajustes/comunidad alinean aquí */
   --motion-fast: 160ms;
   --motion-base: 240ms;
   --motion-slow: 340ms;
@@ -96,6 +97,19 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+/* Remates 2026 (fieles al tema, progresivos): resalte de tinta, controles nativos
+   en teal, y equilibrio de línea en titulares/párrafos. */
+::selection {
+  background: color-mix(in srgb, var(--brand) 22%, transparent);
+  color: var(--ink-0);
+}
+html {
+  accent-color: var(--brand);
+  caret-color: var(--brand);
+}
+h1, h2, h3 { text-wrap: balance; }
+p { text-wrap: pretty; }
 
 [id$="-section"] {
   scroll-margin-top: 6.9rem;
@@ -823,9 +837,6 @@ h3 svg,
 
 .home-main {
   grid-area: main;
-}
-
-@media (min-width: 801px) {
 }
 
 .home-sidebar-search input {
@@ -2174,6 +2185,12 @@ textarea::placeholder {
   display: grid;
   gap: 0.9rem;
 }
+/* Ancho de lectura común (perfil/ajustes = comunidad): evita márgenes dispares. */
+.page-section.profile-page,
+.page-section.settings-page {
+  max-width: var(--content-max);
+  margin-inline: auto;
+}
 
 .profile-rank-card {
   margin-top: 0.7rem;
@@ -2443,7 +2460,7 @@ textarea::placeholder {
 .request-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
 .request-row {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  background: var(--panel-0); border: 1px solid var(--line); border-radius: var(--radius-md);
+  background: transparent; border: 1px solid var(--line); border-radius: var(--radius-md);
   padding: 8px 11px;
 }
 .request-name { font-weight: 600; font-size: 0.9rem; color: var(--ink-0); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -2451,7 +2468,7 @@ textarea::placeholder {
 .reports-block { margin-top: 10px; display: grid; gap: 8px; }
 .report-row {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  background: var(--panel-0); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 8px 11px;
+  background: transparent; border: 1px solid var(--line); border-radius: var(--radius-md); padding: 8px 11px;
 }
 .report-body { min-width: 0; display: grid; gap: 2px; }
 .report-meta { font-size: 0.78rem; color: var(--ink-1); }
@@ -2466,7 +2483,7 @@ textarea::placeholder {
 }
 .health-row.is-fading { opacity: 0.85; }
 .health-name { font-weight: 600; font-size: 0.88rem; color: var(--ink-0); display: inline-flex; align-items: baseline; gap: 6px; }
-.health-tag { font-size: 0.7rem; font-weight: 600; color: var(--danger, #a33); font-style: italic; }
+.health-tag { font-size: 0.7rem; font-weight: 600; color: var(--danger); font-style: italic; }
 .health-stats { font-size: 0.76rem; color: var(--ink-1); text-align: right; flex: 1 1 auto; }
 
 .book-resources { padding-top: 10px; padding-bottom: 10px; }
@@ -3046,9 +3063,6 @@ textarea:focus-visible {
   }
 }
 
-@media (max-width: 1024px) {
-}
-
 @media (max-width: 640px) {
   main {
     padding: 0.72rem;
@@ -3240,22 +3254,24 @@ textarea:focus-visible {
   100% { transform: rotate(-1.5deg) scale(1); }
 }
 
+/* Color por estado = misma fuente de verdad que estantería/perfil (design book):
+   lectura=menta, propuesta=ámbar, leído=violeta. Antes estaban cruzados. */
 .book-card-status-reading {
-  color: var(--accent-amber);
-  border-color: var(--accent-amber);
-  background: color-mix(in srgb, var(--accent-amber) 12%, var(--panel-0));
+  color: var(--status-reading);
+  border-color: var(--status-reading);
+  background: color-mix(in srgb, var(--status-reading) 12%, var(--panel-0));
 }
 
 .book-card-status-finished {
-  color: var(--success);
-  border-color: var(--success);
-  background: color-mix(in srgb, var(--success) 12%, var(--panel-0));
+  color: var(--status-finished);
+  border-color: var(--status-finished);
+  background: color-mix(in srgb, var(--status-finished) 12%, var(--panel-0));
 }
 
 .book-card-status-proposed {
-  color: var(--accent-violet);
-  border-color: var(--accent-violet);
-  background: color-mix(in srgb, var(--accent-violet) 12%, var(--panel-0));
+  color: var(--status-proposed);
+  border-color: var(--status-proposed);
+  background: color-mix(in srgb, var(--status-proposed) 12%, var(--panel-0));
 }
 
 .book-card-title {
@@ -3518,7 +3534,7 @@ textarea:focus-visible {
 .book-card-progress-fill {
   display: block;
   height: 100%;
-  background: var(--brand);
+  background: var(--status-reading);
   border-radius: var(--radius-pill);
   transition: width var(--motion-base) var(--ease-standard);
 }
@@ -3705,13 +3721,6 @@ textarea:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .chapter-node.is-done .chapter-check { animation: none; }
   .chapter-node { transition: none; }
-}
-
-.chapter-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--radius-pill);
-  background: var(--ink-1);
 }
 
 .chapter-body {
@@ -4129,14 +4138,6 @@ textarea:focus-visible {
   height: auto;
 }
 
-.chapter-note-image-field {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--ink-1);
-}
-
-.chapter-note-image-field input { flex: 1; }
 
 /* Composer de nota: fila con botón "Imagen" (sube del dispositivo) + campo enlace. */
 .chapter-note-media-row { display: flex; align-items: center; gap: 8px; }
@@ -4467,7 +4468,7 @@ textarea:focus-visible {
 /* B1: quórum de votación */
 .vote-quorum { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
 .vote-quorum-bar { flex: 1; height: 8px; border-radius: var(--radius-pill); background: var(--panel-1); overflow: hidden; }
-.vote-quorum-fill { display: block; height: 100%; background: var(--success); border-radius: var(--radius-pill); transition: width var(--motion-base) var(--ease-standard); }
+.vote-quorum-fill { display: block; height: 100%; background: var(--brand); border-radius: var(--radius-pill); transition: width var(--motion-base) var(--ease-standard); }
 .vote-quorum-label { font-size: 0.8rem; color: var(--ink-1); white-space: nowrap; }
 
 /* A5: panel de gestión (admin) dentro de Editar */
@@ -4706,7 +4707,7 @@ textarea:focus-visible {
 /* Crear club desde la página del club + zona de borrado de libro */
 .community-new-club { margin-top: 10px; align-self: flex-start; }
 .book-delete-zone { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
-.book-delete-zone .hint:first-child { color: var(--danger, #9a3b2e); font-weight: 600; }
+.book-delete-zone .hint:first-child { color: var(--danger); font-weight: 600; }
 
 /* Notas: enlaces multipropósito (YouTube / imagen / web) + sin "morado" de visited */
 .chapter-note-text a,
@@ -4833,8 +4834,8 @@ textarea:focus-visible {
   margin: 0 0 8px;
   padding: 10px 12px;
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--success, #3e6b4f) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--success, #3e6b4f) 35%, var(--line));
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--success) 35%, var(--line));
   font-weight: 600;
   line-height: 1.4;
 }
@@ -4965,6 +4966,7 @@ textarea:focus-visible {
 .badge-member { color: var(--ink-1); background: var(--panel-1); border: 1px solid var(--line); }
 
 .btn-tiny { min-height: 28px; padding: 3px 10px; font-size: 0.74rem; }
+.btn-tiny-danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); }
 .btn-tiny-danger:hover { border-color: var(--danger); color: var(--danger); }
 
 @media (max-width: 480px) {

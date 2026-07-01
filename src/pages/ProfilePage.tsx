@@ -96,7 +96,7 @@ export const ProfilePage = ({
   return (
     <main>
       <TopBar user={activeUser} onOpenShare={onOpenShareModal} onLogout={onLogout} />
-      <section className="page-section">
+      <section className="page-section profile-page">
         <div className="profile-stack">
           <div className="profile-hero">
             <div className="profile-head">
