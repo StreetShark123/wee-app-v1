@@ -4257,6 +4257,27 @@ textarea:focus-visible {
 .comment-del-btn { color: var(--danger); }
 .comment-del-btn:hover { color: var(--danger); text-decoration: underline; }
 
+/* Comentario destacado por un admin (estrella) */
+.comment-pin-btn { display: inline-flex; align-items: center; gap: 3px; color: var(--accent-amber); }
+.comment-pin-btn.is-on { font-weight: 600; }
+.comment-pinned {
+  background: color-mix(in srgb, var(--accent-amber) 8%, transparent);
+  border-left: 3px solid color-mix(in srgb, var(--accent-amber) 60%, var(--line));
+  border-radius: var(--radius-md);
+  padding: 6px 10px;
+  margin-left: -4px;
+}
+.comment-pinned-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-type);
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--accent-amber);
+}
+
 /* C7 facilitador / C1 cadencia / C3 propuesta / D4 comentarios por capítulo */
 .book-cadence-days { color: var(--ink-1); }
 .book-cadence-days.is-overdue { color: var(--danger); }

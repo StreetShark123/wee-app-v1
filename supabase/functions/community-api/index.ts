@@ -2156,7 +2156,7 @@ const handlers = {
     const [commentsRes, membersRes, chaptersRes, completionsRes, notesRes, metaMap] = await Promise.all([
       db
         .from("book_comments")
-        .select("id,user_id,text,parent_id,chapter_id,note_id,phase,created_at,edited_at,deleted_at")
+        .select("id,user_id,text,parent_id,chapter_id,note_id,phase,pinned_at,created_at,edited_at,deleted_at")
         .eq("community_id", auth.community.id)
         .eq("book_id", bookId)
         .order("created_at", { ascending: true }),
@@ -2277,6 +2277,7 @@ const handlers = {
           chapterId: row.chapter_id ?? undefined,
           noteId: row.note_id ?? undefined,
           phase: (row.phase as string) ?? "reading",
+          pinned: !!row.pinned_at,
           reactions: deleted ? [] : Object.values(reactionsByComment[row.id] ?? {}),
           createdAt: toMillis(row.created_at),
           editedAt: row.edited_at ? toMillis(row.edited_at) : undefined,
@@ -2642,6 +2643,26 @@ const handlers = {
     const del = await db.from("book_comments").delete().eq("community_id", auth.community.id).eq("id", commentId);
     if (del.error) return dbFail(400, del.error);
     return json(200, { ok: true, mode: "hard" });
+  },
+
+  // Destacar / quitar destacado de un comentario (solo admin). Toggle de pinned_at.
+  "/comments/pin": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const denied = ensureAdmin(auth.role);
+    if (denied) return denied;
+    const body = await parseBody(req);
+    const commentId = String(body.comment_id ?? "").trim();
+    if (!commentId) return bad("comment_id required");
+    const pinned = body.pinned === true;
+    const upd = await db
+      .from("book_comments")
+      .update({ pinned_at: pinned ? nowIso() : null })
+      .eq("community_id", auth.community.id)
+      .eq("id", commentId)
+      .is("deleted_at", null);
+    if (upd.error) return dbFail(400, upd.error);
+    return json(200, { ok: true, pinned });
   },
 
   "/books/progress": async (req: Request) => {

@@ -489,6 +489,7 @@ export interface BookComment {
   chapterId?: string;
   noteId?: string;
   phase?: "proposed" | "reading";
+  pinned?: boolean;
   reactions: CommentReaction[];
   createdAt: number;
   editedAt?: number;
@@ -585,6 +586,9 @@ export const updateComment = async (commentId: string, text: string): Promise<{ 
 
 export const deleteComment = async (commentId: string): Promise<{ ok: true; mode: "soft" | "hard" }> =>
   request<{ ok: true; mode: "soft" | "hard" }>("/comments/delete", { comment_id: commentId });
+
+export const pinComment = async (commentId: string, pinned: boolean): Promise<{ ok: true; pinned: boolean }> =>
+  request<{ ok: true; pinned: boolean }>("/comments/pin", { comment_id: commentId, pinned });
 
 export const listNotifications = async (): Promise<{ notifications: AppNotification[]; unreadCount: number }> =>
   request<{ notifications: AppNotification[]; unreadCount: number }>("/notifications/list", {});

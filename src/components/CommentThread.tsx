@@ -16,20 +16,24 @@ const CommentItem = ({
   members,
   activeUserId,
   chapterLabel,
+  isAdmin = false,
   onReply,
   onReact,
   onEdit,
   onDelete,
+  onPin,
   isReply
 }: {
   comment: BookComment;
   members: ClubMemberLite[];
   activeUserId: string;
   chapterLabel?: string;
+  isAdmin?: boolean;
   onReply: (parentId: string, text: string) => Promise<void>;
   onReact: (commentId: string, emoji: string) => void;
   onEdit: (commentId: string, text: string) => Promise<void>;
   onDelete: (commentId: string) => void;
+  onPin?: (commentId: string, pinned: boolean) => void;
   isReply: boolean;
 }) => {
   const { language } = useI18n();
@@ -40,6 +44,7 @@ const CommentItem = ({
   const [editOpen, setEditOpen] = useState(false);
   const [editText, setEditText] = useState(comment.text);
   const isMine = comment.userId === activeUserId;
+  const canDelete = isMine || isAdmin; // el admin modera comentarios ajenos
   const replyTarget = comment.parentId ?? comment.id; // hilos de 1 nivel
 
   const submitReply = async () => {
@@ -78,7 +83,7 @@ const CommentItem = ({
   return (
     <m.li
       id={`c-${comment.id}`}
-      className={`comment-item${isReply ? " comment-item-reply" : ""}`}
+      className={`comment-item${isReply ? " comment-item-reply" : ""}${comment.pinned ? " comment-pinned" : ""}`}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: MOTION_DURATION.base, ease: EASE_STANDARD }}
@@ -86,6 +91,7 @@ const CommentItem = ({
       <div className="comment-head">
         <UserBadge alias={comment.alias} {...styleFor(members, comment.userId)} withAvatar={!isReply} />
         <span className="comment-time">{timeAgo(comment.createdAt, language)}</span>
+        {comment.pinned ? <span className="comment-pinned-tag"><Icon name="star" size={11} /> {pick(language, "Destacado", "Featured", "Destacado")}</span> : null}
         {chapterLabel ? <span className="comment-chapter-tag">{pick(language, `Cap. ${chapterLabel}`, `Ch. ${chapterLabel}`, `Cap. ${chapterLabel}`)}</span> : null}
         {comment.editedAt ? <span className="comment-edited-tag">{pick(language, "(editado)", "(edited)", "(editado)")}</span> : null}
       </div>
@@ -111,26 +117,33 @@ const CommentItem = ({
         <button type="button" className="comment-reply-btn" onClick={() => setReplyOpen((v) => !v)}>
           {pick(language, "Responder", "Reply", "Responder")}
         </button>
+        {isAdmin && onPin && !isReply ? (
+          <button type="button" className={`comment-reply-btn comment-pin-btn${comment.pinned ? " is-on" : ""}`} onClick={() => onPin(comment.id, !comment.pinned)}>
+            <Icon name="star" size={12} /> {comment.pinned ? pick(language, "Quitar", "Unpin", "Quitar") : pick(language, "Destacar", "Feature", "Destacar")}
+          </button>
+        ) : null}
         {isMine ? (
-          <>
-            <button type="button" className="comment-reply-btn" onClick={() => { setEditText(comment.text); setEditOpen(true); }}>
-              {pick(language, "Editar", "Edit", "Editar")}
-            </button>
-            <button
-              type="button"
-              className="comment-reply-btn comment-del-btn"
-              onClick={async () => {
-                const ok = await confirm({
-                  title: pick(language, "¿Borrar este comentario?", "Delete this comment?", "Borrar este comentario?"),
-                  confirmLabel: pick(language, "Borrar", "Delete", "Borrar"),
-                  danger: true
-                });
-                if (ok) onDelete(comment.id);
-              }}
-            >
-              {pick(language, "Borrar", "Delete", "Borrar")}
-            </button>
-          </>
+          <button type="button" className="comment-reply-btn" onClick={() => { setEditText(comment.text); setEditOpen(true); }}>
+            {pick(language, "Editar", "Edit", "Editar")}
+          </button>
+        ) : null}
+        {canDelete ? (
+          <button
+            type="button"
+            className="comment-reply-btn comment-del-btn"
+            onClick={async () => {
+              const ok = await confirm({
+                title: isMine
+                  ? pick(language, "¿Borrar este comentario?", "Delete this comment?", "Borrar este comentario?")
+                  : pick(language, "¿Borrar este comentario (moderación)?", "Delete this comment (moderation)?", "Borrar este comentario (moderación)?"),
+                confirmLabel: pick(language, "Borrar", "Delete", "Borrar"),
+                danger: true
+              });
+              if (ok) onDelete(comment.id);
+            }}
+          >
+            {pick(language, "Borrar", "Delete", "Borrar")}
+          </button>
         ) : null}
       </div>
 
@@ -164,20 +177,25 @@ export const NoteThread = ({
   comments,
   members,
   activeUserId,
+  isAdmin = false,
   onReply,
   onReact,
   onEdit,
-  onDelete
+  onDelete,
+  onPin
 }: {
   comments: BookComment[];
   members: ClubMemberLite[];
   activeUserId: string;
+  isAdmin?: boolean;
   onReply: (parentId: string, text: string) => Promise<void>;
   onReact: (commentId: string, emoji: string) => void;
   onEdit: (commentId: string, text: string) => Promise<void>;
   onDelete: (commentId: string) => void;
+  onPin?: (commentId: string, pinned: boolean) => void;
 }) => {
-  const roots = comments.filter((c) => !c.parentId);
+  // Destacados primero (mantiene el orden por fecha dentro de cada grupo).
+  const roots = comments.filter((c) => !c.parentId).sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
   if (roots.length === 0) return null;
   const repliesByParent = new Map<string, BookComment[]>();
   comments.forEach((c) => {
@@ -187,7 +205,7 @@ export const NoteThread = ({
       repliesByParent.set(c.parentId, list);
     }
   });
-  const itemProps = { members, activeUserId, onReply, onReact, onEdit, onDelete };
+  const itemProps = { members, activeUserId, isAdmin, onReply, onReact, onEdit, onDelete, onPin };
   return (
     <ul className="comment-thread note-thread">
       {roots.map((root) => (

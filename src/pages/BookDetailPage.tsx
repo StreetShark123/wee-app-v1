@@ -24,6 +24,7 @@ import {
   reactNote,
   updateComment,
   deleteComment,
+  pinComment,
   deleteBook,
   finishBook,
   getClubBook,
@@ -451,6 +452,11 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
         }
       })
       .catch(() => void load());
+  };
+
+  const handlePinComment = (commentId: string, pinned: boolean) => {
+    patch((d) => ({ ...d, comments: d.comments.map((c) => (c.id === commentId ? { ...c, pinned } : c)) }));
+    void pinComment(commentId, pinned).catch(() => void load());
   };
   const handleFinish = () =>
     run(async () => {
@@ -980,6 +986,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                 comments={proposalComments}
                 members={clubMembers}
                 activeUserId={activeUser.id}
+                isAdmin={isAdmin}
                 onReply={handleReply}
                 onReact={handleReact}
                 onEdit={handleEditComment}
@@ -1026,10 +1033,12 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               comments={isProposalPhase ? proposalComments : clubComments}
               members={clubMembers}
               activeUserId={activeUser.id}
+              isAdmin={isAdmin}
               onReply={handleReply}
               onReact={handleReact}
               onEdit={handleEditComment}
               onDelete={handleDeleteComment}
+              onPin={handlePinComment}
             />
           )}
         </section>
