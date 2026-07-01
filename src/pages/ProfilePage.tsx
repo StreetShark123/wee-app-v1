@@ -215,7 +215,9 @@ export const ProfilePage = ({
               ) : null}
             </article>
           ) : profile ? (
-            <p className="hint profile-no-reads">{pick(language, "Aún no ha leído nada.", "Hasn't read anything in the club yet.", "Aínda non leu nada no club.")}</p>
+            <p className="hint profile-no-reads">{isOwnProfile
+              ? pick(language, "Aún no has leído nada.", "You haven't read anything in the club yet.", "Aínda non liches nada no club.")
+              : pick(language, "Aún no ha leído nada.", "Hasn't read anything in the club yet.", "Aínda non leu nada no club.")}</p>
           ) : null}
 
           {profile && profile.activity && profile.activity.length > 0 ? (

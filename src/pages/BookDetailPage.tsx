@@ -919,7 +919,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               </p>
             ) : null}
             {activeMemberCount > 0 && votesNeeded > 0 ? (
-              <p className="hint vote-needed">{pick(language, `Faltan ${votesNeeded} ${votesNeeded === 1 ? "voto" : "votos"} para decidir (o que lo apruebe un admin).`, `${votesNeeded} more ${votesNeeded === 1 ? "vote" : "votes"} to decide (or an admin approves it).`, `Faltan ${votesNeeded} ${votesNeeded === 1 ? "voto" : "votos"} para decidir (ou que o aprobe un admin).`)}</p>
+              <p className="hint vote-needed">{pick(language, `${votesNeeded === 1 ? "Falta" : "Faltan"} ${votesNeeded} ${votesNeeded === 1 ? "voto" : "votos"} para decidir (o que lo apruebe un admin).`, `${votesNeeded} more ${votesNeeded === 1 ? "vote" : "votes"} to decide (or an admin approves it).`, `${votesNeeded === 1 ? "Falta" : "Faltan"} ${votesNeeded} ${votesNeeded === 1 ? "voto" : "votos"} para decidir (ou que o aprobe un admin).`)}</p>
             ) : quorumReached && votes.yes === votes.no ? (
               <p className="hint vote-needed">{pick(language, "Hay empate: un voto más desnivela, o lo decide un admin.", "It's a tie: one more vote breaks it, or an admin decides.", "Hai empate: un voto máis desnivela, ou decídeo un admin.")}</p>
             ) : null}
@@ -1069,7 +1069,9 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                 <p className="hint">{pick(language, `Se detectaron ${parsedPreview.length} capítulos.`, `Detected ${parsedPreview.length} chapters.`, `Detectáronse ${parsedPreview.length} capítulos.`)}</p>
               ) : null}
               <button type="button" className="btn btn-primary" disabled={busy || parsedPreview.length === 0} onClick={handleCreateChapters}>
-                <Icon name="check" /> {pick(language, `Crear ${parsedPreview.length} capítulos`, `Create ${parsedPreview.length} chapters`, `Crear ${parsedPreview.length} capítulos`)}
+                <Icon name="check" /> {parsedPreview.length === 0
+                  ? pick(language, "Crear capítulos", "Create chapters", "Crear capítulos")
+                  : pick(language, `Crear ${parsedPreview.length} capítulos`, `Create ${parsedPreview.length} chapters`, `Crear ${parsedPreview.length} capítulos`)}
               </button>
 
               <div className="chapter-or">{pick(language, "o, si no tienen título:", "or, if they have no titles:", "ou, se non teñen título:")}</div>
@@ -1158,7 +1160,9 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               ? pick(language, "Discusión de la propuesta", "Proposal discussion", "Discusión da proposta")
               : pick(language, "Conversación del club", "Club conversation", "Conversa do club")}</h2>
           </div>
-          <p className="hint book-convo-hint">{pick(language, "Del libro entero. Para un capítulo, usa sus notas (arriba).", "This is about the whole book. To discuss a chapter, use its notes above.", "Aquí fálase do libro enteiro. Para comentar un capítulo, usa as súas notas arriba.")}</p>
+          {isProposalPhase ? (
+            <p className="hint book-convo-hint">{pick(language, "Del libro entero. Para un capítulo, usa sus notas (arriba).", "This is about the whole book. To discuss a chapter, use its notes above.", "Aquí fálase do libro enteiro. Para comentar un capítulo, usa as súas notas arriba.")}</p>
+          ) : null}
           <p className="hint">{isProposalPhase
             ? pick(language, "¿Lo leemos? Comentad por qué sí o por qué no antes de votar.", "Shall we read it? Discuss the pros and cons before voting.", "Lémolo? Comentade os prós e contras antes de votar.")
             : pick(language, "Del libro entero. Para un capítulo, usa sus notas (arriba). Sin spoilers 👀", "Thoughts about the whole book. To discuss a chapter, comment on its notes (above). No spoilers 👀", "Ideas sobre todo o libro. Para debater un capítulo, comenta nas súas notas (arriba). Sen spoilers 👀")}</p>

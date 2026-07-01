@@ -228,7 +228,7 @@ export const HomePage = ({
         ) : books.length === 0 ? (
           <article className="page-section empty-state">
             <h3>{pick(language, "La estantería está vacía", "The shelf is empty", "A estantería está baleira")}</h3>
-            <p>{pick(language, "Propón el primer libro y votad si lo leéis.", "Propose the first book and vote to read it together.", "Propón o primeiro libro e votade se o ledes.")}</p>
+            <p>{pick(language, "Propón el primer libro y vota si lo lees.", "Propose the first book and vote to read it together.", "Propón o primeiro libro e vota se o les.")}</p>
             <button type="button" className="btn btn-primary" onClick={onOpenAddBook}>
               <Icon name="plus" /> {pick(language, "Proponer un libro", "Propose a book", "Propoñer un libro")}
             </button>
