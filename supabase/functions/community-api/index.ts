@@ -14,7 +14,11 @@ const json = (status: number, body: Record<string, unknown>, extraHeaders?: Head
     status,
     headers: {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
+      // CORS: bloqueado al origen de la app (APP_ORIGIN). Fallback a "*" solo si
+      // no está configurado (p.ej. dev local). Evita que cualquier web llame a la
+      // API con credenciales. `Vary: Origin` para no cachear cruzado.
+      "Access-Control-Allow-Origin": APP_ORIGIN || "*",
+      "Vary": "Origin",
       "Access-Control-Allow-Headers": "content-type,authorization,apikey,x-client-info,x-wee-session,x-wee-global-session",
       "Access-Control-Allow-Methods": "POST,OPTIONS",
       ...extraHeaders
@@ -242,6 +246,13 @@ const gone = (message: string): Response => json(410, { message });
 
 const ensureAdmin = (role: Role): Response | null => (role === "admin" ? null : json(403, { message: "Admin required" }));
 
+// Owner del club = communities.created_by_user_id. Solo el propio owner puede
+// degradarse/salir; ningún otro admin puede degradar ni expulsar al owner.
+const ownerOf = async (communityId: string): Promise<string | null> => {
+  const { data } = await db.from("communities").select("created_by_user_id").eq("id", communityId).maybeSingle();
+  return (data?.created_by_user_id as string | undefined) ?? null;
+};
+
 const canManageInvites = (role: Role, policy: InvitePolicy): boolean => role === "admin" || policy === "members_allowed";
 
 const parseBody = async (req: Request): Promise<Record<string, any>> => {
@@ -347,21 +358,32 @@ const clubUserMetaMap = async (communityId: string): Promise<Map<string, ClubUse
 // Recalcula books.status SOLO entre 'reading' y 'finished' (la propuesta la decide la
 // votación / el admin, no el progreso). 'finished' cuando TODOS los que lo están
 // leyendo lo han terminado (y hay ≥1 lector). Si entra un lector nuevo, vuelve a 'reading'.
+// Conjunto de community_users.id ACTIVOS de un club. Excluye a los expulsados/
+// salidos (status kicked|left): sus filas quedan (historial) pero no cuentan
+// como "gente viva" para votos ni finalización.
+const activeMemberIdSet = async (communityId: string): Promise<Set<string>> => {
+  const res = await db.from("community_users").select("id").eq("community_id", communityId).eq("status", "active");
+  return new Set((res.data ?? []).map((r: Record<string, any>) => String(r.id)));
+};
+
 const recomputeBookStatus = async (communityId: string, bookId: string): Promise<string> => {
-  const [bookRes, memberRes] = await Promise.all([
+  const [bookRes, memberRes, active] = await Promise.all([
     db.from("books").select("status").eq("community_id", communityId).eq("id", bookId).maybeSingle(),
     db
       .from("member_books")
       .select("user_id,shelf,chapters_done")
       .eq("community_id", communityId)
-      .eq("book_id", bookId)
+      .eq("book_id", bookId),
+    activeMemberIdSet(communityId)
   ]);
   const current = (bookRes.data?.status as string) ?? "proposed";
   if (current === "proposed") return "proposed"; // la votación/el admin mueven proposed→reading
 
-  const readers = (memberRes.data ?? []).filter(
-    (m: Record<string, any>) => m.shelf === "reading" || m.shelf === "finished" || Number(m.chapters_done ?? 0) > 0
-  );
+  const readers = (memberRes.data ?? [])
+    .filter((m: Record<string, any>) => active.has(String(m.user_id)))
+    .filter(
+      (m: Record<string, any>) => m.shelf === "reading" || m.shelf === "finished" || Number(m.chapters_done ?? 0) > 0
+    );
   const allFinished = readers.length > 0 && readers.every((m: Record<string, any>) => m.shelf === "finished");
   const status = allFinished ? "finished" : "reading";
   await db.from("books").update({ status }).eq("community_id", communityId).eq("id", bookId);
@@ -374,18 +396,27 @@ const voteSummary = async (
   bookId: string,
   userId: string
 ): Promise<{ yes: number; no: number; later: number; myVote: string | null }> => {
-  const res = await db
-    .from("book_votes")
-    .select("user_id,vote")
-    .eq("community_id", communityId)
-    .eq("book_id", bookId);
-  const rows = res.data ?? [];
+  const [res, active] = await Promise.all([
+    db.from("book_votes").select("user_id,vote").eq("community_id", communityId).eq("book_id", bookId),
+    activeMemberIdSet(communityId)
+  ]);
+  const allRows = res.data ?? [];
+  // Solo cuentan los votos de miembros ACTIVOS (nada de fantasmas expulsados).
+  const rows = allRows.filter((r: Record<string, any>) => active.has(String(r.user_id)));
   return {
     yes: rows.filter((r: Record<string, any>) => r.vote === "yes").length,
     no: rows.filter((r: Record<string, any>) => r.vote === "no").length,
     later: rows.filter((r: Record<string, any>) => r.vote === "later").length,
-    myVote: (rows.find((r: Record<string, any>) => r.user_id === userId)?.vote as string) ?? null
+    myVote: (allRows.find((r: Record<string, any>) => r.user_id === userId)?.vote as string) ?? null
   };
+};
+
+// Al expulsar/salir un miembro, sus libros pueden pasar a 'finished' (ya no
+// bloquea su progreso a medias). Recalcula el estado de los libros que tocaba.
+const recomputeMemberBooks = async (communityId: string, memberId: string): Promise<void> => {
+  const res = await db.from("member_books").select("book_id").eq("community_id", communityId).eq("user_id", memberId);
+  const bookIds = [...new Set((res.data ?? []).map((r: Record<string, any>) => String(r.book_id)))];
+  for (const bid of bookIds) await recomputeBookStatus(communityId, bid);
 };
 
 // Recalcula member_books de un usuario a partir de sus checkmarks de capítulo.
@@ -1471,6 +1502,7 @@ const handlers = {
         .eq("community_id", auth.community.id)
         .eq("user_id", globalLink.data.global_user_id);
     }
+    await recomputeMemberBooks(auth.community.id, auth.user.id); // sus lecturas a medias ya no bloquean 'finished'
     return json(200, { ok: true });
   },
 
@@ -1516,6 +1548,11 @@ const handlers = {
       return json(404, { message: "Target user not found in this community" });
     }
 
+    const ownerId = await ownerOf(auth.community.id);
+    if (ownerId && target === ownerId && auth.user.id !== ownerId) {
+      return json(403, { message: "Cannot demote the club owner" });
+    }
+
     if (target === auth.user.id) {
       const { count } = await db
         .from("community_user_roles")
@@ -1539,6 +1576,11 @@ const handlers = {
     const target = String(body.target_user_id ?? "").trim();
     if (!target) return bad("target_user_id required");
 
+    const ownerId = await ownerOf(auth.community.id);
+    if (ownerId && target === ownerId && auth.user.id !== ownerId) {
+      return json(403, { message: "Cannot remove the club owner" });
+    }
+
     const { data: targetRole } = await db
       .from("community_user_roles")
       .select("role")
@@ -1557,6 +1599,7 @@ const handlers = {
 
     await db.from("community_users").update({ status: "kicked" }).eq("id", target).eq("community_id", auth.community.id);
     await db.from("sessions").update({ revoked_at: nowIso() }).eq("user_id", target).eq("community_id", auth.community.id).is("revoked_at", null);
+    await recomputeMemberBooks(auth.community.id, target); // sus lecturas a medias ya no bloquean 'finished'
     return json(200, { ok: true });
   },
 
