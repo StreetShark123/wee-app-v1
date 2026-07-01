@@ -3,6 +3,7 @@ import { AnimatePresence, m } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CommunityLoadingScreen } from "../components/CommunityLoadingScreen";
 import { Icon } from "../components/Icon";
+import { PunctuationLoader } from "../components/PunctuationLoader";
 import { pick, useI18n } from "../lib/i18n";
 import type { CommunitySelection } from "../lib/communitySession";
 import type { CommunityListItem } from "../lib/communityApi";
@@ -155,15 +156,8 @@ export const CommunitiesPickerPage = ({
             : pick(language, "Todavía no estás en ningún club. Crea uno o únete con un código y arrancamos.", "You are not in any community yet. Create one or join with a code and let's get going.", "Aínda non estás en ningunha comunidade. Crea unha ou únete cun código e arrincamos.")}
         </p>
 
-        <div className={`community-picker-grid${loading && communities.length === 0 ? " is-loading" : ""}`}>
-          {loading && communities.length === 0 ? (
-            Array.from({ length: 3 }).map((_, index) => (
-              <article className="community-picker-card-skeleton" aria-hidden="true" key={`community-skeleton-${index}`}>
-                <span className="sk sk-line sk-line-mid" />
-                <span className="sk sk-line sk-line-short" />
-              </article>
-            ))
-          ) : null}
+        {loading && communities.length === 0 ? <PunctuationLoader /> : null}
+        <div className="community-picker-grid">
           <AnimatePresence initial={false}>
             {communities.map((community) => {
             const isActive = selectedCommunityId === community.community_id;

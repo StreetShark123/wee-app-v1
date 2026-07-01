@@ -281,21 +281,34 @@ h4 {
   box-shadow: var(--shadow-warm);
 }
 
+/* "Wee" pasa a wordmark pequeño; el nombre del club es lo prominente. */
 .brand-text {
   font-family: var(--font-type);
   font-weight: 400;
-  font-size: 1.18rem;
+  font-size: 0.9rem;
   letter-spacing: 0.01em;
   line-height: 1.02;
+  color: var(--ink-1);
+}
+/* Separador sutil entre wordmark y club. */
+.brand-text::after {
+  content: "·";
+  margin-left: 0.4rem;
+  color: var(--line);
 }
 
 .brand-tag {
   font-family: var(--font-sans);
-  font-style: italic;
-  font-size: 0.8rem;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 1.08rem;
   text-transform: none;
   letter-spacing: 0;
-  color: var(--ink-1);
+  color: var(--ink-0);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .brand-copy {
@@ -2620,12 +2633,12 @@ textarea:focus-visible {
 
   .brand-tag {
     display: inline-flex;
-    max-width: 38vw;
+    max-width: 52vw;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    padding: 0.12rem 0.4rem;
-    font-size: 0.58rem;
+    padding: 0;
+    font-size: 1rem;
   }
 
   .brand {
@@ -2861,11 +2874,10 @@ textarea:focus-visible {
   }
 
   .brand-text {
-    font-size: 1.08rem;
+    font-size: 0.85rem;
   }
 
-  /* Perfil compacto en móvil: solo avatar (sin nombre ni caret) */
-  .user-menu-label,
+  /* Perfil compacto en móvil: solo avatar (el nombre ya sale en el dropdown). */
   .user-menu-caret {
     display: none;
   }
@@ -4680,7 +4692,7 @@ textarea:focus-visible {
 /* Entre pantallas: elipsis que se teclea (puntuación de máquina de escribir) */
 /* Carga a pantalla completa: solo el glifo centrado en rojo, ciclando signos de
    puntuación. Overlay fijo → tapa footer/topbar (no se ve nada más). */
-.book-loading-screen {
+.app-loading-screen {
   position: fixed;
   inset: 0;
   z-index: 60;
@@ -4688,7 +4700,7 @@ textarea:focus-visible {
   place-items: center;
   background: var(--bg-0);
 }
-.book-loading-glyph {
+.app-loading-glyph {
   font-family: var(--font-type);
   font-size: 3.2rem;
   line-height: 1;
@@ -4696,11 +4708,11 @@ textarea:focus-visible {
   min-width: 3ch;
   text-align: center;
 }
-.book-loading-glyph::before {
+.app-loading-glyph::before {
   content: "()";
-  animation: book-loading-punct 3s infinite;
+  animation: app-loading-punct 3s infinite;
 }
-@keyframes book-loading-punct {
+@keyframes app-loading-punct {
   0%, 15%    { content: "()"; }
   16.7%, 32% { content: ","; }
   33.4%, 48% { content: "*"; }
@@ -4709,7 +4721,7 @@ textarea:focus-visible {
   83.4%, 100% { content: ";"; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .book-loading-glyph::before { animation: none; content: "..."; }
+  .app-loading-glyph::before { animation: none; content: "..."; }
 }
 
 .route-spinner {

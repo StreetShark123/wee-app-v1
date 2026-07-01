@@ -83,9 +83,9 @@ const TopBarInner = ({ user, communityName, onLeaveCommunity, searchValue, onSea
             onClick={() => setProfileOpen((curr) => !curr)}
             aria-expanded={profileOpen}
             aria-haspopup="menu"
+            aria-label={pick(language, `Menú de ${user.alias}`, `${user.alias} menu`, `Menú de ${user.alias}`)}
           >
             <Avatar user={user} size={32} />
-            <span className="user-menu-label"><Icon name="user" size={13} /> {user.alias}</span>
             <span className="user-menu-caret">▾</span>
           </button>
 

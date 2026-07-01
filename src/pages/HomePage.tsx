@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BookCard } from "../components/BookCard";
-import { BookGridSkeleton } from "../components/Skeletons";
+import { PunctuationLoader } from "../components/PunctuationLoader";
 import { Icon } from "../components/Icon";
 import { TopBar } from "../components/TopBar";
 import { pick, useI18n } from "../lib/i18n";
@@ -137,10 +137,7 @@ export const HomePage = ({
         </div>
 
         {booksLoading && books.length === 0 ? (
-          <section className="page-section shelf-section">
-            <div className="shelf-head"><span className="sk sk-line sk-shelf-title" /></div>
-            <BookGridSkeleton />
-          </section>
+          <PunctuationLoader />
         ) : books.length === 0 ? (
           <article className="page-section empty-state">
             <h3>{pick(language, "La estantería está vacía", "The shelf is empty", "A estantería está baleira")}</h3>

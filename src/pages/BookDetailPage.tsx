@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ChapterTimeline } from "../components/ChapterTimeline";
 import { Icon } from "../components/Icon";
 import { TopBar } from "../components/TopBar";
+import { PunctuationLoader } from "../components/PunctuationLoader";
 import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { parseChapterList } from "../lib/parseChapters";
@@ -181,14 +182,9 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   };
 
   if (loading && !detail) {
-    // Primera carga (sin caché): SOLO el glifo de puntuación centrado a pantalla
-    // completa (overlay que tapa footer/topbar), en vez de esqueletos. Cuando está
-    // cacheada, `load()` pinta al instante desde caché y este bloque ni se ve.
-    return (
-      <div className="book-loading-screen" aria-busy="true" role="status" aria-label={pick(language, "Cargando", "Loading", "Cargando")}>
-        <span className="book-loading-glyph" aria-hidden="true" />
-      </div>
-    );
+    // Primera carga (sin caché): glifo de puntuación a pantalla completa, sin
+    // esqueletos. Cacheada → load() pinta al instante y este bloque ni se ve.
+    return <PunctuationLoader />;
   }
 
   if (error || !detail) {
