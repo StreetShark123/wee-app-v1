@@ -6,7 +6,7 @@ export const PageTransition = ({ children }: PropsWithChildren) => (
   <m.div
     initial={{ opacity: 0, y: 8 }}
     animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: 0 }}
+    exit={{ opacity: 0, y: -6 }}
     transition={{ duration: MOTION_DURATION.base, ease: EASE_STANDARD }}
     style={{ willChange: "transform, opacity" }}
   >

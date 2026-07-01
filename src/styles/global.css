@@ -1430,6 +1430,8 @@ textarea::placeholder {
   cursor: not-allowed;
   transform: none !important;
 }
+/* Feedback táctil de pulsación (moderno, en todos los botones). */
+.btn:active:not(:disabled) { transform: translateY(1px) scale(0.985); }
 
 .btn-primary {
   background: linear-gradient(180deg, var(--brand), var(--brand-strong));
@@ -3392,7 +3394,14 @@ textarea:focus-visible {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--sp-3);
+  /* El composer/valoración final no queda bajo el home-indicator en iPhone. */
+  padding-bottom: calc(var(--sp-4) + env(safe-area-inset-bottom));
+}
+/* Profundidad: el héroe (panel principal) se eleva sobre las secciones. */
+.book-detail-head,
+.profile-hero {
+  box-shadow: var(--shadow-warm-lg);
 }
 
 .book-back {

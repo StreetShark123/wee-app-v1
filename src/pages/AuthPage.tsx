@@ -124,18 +124,22 @@ export const AuthPage = ({ mode, onLogin, onRegister }: AuthPageProps) => {
               </button>
             </div>
           </label>
-          {error ? <p className="error">{error}</p> : null}
-          <button type="submit" className="btn btn-primary auth-submit-btn" disabled={loading}>
-            <Icon name="check" /> {loading
+          {error ? <p className="error" role="alert">{error}</p> : null}
+          <button type="submit" className="btn btn-primary auth-submit-btn" disabled={loading} aria-busy={loading}>
+            {loading
               ? (
                 <>
                   {pick(language, "Entrando", "Signing in", "Entrando")}
                   <span className="loading-dots" aria-hidden="true" />
                 </>
               )
-              : mode === "login"
-                ? pick(language, "Entrar", "Log in", "Entrar")
-                : pick(language, "Crear cuenta", "Create account", "Crear conta")}
+              : (
+                <>
+                  <Icon name="check" /> {mode === "login"
+                    ? pick(language, "Entrar", "Log in", "Entrar")
+                    : pick(language, "Crear cuenta", "Create account", "Crear conta")}
+                </>
+              )}
           </button>
           <p className="auth-next-step">
             {pick(
