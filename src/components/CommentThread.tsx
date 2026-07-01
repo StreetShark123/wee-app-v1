@@ -1,5 +1,6 @@
 import { m } from "framer-motion";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import type { BookComment, ClubMemberLite } from "../lib/communityApi";
 import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
@@ -89,7 +90,9 @@ const CommentItem = ({
       transition={{ duration: MOTION_DURATION.base, ease: EASE_STANDARD }}
     >
       <div className="comment-head">
-        <UserBadge alias={comment.alias} {...styleFor(members, comment.userId)} withAvatar={!isReply} />
+        <Link to={`/profile/${comment.userId}`} className="comment-author-link">
+          <UserBadge alias={comment.alias} {...styleFor(members, comment.userId)} withAvatar={!isReply} />
+        </Link>
         <span className="comment-time">{timeAgo(comment.createdAt, language)}</span>
         {comment.pinned ? <span className="comment-pinned-tag"><Icon name="star" size={11} /> {pick(language, "Destacado", "Featured", "Destacado")}</span> : null}
         {chapterLabel ? <span className="comment-chapter-tag">{pick(language, `Cap. ${chapterLabel}`, `Ch. ${chapterLabel}`, `Cap. ${chapterLabel}`)}</span> : null}

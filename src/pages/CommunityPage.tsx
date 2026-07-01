@@ -563,10 +563,10 @@ export const CommunityPage = ({
               const canRemove = onDeleteUser && !isMe && !isOwnerMember && (member.role === "member" ? isAdmin : iAmOwner);
               return (
                 <li key={member.id} className="user-option member-row">
-                  <span className="member-name">
+                  <Link to={`/profile/${member.id}`} className="member-name member-name-link">
                     {member.alias}
                     {isMe ? <span className="hint member-you"> · {pick(language, "tú", "you", "ti")}</span> : null}
-                  </span>
+                  </Link>
                   <span className="member-meta">
                     {isOwnerMember ? (
                       <span className="badge badge-owner">{pick(language, "Admin principal", "Owner admin", "Admin principal")}</span>

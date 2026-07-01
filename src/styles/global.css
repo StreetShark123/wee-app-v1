@@ -3430,6 +3430,11 @@ textarea:focus-visible {
   padding-bottom: 0;
 }
 
+/* Tramo entre dos capítulos leídos: la línea toma el color del check (camino hecho). */
+.chapter-node.is-done:has(+ .chapter-node.is-done) {
+  border-left-color: var(--brand);
+}
+
 .chapter-check {
   position: absolute;
   left: -13px;
@@ -4254,6 +4259,11 @@ textarea:focus-visible {
 }
 .mention-option:hover { background: color-mix(in srgb, var(--brand) 18%, transparent); color: var(--brand-strong); }
 
+.comment-author-link { text-decoration: none; color: inherit; display: inline-flex; min-width: 0; border-radius: var(--radius-md); }
+.comment-author-link:hover .user-badge-name { text-decoration: underline; }
+.member-name-link { text-decoration: none; color: inherit; }
+.member-name-link:hover { text-decoration: underline; }
+
 .comment-del-btn { color: var(--danger); }
 .comment-del-btn:hover { color: var(--danger); text-decoration: underline; }
 
@@ -4766,7 +4776,7 @@ textarea:focus-visible {
 .app-loading-screen {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 200;
   display: grid;
   place-items: center;
   background: var(--bg-0);
