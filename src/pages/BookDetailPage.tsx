@@ -7,7 +7,6 @@ import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { parseChapterList } from "../lib/parseChapters";
 import { getCachedBook, setCachedBook } from "../lib/booksCache";
-import { BookDetailSkeleton } from "../components/Skeletons";
 import { NoteThread } from "../components/CommentThread";
 import { ImageLightbox } from "../components/ImageLightbox";
 import { MentionTextarea } from "../components/MentionTextarea";
@@ -182,10 +181,13 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   };
 
   if (loading && !detail) {
+    // Primera carga (sin caché): animación de puntuación hasta que llegue la ficha,
+    // en vez de esqueletos. Cuando está cacheada, `load()` pinta al instante desde
+    // caché y este bloque ni se ve.
     return (
       <main>
         <TopBar user={activeUser} onOpenShare={onOpenAddBook} onLogout={onLogout} />
-        <BookDetailSkeleton />
+        <div className="route-fallback" aria-busy="true"><span className="route-spinner" /></div>
       </main>
     );
   }
