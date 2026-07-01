@@ -39,7 +39,6 @@ const AppRoutes = () => {
   const location = useLocation();
   const {
     users,
-    posts,
     activeUser,
     globalSession,
     globalSettings,
@@ -64,19 +63,10 @@ const AppRoutes = () => {
     updateCommunityDetails,
     createCommunityInvite,
     loginWithUserId,
-    createPost,
-    savePost,
-    removePost,
-    removeComment,
     updateUserAvatar,
     updateUserAlias,
-    updatePostPrimaryTopic,
-    filterPosts,
     updatePreferences,
     exportJson,
-    userQualityValueById,
-    userCommunityStatsById,
-    userInfluenceAuraById
   } = useAppData();
 
   const [toast, setToast] = useState<string | null>(null);
@@ -265,32 +255,6 @@ const AppRoutes = () => {
     setCommunityAsActive
   ]);
 
-  const knownTopics = useMemo(
-    () => Array.from(new Set(posts.flatMap((post) => post.topics))).sort(),
-    [posts]
-  );
-  const memberRemovedMode = import.meta.env.VITE_MEMBER_REMOVED_POSTS_MODE === "collapsed" ? "collapsed" : "hidden";
-  const postsForViewer = useMemo(() => {
-    if (!activeUser) return posts;
-    if (activeUser.role === "admin") return posts;
-    return posts
-      .filter((post) => (memberRemovedMode === "hidden" ? post.status !== "removed" : true))
-      .map((post) => {
-        if (memberRemovedMode === "collapsed" && post.status === "removed") {
-          return {
-            ...post,
-            status: "collapsed" as const,
-            title: pick(language, "Contenido moderado", "Moderated content"),
-            text: pick(language, "Este libro fue moderado por administración.", "This post was moderated by admins."),
-            previewTitle: undefined,
-            previewDescription: undefined,
-            previewImageUrl: undefined,
-            url: undefined
-          };
-        }
-        return post;
-      });
-  }, [posts, activeUser, memberRemovedMode, language]);
   const reloadNotifications = useCallback(async () => {
     if (!activeUser) {
       setNotifications([]);
@@ -713,7 +677,6 @@ const AppRoutes = () => {
         {showLoadingOverlay ? (
           <CommunityLoadingScreen
             communityName={selectedCommunity?.name}
-            topics={Array.from(new Set(posts.flatMap((post) => post.topics))).slice(0, 3)}
             usersCount={users.length}
             finishing={loaderFinishing}
           />
