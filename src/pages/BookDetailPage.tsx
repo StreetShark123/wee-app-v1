@@ -13,6 +13,7 @@ import { getCachedBook, setCachedBook } from "../lib/booksCache";
 import { NoteThread } from "../components/CommentThread";
 import { ImageLightbox } from "../components/ImageLightbox";
 import { MeetingCard } from "../components/MeetingCard";
+import { ReadingPace } from "../components/ReadingPace";
 import { MentionTextarea } from "../components/MentionTextarea";
 import { applyVoteLocal } from "../components/VoteControl";
 import {
@@ -30,6 +31,7 @@ import {
   finishBook,
   getClubBook,
   proposalQuorum,
+  remindReading,
   remindVoters,
   rsvpMeeting,
   setBookMeeting,
@@ -663,6 +665,16 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                   </span>
                 ) : null}
               </div>
+            ) : null}
+            {book.status === "reading" && book.targetChapter ? (
+              <ReadingPace
+                targetChapter={book.targetChapter}
+                totalChapters={chapters.length}
+                membersDone={members.map((m) => m.chaptersDone)}
+                myChaptersDone={myMember?.chaptersDone ?? 0}
+                canManage={isAdder || isAdmin}
+                onRemind={() => remindReading(book.id)}
+              />
             ) : null}
             {named ? (
               <div className="book-head-progress">

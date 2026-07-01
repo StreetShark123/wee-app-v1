@@ -385,6 +385,9 @@ export const communityHealth = async (): Promise<{ members: HealthMember[] }> =>
 export const remindVoters = async (bookId: string): Promise<{ reminded: number }> =>
   request<{ ok: true; reminded: number }>("/community/remind", { book_id: bookId });
 
+export const remindReading = async (bookId: string): Promise<{ reminded: number }> =>
+  request<{ ok: true; reminded: number }>("/community/remind_reading", { book_id: bookId });
+
 export interface JoinRequestItem {
   id: string;
   userId: string;

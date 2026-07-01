@@ -2354,6 +2354,31 @@ const handlers = {
     return json(200, { ok: true, reminded: targets.length });
   },
 
+  // Recordatorio de ritmo: avisa a quien va por debajo de la meta de capítulos.
+  // Lo puede lanzar el facilitador (quien propuso) o un admin.
+  "/community/remind_reading": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    if (await isRateLimited(`remind:${auth.community.id}`, 6, 3600)) return slowDown();
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    if (!bookId) return bad("book_id required");
+    const bookRes = await db.from("books").select("id,added_by,target_chapter").eq("community_id", auth.community.id).eq("id", bookId).maybeSingle();
+    if (bookRes.error || !bookRes.data) return json(404, { message: "Book not found" });
+    if (bookRes.data.added_by !== auth.user.id && auth.role !== "admin") {
+      return json(403, { message: "Solo quien propuso el libro (o un admin) puede recordar el ritmo" });
+    }
+    const target = Number(bookRes.data.target_chapter ?? 0);
+    if (!target) return json(400, { message: "No hay meta de capítulos fijada" });
+    const active = await activeMemberIdSet(auth.community.id);
+    const mbRes = await db.from("member_books").select("user_id,chapters_done").eq("community_id", auth.community.id).eq("book_id", bookId);
+    const doneBy = new Map((mbRes.data ?? []).map((m: Record<string, any>) => [String(m.user_id), Number(m.chapters_done ?? 0)]));
+    // Rezagados = activos (menos el que avisa) cuyo progreso < meta.
+    const targets = [...active].filter((uid) => uid !== auth.user.id && (doneBy.get(uid) ?? 0) < target);
+    await notify(auth.community.id, targets.map((uid) => ({ user_id: uid, kind: "reminder", actor_id: auth.user.id, book_id: bookId })));
+    return json(200, { ok: true, reminded: targets.length });
+  },
+
   // ───────────────────────────── Club de lectura: libros ─────────────────────────
   "/books/list": async (req: Request) => {
     const auth = await requireSession(req);

@@ -2485,6 +2485,15 @@ textarea::placeholder {
 .meeting-form-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .meeting-cancel { color: var(--danger); margin-right: auto; }
 
+/* Ritmo de lectura: barra con la media del club + marca de la meta. */
+.reading-pace { margin: 8px 0 4px; display: grid; gap: 6px; }
+.reading-pace-bar { position: relative; height: 8px; border-radius: var(--radius-pill); background: var(--panel-1); overflow: hidden; }
+.reading-pace-fill { position: absolute; inset: 0 auto 0 0; background: var(--status-reading); border-radius: var(--radius-pill); }
+.reading-pace-goal { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink-0); transform: translateX(-1px); }
+.reading-pace-label { margin: 0; font-size: 0.84rem; color: var(--ink-1); }
+.reading-pace-ok { color: var(--success); font-weight: 700; }
+.reading-pace-behind { color: var(--warning); font-weight: 700; }
+
 /* Onboarding como modal (reusa el chrome de readers-modal). */
 .onboarding-modal { max-width: 460px; }
 .onboarding-modal-done { width: 100%; margin-top: 12px; justify-content: center; }
