@@ -4232,6 +4232,19 @@ textarea:focus-visible {
 .vote-btn.yes.is-on { background: var(--success); border-color: var(--success); color: var(--panel-0); }
 .vote-btn.no.is-on { background: var(--danger); border-color: var(--danger); color: var(--panel-0); }
 .vote-btn.later.is-on { background: var(--warning); border-color: var(--warning); color: var(--panel-0); }
+/* Confirmación al emitir el voto / cambiar estado: mismo "bote" que el check de capítulo. */
+.vote-btn.is-on,
+.book-status-btn.is-on { animation: confirm-pop 0.4s var(--ease-standard, ease); }
+@keyframes confirm-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.09); }
+  70%  { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vote-btn.is-on,
+  .book-status-btn.is-on { animation: none; }
+}
 
 /* Controles de admin */
 .book-admin-controls { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
