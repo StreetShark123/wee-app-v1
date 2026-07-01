@@ -4,6 +4,8 @@ import { ChapterTimeline } from "../components/ChapterTimeline";
 import { Icon } from "../components/Icon";
 import { TopBar } from "../components/TopBar";
 import { PunctuationLoader } from "../components/PunctuationLoader";
+import { ReadersModal } from "../components/ReadersModal";
+import { UserDot, styleFor } from "../components/UserBadge";
 import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { parseChapterList } from "../lib/parseChapters";
@@ -79,6 +81,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const [calcPreview, setCalcPreview] = useState<{ date: string; days: number } | null>(null);
   const [coverLightbox, setCoverLightbox] = useState(false);
   const [synopsisOpen, setSynopsisOpen] = useState(false);
+  const [readersOpen, setReadersOpen] = useState(false);
 
   const load = useCallback(async () => {
     if (!bookId) return;
@@ -537,6 +540,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
             </span>
           )}
           {coverLightbox && book.coverUrl ? <ImageLightbox url={book.coverUrl} onClose={() => setCoverLightbox(false)} showVisit={false} /> : null}
+          {readersOpen ? <ReadersModal members={members} total={total} bookStatus={book.status} clubMembers={clubMembers} onClose={() => setReadersOpen(false)} /> : null}
           <div className="book-detail-meta">
             <div className="book-status-row">
               <span className={`book-card-status book-card-status-${book.status}`}>{statusLabel(book.status, language)}</span>
@@ -546,6 +550,19 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               {book.author ?? pick(language, "Autor desconocido", "Unknown author", "Autor descoñecido")}
               {book.publishedYear ? ` · ${book.publishedYear}` : ""}
             </p>
+            {(book.status === "reading" || book.status === "finished") && members.length > 0 ? (
+              <button type="button" className="book-readers-row" onClick={() => setReadersOpen(true)} aria-label={pick(language, "Ver quién lo está leyendo", "See who's reading it", "Ver quen o está lendo")}>
+                <span className="book-readers-stack">
+                  {members.slice(0, 5).map((m) => (
+                    <UserDot key={m.userId} alias={m.alias} {...styleFor(clubMembers, m.userId)} />
+                  ))}
+                </span>
+                <span className="book-readers-label">
+                  {members.length > 5 ? `+${members.length - 5} · ` : ""}
+                  {pick(language, `${members.length} leyendo`, `${members.length} reading`, `${members.length} lendo`)}
+                </span>
+              </button>
+            ) : null}
             {book.description ? (
               <div className={`book-detail-synopsis${synopsisOpen ? " is-open" : ""}`}>
                 <p>{book.description}</p>
@@ -1017,43 +1034,8 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
           )}
         </section>
 
-        {/* Progreso del club (debajo de comentarios: la comunidad va primero) */}
-        <section className="page-section">
-          <div className="section-head">
-            <h2><Icon name="users" /> {pick(language, "Quién lo está leyendo", "Who's reading it", "Quen o está lendo")}</h2>
-            {members.length > 0 ? <span className="book-progress-label">{members.length}</span> : null}
-          </div>
-          {members.length === 0 ? (
-            <p className="hint">{pick(language, "Aún nadie. Marca un capítulo y aparecerás aquí.", "Nobody yet. Check a chapter and you'll show up here.", "Aínda ninguén. Marca un capítulo e aparecerás aquí.")}</p>
-          ) : (
-            <ul className="book-members">
-              {members.map((member) => (
-                <li key={member.userId} className="book-member">
-                  <Link to={`/profile/${member.userId}`} className="book-member-row book-member-link">
-                    <span>{member.alias}</span>
-                    <span className="book-member-state">
-                      {member.shelf === "finished" ? (
-                        <>
-                          {member.rating ? <span className="book-member-rating">{"★".repeat(member.rating)}</span> : null}
-                          {pick(language, "Terminado", "Finished", "Rematado")}
-                        </>
-                      ) : total > 0 ? (
-                        <span className="member-mini-bar" aria-label={`${Math.round((member.chaptersDone / total) * 100)}%`}>
-                          <span className="member-mini-fill" style={{ width: `${Math.min(100, Math.round((member.chaptersDone / total) * 100))}%` }} />
-                        </span>
-                      ) : (
-                        pick(language, "Leyendo", "Reading", "Lendo")
-                      )}
-                    </span>
-                  </Link>
-                  {book.status === "finished" && member.review ? (
-                    <p className="book-member-review">{member.review}</p>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        {/* La lista completa de lectores vive ahora en ReadersModal, abierto desde la
+            fila discreta de avatares bajo el título. */}
       </div>
     </main>
   );

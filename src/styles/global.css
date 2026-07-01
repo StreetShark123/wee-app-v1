@@ -3971,6 +3971,56 @@ textarea:focus-visible {
 .book-member-rating { color: var(--accent-amber); margin-right: 6px; letter-spacing: 1px; }
 .book-member-review { margin: 0; font-size: 0.85rem; color: var(--ink-1); line-height: 1.5; }
 
+/* Fila discreta de lectores bajo el título (avatares apilados + "N leyendo"). */
+.book-readers-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 4px 10px 4px 4px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-standard), background var(--motion-fast) var(--ease-standard);
+}
+.book-readers-row:hover { border-color: var(--line); background: var(--panel-1); }
+.book-readers-stack { display: inline-flex; align-items: center; }
+.book-readers-stack .user-dot { margin-left: -7px; box-shadow: 0 0 0 1.5px var(--panel-0); }
+.book-readers-stack .user-dot:first-child { margin-left: 0; }
+.book-readers-label { font-size: 0.8rem; color: var(--ink-1); }
+
+/* Modal de lectores (portal a body → sin scope; tokens de :root). */
+.readers-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: color-mix(in srgb, var(--ink-0) 45%, transparent);
+}
+.readers-modal {
+  width: 100%;
+  max-width: 420px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--panel-0);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-warm-lg);
+  padding: 16px;
+}
+.readers-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.readers-modal-head h3 { margin: 0; display: inline-flex; align-items: center; gap: 6px; font-size: 1.02rem; }
+.book-member-who { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+
 /* Fix: texto de capítulos NO leídos legible (el botón heredaba color negro) */
 .chapter-head { color: var(--ink-0); }
 .chapter-title { color: var(--ink-0); }

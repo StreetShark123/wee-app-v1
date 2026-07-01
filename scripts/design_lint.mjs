@@ -17,7 +17,8 @@ const ALLOWED_INLINE_STYLE_FILES = new Set([
   "src/pages/BookDetailPage.tsx",
   "src/pages/ProfilePage.tsx",
   "src/pages/SettingsPage.tsx",
-  "src/pages/ClubLandingPage.tsx"
+  "src/pages/ClubLandingPage.tsx",
+  "src/components/ReadersModal.tsx"
 ]);
 
 const REQUIRED_FOCUS_SNIPPETS = [
