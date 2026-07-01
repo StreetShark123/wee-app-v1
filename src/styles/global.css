@@ -3483,7 +3483,16 @@ textarea:focus-visible {
 
 .chapter-note-text {
   flex: 1;
+  min-width: 0;
   line-height: 1.5;
+  /* URLs largas pegadas parten en vez de ensanchar la página (overflow horizontal
+     en móvil, cortaba el texto y empujaba LEÍDO/avatares fuera de pantalla). */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.chapter-note-text a {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .chapter-note-by {
