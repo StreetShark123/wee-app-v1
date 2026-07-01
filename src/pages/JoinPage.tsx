@@ -160,7 +160,7 @@ export const JoinPage = ({ isLoggedIn, onPreviewCommunity, onJoinCommunity, onEn
 
   // ─── Entrada manual del código (entraste a /join sin enlace) ────────────────────
   return (
-    <main className="page-section narrow">
+    <main className="page-section narrow join-entry">
       <div className="section-head">
         <h2><Icon name="link" /> {pick(language, "Unirme a un club", "Join with code", "Unirme con código")}</h2>
       </div>

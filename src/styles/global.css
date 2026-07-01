@@ -803,6 +803,15 @@ h3 svg,
   max-width: 760px;
 }
 
+/* Entrada manual de código (/join sin enlace): centrada vertical como el login,
+   en vez de anclada arriba con la pantalla medio vacía debajo. */
+.page-section.narrow.join-entry {
+  min-height: calc(100dvh - 3rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 .section-head {
   display: flex;
   justify-content: space-between;
