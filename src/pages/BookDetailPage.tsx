@@ -582,26 +582,30 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
         </div>
 
         <section className="page-section book-detail-head">
-          {isAdmin && !editOpen ? (
-            <button type="button" className="book-edit-corner" onClick={openEdit} aria-label={pick(language, "Editar libro", "Edit book", "Editar libro")} title={pick(language, "Editar", "Edit", "Editar")}>
-              <Icon name="pencil" size={15} />
-            </button>
-          ) : null}
-          {book.coverUrl ? (
-            <button type="button" className="book-cover book-cover-lg book-cover-btn" onClick={() => setCoverLightbox(true)} aria-label={pick(language, "Ver portada", "View cover", "Ver portada")}>
-              <img src={book.coverUrl} alt="" />
-              {book.featured === "gold" ? <span className="book-ribbon" aria-hidden="true" /> : null}
-            </button>
-          ) : (
-            <span className="book-cover book-cover-lg book-cover-empty" aria-hidden="true">
-              <Icon name="book" />
-            </span>
-          )}
+          <div className="book-cover-wrap">
+            {isAdmin && !editOpen ? (
+              <button type="button" className="book-edit-corner" onClick={openEdit} aria-label={pick(language, "Editar libro", "Edit book", "Editar libro")} title={pick(language, "Editar", "Edit", "Editar")}>
+                <Icon name="pencil" size={14} />
+              </button>
+            ) : null}
+            {book.coverUrl ? (
+              <button type="button" className="book-cover book-cover-lg book-cover-btn" onClick={() => setCoverLightbox(true)} aria-label={pick(language, "Ver portada", "View cover", "Ver portada")}>
+                <img src={book.coverUrl} alt="" />
+              </button>
+            ) : (
+              <span className="book-cover book-cover-lg book-cover-empty" aria-hidden="true">
+                <Icon name="book" />
+              </span>
+            )}
+          </div>
           {coverLightbox && book.coverUrl ? <ImageLightbox url={book.coverUrl} onClose={() => setCoverLightbox(false)} showVisit={false} /> : null}
           {readersOpen ? <ReadersModal members={members} total={total} bookStatus={book.status} clubMembers={clubMembers} onClose={() => setReadersOpen(false)} /> : null}
           <div className="book-detail-meta">
             <div className="book-status-row">
               <span className={`book-card-status book-card-status-${book.status}`}>{statusLabel(book.status, language)}</span>
+              {book.featured === "gold" ? (
+                <span className="book-featured-tag"><Icon name="star" size={12} /> {pick(language, "Destacado", "Featured", "Destacado")}</span>
+              ) : null}
             </div>
             <h1>{book.title}</h1>
             <p className="book-detail-author">

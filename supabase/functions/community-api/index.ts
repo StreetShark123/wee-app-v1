@@ -3923,8 +3923,8 @@ const handlers = {
 
     // Actividad reciente: comentarios y propuestas de este usuario (más nuevos primero).
     const [actCommentsRes, actProposalsRes] = await Promise.all([
-      db.from("book_comments").select("book_id,text,created_at").eq("community_id", auth.community.id).eq("user_id", userId).is("deleted_at", null).order("created_at", { ascending: false }).limit(10),
-      db.from("books").select("id,title,created_at").eq("community_id", auth.community.id).eq("added_by", userId).order("created_at", { ascending: false }).limit(6)
+      db.from("book_comments").select("book_id,text,created_at").eq("community_id", auth.community.id).eq("user_id", userId).is("deleted_at", null).order("created_at", { ascending: false }).limit(30),
+      db.from("books").select("id,title,created_at").eq("community_id", auth.community.id).eq("added_by", userId).order("created_at", { ascending: false }).limit(30)
     ]);
     const actComments = actCommentsRes.data ?? [];
     const missingIds = unique(actComments.map((c: Record<string, any>) => c.book_id).filter((id: string) => !bookById.has(id)));
@@ -3946,7 +3946,7 @@ const handlers = {
         bookTitle: b.title ?? "",
         at: toMillis(b.created_at)
       }))
-    ].sort((a, b) => (b.at ?? 0) - (a.at ?? 0)).slice(0, 12);
+    ].sort((a, b) => (b.at ?? 0) - (a.at ?? 0)).slice(0, auth.role === "admin" ? 40 : 10);
 
     return json(200, {
       user: {

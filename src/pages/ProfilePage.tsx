@@ -69,6 +69,7 @@ export const ProfilePage = ({
   const isOwnProfile = profileUser.id === activeUser.id;
   const [aliasInput, setAliasInput] = useState(profileUser.alias);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [activityExpanded, setActivityExpanded] = useState(false);
 
   useEffect(() => {
     setAliasInput(profileUser.alias);
@@ -227,7 +228,7 @@ export const ProfilePage = ({
                 <h3><Icon name="spark" /> {pick(language, "Actividad reciente", "Recent activity", "Actividade recente")}</h3>
               </div>
               <ul className="profile-activity-list">
-                {profile.activity.map((ev, i) => (
+                {(activityExpanded ? profile.activity : profile.activity.slice(0, 10)).map((ev, i) => (
                   <li key={`${ev.bookId}-${ev.at}-${i}`} className="profile-activity-item">
                     <Link to={`/book/${ev.bookId}`} className="profile-activity-link">
                       <span className="profile-activity-text">
@@ -240,6 +241,11 @@ export const ProfilePage = ({
                   </li>
                 ))}
               </ul>
+              {activeUser.role === "admin" && !activityExpanded && profile.activity.length > 10 ? (
+                <button type="button" className="btn btn-tiny" onClick={() => setActivityExpanded(true)}>
+                  {pick(language, "Mostrar más", "Show more", "Amosar máis")}
+                </button>
+              ) : null}
             </article>
           ) : null}
 

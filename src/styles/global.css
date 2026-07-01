@@ -3304,8 +3304,8 @@ textarea:focus-visible {
 }
 
 .book-cover-lg {
-  width: 96px;
-  height: 144px;
+  width: 84px;
+  height: 126px;
 }
 
 .book-meta {
@@ -3376,25 +3376,37 @@ textarea:focus-visible {
 .book-detail-head {
   position: relative;
   display: grid;
-  grid-template-columns: 100px 1fr;
+  grid-template-columns: 1fr 84px;   /* texto ancho a la izquierda, portada pequeña a la derecha */
   gap: var(--sp-4);
   align-items: start;
+}
+.book-detail-head .book-detail-meta { grid-column: 1; grid-row: 1; }
+.book-cover-wrap { position: relative; grid-column: 2; grid-row: 1; }
+/* Estrella de destacado como tag junto al estado (ya no va sobre la portada). */
+.book-featured-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: var(--font-type); font-size: var(--tag-font-type); letter-spacing: 0.02em;
+  color: var(--ink-scarlet);
+  background: color-mix(in srgb, var(--ink-scarlet) 12%, var(--panel-0));
+  border: 1px solid color-mix(in srgb, var(--ink-scarlet) 34%, var(--line));
+  border-radius: var(--radius-sm); padding: 2px 8px;
 }
 
 .book-edit-corner {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: -8px;
+  right: -8px;
   z-index: 2;
   display: inline-grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border: 1px solid var(--line);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-pill);
   background: var(--panel-0);
   color: var(--ink-1);
   cursor: pointer;
+  box-shadow: var(--shadow-warm);
 }
 .book-edit-corner:hover { color: var(--ink-0); border-color: var(--ink-1); }
 

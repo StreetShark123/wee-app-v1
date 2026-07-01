@@ -464,8 +464,15 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
                     </div>
                   ) : (
                     <div className="chapter-note-media-row">
+                      <input
+                        className="chapter-note-link-input"
+                        type="url"
+                        value={noteImage}
+                        onChange={(event) => setNoteImage(event.target.value)}
+                        placeholder={pick(language, "Enlace (opcional)", "Link (optional)", "Ligazón (opcional)")}
+                      />
                       <label className="btn chapter-note-upload">
-                        <Icon name="camera" size={13} /> {pick(language, "Imagen", "Image", "Imaxe")}
+                        <Icon name="camera" size={13} /> {pick(language, "Añadir imagen", "Add image", "Engadir imaxe")}
                         <input
                           type="file"
                           accept="image/*"
@@ -476,13 +483,6 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
                           }}
                         />
                       </label>
-                      <input
-                        className="chapter-note-link-input"
-                        type="url"
-                        value={noteImage}
-                        onChange={(event) => setNoteImage(event.target.value)}
-                        placeholder={pick(language, "Enlace (opcional)", "Link (optional)", "Ligazón (opcional)")}
-                      />
                     </div>
                   )}
                   <div className="chapter-note-actions">
