@@ -66,13 +66,21 @@ export const NotificationsMenu = () => {
                       ? pick(language, `${notification.actorAlias} te mencionó`, `${notification.actorAlias} mentioned you`, `${notification.actorAlias} mencionoute`)
                       : notification.kind === "reply"
                         ? pick(language, `${notification.actorAlias} respondió a tu comentario`, `${notification.actorAlias} replied to your comment`, `${notification.actorAlias} respondeu ao teu comentario`)
-                        : notification.kind === "book_approved"
-                          ? pick(language, "El club va a leer un libro nuevo", "The club is reading a new book", "O club vai ler un libro novo")
-                          : notification.kind === "book_finished"
-                            ? pick(language, "¡El club terminó un libro!", "The club finished a book!", "O club rematou un libro!")
-                            : notification.kind === "join_approved"
-                              ? pick(language, "Te han aceptado en el club", "You've been accepted into the club", "Aceptáronte no club")
-                              : pick(language, "Ahora eres admin del club", "You're now a club admin", "Agora es admin do club")}
+                        : notification.kind === "reaction"
+                        ? pick(language, `A ${notification.actorAlias} le gustó tu comentario`, `${notification.actorAlias} liked your comment`, `A ${notification.actorAlias} gustoulle o teu comentario`)
+                        : notification.kind === "note_comment"
+                        ? pick(language, `${notification.actorAlias} comentó tu nota`, `${notification.actorAlias} commented on your note`, `${notification.actorAlias} comentou a túa nota`)
+                        : notification.kind === "reminder"
+                          ? pick(language, "Recordatorio: hay una propuesta esperando tu voto", "Reminder: a proposal is waiting for your vote", "Recordatorio: hai unha proposta esperando o teu voto")
+                        : notification.kind === "book_proposed"
+                          ? pick(language, `${notification.actorAlias} propuso un libro: ¡vota!`, `${notification.actorAlias} proposed a book — vote!`, `${notification.actorAlias} propuxo un libro: vota!`)
+                          : notification.kind === "book_approved"
+                            ? pick(language, "El club va a leer un libro nuevo", "The club is reading a new book", "O club vai ler un libro novo")
+                            : notification.kind === "book_finished"
+                              ? pick(language, "¡El club terminó un libro!", "The club finished a book!", "O club rematou un libro!")
+                              : notification.kind === "join_approved"
+                                ? pick(language, "Te han aceptado en el club", "You've been accepted into the club", "Aceptáronte no club")
+                                : pick(language, "Ahora eres admin del club", "You're now a club admin", "Agora es admin do club")}
                   </span>
                   <span className="notification-item-meta">
                     {notification.bookTitle ? <span className="notification-item-post">{notification.bookTitle}</span> : null}

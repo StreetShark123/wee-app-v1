@@ -1,7 +1,7 @@
 import { m } from "framer-motion";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import type { BookComment, ClubMemberLite } from "../lib/communityApi";
+import { reportComment, type BookComment, type ClubMemberLite } from "../lib/communityApi";
 import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { timeAgo } from "../lib/timeAgo";
@@ -46,6 +46,7 @@ const CommentItem = ({
   const [editText, setEditText] = useState(comment.text);
   const isMine = comment.userId === activeUserId;
   const canDelete = isMine || isAdmin; // el admin modera comentarios ajenos
+  const [reported, setReported] = useState(false);
   const replyTarget = comment.parentId ?? comment.id; // hilos de 1 nivel
 
   const submitReply = async () => {
@@ -76,7 +77,9 @@ const CommentItem = ({
   if (comment.deleted) {
     return (
       <li id={`c-${comment.id}`} className={`comment-item comment-tombstone${isReply ? " comment-item-reply" : ""}`}>
-        <p className="comment-deleted"><Icon name="trash" size={12} /> {pick(language, "Comentario eliminado por el autor", "Comment deleted by its author", "Comentario eliminado polo autor")}</p>
+        <p className="comment-deleted"><Icon name="trash" size={12} /> {comment.moderated
+          ? pick(language, "Comentario retirado por moderación", "Comment removed by moderation", "Comentario retirado pola moderación")
+          : pick(language, "Comentario eliminado por el autor", "Comment deleted by its author", "Comentario eliminado polo autor")}</p>
       </li>
     );
   }
@@ -117,7 +120,18 @@ const CommentItem = ({
 
       <div className="comment-actions">
         <VoteControl reactions={comment.reactions} onVote={(dir) => onReact(comment.id, dir)} />
-        <button type="button" className="comment-reply-btn" onClick={() => setReplyOpen((v) => !v)}>
+        <button
+          type="button"
+          className="comment-reply-btn"
+          onClick={() => {
+            setReplyOpen((v) => {
+              // Al abrir, si respondo a una respuesta, prerelleno con la mención del
+              // autor: se ve a quién contesto (los hilos son de 1 nivel) y le avisa.
+              if (!v && isReply && !replyText.trim()) setReplyText(`@${comment.alias} `);
+              return !v;
+            });
+          }}
+        >
           {pick(language, "Responder", "Reply", "Responder")}
         </button>
         {isAdmin && onPin && !isReply ? (
@@ -147,6 +161,31 @@ const CommentItem = ({
           >
             {pick(language, "Borrar", "Delete", "Borrar")}
           </button>
+        ) : null}
+        {!isMine && !comment.deleted ? (
+          reported ? (
+            <span className="comment-reported">{pick(language, "Denunciado", "Reported", "Denunciado")}</span>
+          ) : (
+            <button
+              type="button"
+              className="comment-reply-btn"
+              onClick={async () => {
+                const ok = await confirm({
+                  title: pick(language, "¿Denunciar este comentario a los admins?", "Report this comment to the admins?", "Denunciar este comentario aos admins?"),
+                  confirmLabel: pick(language, "Denunciar", "Report", "Denunciar")
+                });
+                if (!ok) return;
+                try {
+                  await reportComment(comment.id);
+                  setReported(true);
+                } catch {
+                  /* silencioso: no bloquear la conversación */
+                }
+              }}
+            >
+              {pick(language, "Denunciar", "Report", "Denunciar")}
+            </button>
+          )
         ) : null}
       </div>
 

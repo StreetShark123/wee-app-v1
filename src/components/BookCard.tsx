@@ -57,8 +57,11 @@ export const BookCard = memo(({ book, member, onOpen }: BookCardProps) => {
       {book.featured === "gold" ? (
         <span className="book-ribbon" aria-label={pick(language, "Lectura principal del club", "Club's main read", "Lectura principal do club")} title={pick(language, "Lectura principal", "Main read", "Lectura principal")} />
       ) : null}
-      {book.status === "proposed" && book.votes && book.votes.yes > 0 ? (
-        <span className="book-vote-badge"><Icon name="check" size={11} /> {book.votes.yes}</span>
+      {book.status === "proposed" ? (
+        <span className="book-vote-badge" title={pick(language, "Necesita tu voto", "Needs your vote", "Precisa o teu voto")}>
+          <Icon name="check" size={11} /> {book.votes?.yes ?? 0}
+          {book.votes && book.votes.no > 0 ? <span className="book-vote-badge-no"> · {book.votes.no} {pick(language, "no", "no", "non")}</span> : null}
+        </span>
       ) : null}
       {book.status === "rejected" ? (
         <span className="book-card-rejected-tag">{pick(language, "descartado", "declined", "descartado")}</span>

@@ -19,7 +19,9 @@ export const myVoteOf = (reactions: CommentReaction[]): "up" | "down" | null => 
 export const applyVoteLocal = (reactions: CommentReaction[], dir: "up" | "down"): CommentReaction[] => {
   const current = myVoteOf(reactions);
   const cleared = reactions.map((r) => (r.mine ? { ...r, count: r.count - 1, mine: false } : r)).filter((r) => r.count > 0);
-  if (current === dir) return cleared;
+  // Si YA tenías voto (igual u opuesto), el primer clic te deja en 0; un segundo
+  // clic aplica la nueva dirección. Así +1 no salta directo a -1.
+  if (current) return cleared;
   const existing = cleared.find((r) => r.emoji === dir);
   if (existing) return cleared.map((r) => (r.emoji === dir ? { ...r, count: r.count + 1, mine: true } : r));
   return [...cleared, { emoji: dir, count: 1, mine: true }];

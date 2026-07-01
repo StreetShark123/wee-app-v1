@@ -365,6 +365,7 @@ const AppRoutes = () => {
       description: book.description,
       publishedYear: book.publishedYear,
       pageCount: book.pageCount,
+      authorUrl: book.authorUrl,
       source: book.source,
       manuallyEdited: book.manuallyEdited,
       proposalNote: book.proposalNote || null
@@ -664,7 +665,7 @@ const AppRoutes = () => {
         <Route path="*" element={<Navigate to={resolveRootRoute({ hasGlobalSession: Boolean(globalSession), hasActiveCommunitySession: Boolean(activeUser) })} replace />} />
         </Routes>
         </AnimatePresence>
-        {activeUser ? <AppFooter /> : null}
+        {activeUser && !showLoadingOverlay ? <AppFooter /> : null}
         </Suspense>
         </AppErrorBoundary>
         <Toast message={toast} />

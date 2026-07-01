@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { BookCard } from "../components/BookCard";
 import { PunctuationLoader } from "../components/PunctuationLoader";
 import { Icon } from "../components/Icon";
+import { UserBadge } from "../components/UserBadge";
 import { TopBar } from "../components/TopBar";
 import { pick, useI18n } from "../lib/i18n";
-import type { ClubBook, MemberBook } from "../lib/communityApi";
+import { communityActivity, type ActivityEvent, type ClubBook, type MemberBook } from "../lib/communityApi";
+import { timeAgo as timeAgoIntl } from "../lib/timeAgo";
 import type { User } from "../lib/types";
 
 interface HomePageProps {
@@ -36,6 +39,42 @@ export const HomePage = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [activity, setActivity] = useState<ActivityEvent[]>([]);
+  const [activityExpanded, setActivityExpanded] = useState(false);
+  const [activityIdx, setActivityIdx] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    void communityActivity()
+      .then(({ events }) => {
+        if (!alive) return;
+        setActivity(events);
+        setActivityIdx(0);
+        // La tira se inserta arriba de forma asíncrona; sin esto el "scroll
+        // anchoring" del navegador la empuja bajo el header al entrar en la home.
+        if (events.length > 0) window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      })
+      .catch(() => { if (alive) setActivity([]); });
+    return () => { alive = false; };
+  }, [activeUser.id]);
+
+  // Destino de un evento: los comentarios saltan al comentario concreto (#c-…);
+  // el resto, al libro.
+  const activityHref = (ev: ActivityEvent): string =>
+    ev.kind === "comment" && ev.commentId ? `/book/${ev.bookId}#c-${ev.commentId}` : `/book/${ev.bookId}`;
+
+  // La tira rota entre los eventos cada 4 s (pausada al expandir).
+  useEffect(() => {
+    if (activityExpanded || activity.length <= 1) return;
+    const id = window.setInterval(() => setActivityIdx((i) => (i + 1) % activity.length), 4000);
+    return () => window.clearInterval(id);
+  }, [activityExpanded, activity.length]);
+
+  const activityLine = (ev: ActivityEvent): string =>
+    ev.kind === "comment" ? pick(language, `comentó en «${ev.bookTitle}»`, `commented on “${ev.bookTitle}”`, `comentou en «${ev.bookTitle}»`)
+      : ev.kind === "note" ? pick(language, `anotó en «${ev.bookTitle}»`, `annotated “${ev.bookTitle}”`, `anotou en «${ev.bookTitle}»`)
+        : ev.kind === "read" ? pick(language, `leyó un capítulo de «${ev.bookTitle}»`, `read a chapter of “${ev.bookTitle}”`, `leu un capítulo de «${ev.bookTitle}»`)
+          : pick(language, `propuso «${ev.bookTitle}»`, `proposed “${ev.bookTitle}”`, `propuxo «${ev.bookTitle}»`);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebouncedSearchQuery(searchQuery.trim().toLowerCase()), 180);
@@ -104,17 +143,62 @@ export const HomePage = ({
     <main>
       <TopBar user={activeUser} onOpenShare={onOpenAddBook} onLogout={onLogout} />
 
-      {showOnboarding ? (
-        <section className="page-section onboarding-card">
-          <div className="section-head">
-            <h2><Icon name="spark" /> {pick(language, "Bienvenido al club", "Welcome to the club", "Benvido ao club")}</h2>
-            <button type="button" className="btn" onClick={closeOnboarding}>{pick(language, "Vamos", "Let's go", "Imos")}</button>
-          </div>
+      {showOnboarding ? createPortal(
+        <div className="readers-modal-overlay" role="dialog" aria-modal="true" onClick={closeOnboarding}>
+          <div className="readers-modal onboarding-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="readers-modal-head">
+              <h3><Icon name="spark" /> {pick(language, "¿Cómo funciona?", "How it works", "Como funciona?")}</h3>
+              <button type="button" className="btn btn-icon-compact" onClick={closeOnboarding} aria-label={pick(language, "Cerrar", "Close", "Pechar")}>
+                <Icon name="x" size={16} />
+              </button>
+            </div>
           <ol className="onboarding-list">
             <li>{pick(language, "Propón un libro y el club vota si lo leéis.", "Propose a book and the club votes to read it.", "Propón un libro e o club vota se o ledes.")}</li>
             <li>{pick(language, "Sigue tu avance por capítulos y añade notas.", "Track your chapter progress and add notes.", "Segue o teu avance por capítulos e engade notas.")}</li>
             <li>{pick(language, "Cuando todos lo terminan, pasa a 'leídos'.", "When everyone finishes, it moves to 'read'.", "Cando todos rematan, pasa a 'lidos'.")}</li>
           </ol>
+          <dl className="onboarding-glossary">
+            <dt>{pick(language, "Propuesta", "Proposal", "Proposta")}</dt>
+            <dd>{pick(language, "un libro que el club aún está votando si leer.", "a book the club is still voting on.", "un libro que o club aínda está votando se ler.")}</dd>
+            <dt>{pick(language, "Quórum", "Quorum", "Quórum")}</dt>
+            <dd>{pick(language, "los votos mínimos (de cualquier signo) para decidir; cuando se llega, gana la mayoría.", "the minimum votes (either way) to decide; once reached, the majority wins.", "os votos mínimos (de calquera signo) para decidir; cando se chega, gaña a maioría.")}</dd>
+            <dt>{pick(language, "En lectura", "Reading", "En lectura")}</dt>
+            <dd>{pick(language, "el libro aprobado que el club lee ahora, capítulo a capítulo.", "the approved book the club is reading now, chapter by chapter.", "o libro aprobado que o club le agora, capítulo a capítulo.")}</dd>
+          </dl>
+            <button type="button" className="btn btn-primary onboarding-modal-done" onClick={closeOnboarding}>{pick(language, "Entendido", "Got it", "Entendido")}</button>
+          </div>
+        </div>,
+        document.body
+      ) : null}
+
+      {activity.length > 0 ? (
+        <section className="activity-feed">
+          <button type="button" className="activity-ticker" onClick={() => setActivityExpanded((v) => !v)} aria-expanded={activityExpanded}>
+            <span className="activity-ticker-label"><Icon name="spark" size={13} /> {pick(language, "Lo último", "Latest", "O último")}</span>
+            {!activityExpanded && activity[activityIdx] ? (
+              <span className="activity-ticker-now" key={activityIdx}>
+                <UserBadge alias={activity[activityIdx].actorAlias} avatarUrl={activity[activityIdx].actorAvatarUrl ?? undefined} colorIndex={activity[activityIdx].actorColorIndex ?? undefined} withAvatar />
+                <span className="activity-ticker-text">{activityLine(activity[activityIdx])}</span>
+                <span className="activity-chip-time">{timeAgoIntl(activity[activityIdx].at, language)}</span>
+              </span>
+            ) : (
+              <span className="activity-ticker-text">{pick(language, `${activity.length} novedades hoy`, `${activity.length} updates today`, `${activity.length} novidades hoxe`)}</span>
+            )}
+            <span className="activity-ticker-caret" aria-hidden="true">{activityExpanded ? "▴" : "▾"}</span>
+          </button>
+          {activityExpanded ? (
+            <ul className="activity-expanded">
+              {activity.map((ev, i) => (
+                <li key={`${ev.bookId}-${ev.at}-${i}`}>
+                  <button type="button" className="activity-row" onClick={() => navigate(activityHref(ev))}>
+                    <UserBadge alias={ev.actorAlias} avatarUrl={ev.actorAvatarUrl ?? undefined} colorIndex={ev.actorColorIndex ?? undefined} withAvatar />
+                    <span className="activity-ticker-text">{activityLine(ev)}</span>
+                    <span className="activity-chip-time">{timeAgoIntl(ev.at, language)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </section>
       ) : null}
 
@@ -132,6 +216,9 @@ export const HomePage = ({
             </label>
             <button type="button" className="btn btn-primary" onClick={onOpenAddBook}>
               <Icon name="plus" size={14} /> {pick(language, "Añadir libro", "Add book", "Engadir libro")}
+            </button>
+            <button type="button" className="btn" onClick={() => setShowOnboarding(true)}>
+              <Icon name="spark" size={13} /> {pick(language, "¿Cómo funciona?", "How it works", "Como funciona?")}
             </button>
           </div>
         </div>

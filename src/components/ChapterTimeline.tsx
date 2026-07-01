@@ -35,6 +35,35 @@ interface ChapterTimelineProps {
 const YT_RE = /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/i;
 const IMG_RE = /\.(jpe?g|png|gif|webp|svg|avif)(\?.*)?$/i;
 const URL_RE = /https?:\/\/[^\s)]+/gi;
+const isImageUrl = (url: string): boolean => IMG_RE.test(url) || url.startsWith("data:image/");
+
+// Sube una imagen del dispositivo: la reescala (máx 1200px, JPEG) para no guardar
+// varios MB en base64, y devuelve un data URL. Mismo patrón que el avatar.
+const NOTE_IMG_MAX_PX = 1200;
+const imageFileToDataUrl = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read image"));
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const img = new Image();
+      img.onerror = () => resolve(dataUrl);
+      img.onload = () => {
+        const scale = Math.min(1, NOTE_IMG_MAX_PX / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(dataUrl);
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+  });
 
 const hostOf = (url: string): string => {
   try {
@@ -57,7 +86,7 @@ const NoteMedia = ({ url, language }: { url: string; language: AppLanguage }) =>
       </a>
     );
   }
-  if (IMG_RE.test(url)) {
+  if (isImageUrl(url)) {
     return (
       <>
         <button
@@ -252,6 +281,7 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
   const [openFor, setOpenFor] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
   const [noteImage, setNoteImage] = useState("");
+  const [noteFile, setNoteFile] = useState("");   // imagen subida del dispositivo (data URL)
   const [noteKind, setNoteKind] = useState<NoteKind>("note");
   const [saving, setSaving] = useState(false);
   // Por defecto solo se despliegan las notas del ÚLTIMO capítulo leído; el resto van
@@ -264,13 +294,15 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
   const resetForm = () => {
     setNoteText("");
     setNoteImage("");
+    setNoteFile("");
     setNoteKind("note");
     setOpenFor(null);
   };
 
   const submitNote = async (chapterId: string) => {
     const cleanText = noteText.trim();
-    const cleanImage = noteImage.trim();
+    // La imagen subida (data URL) tiene prioridad sobre el enlace escrito.
+    const cleanImage = noteFile || noteImage.trim();
     if ((!cleanText && !cleanImage) || saving) return;
     setSaving(true);
     try {
@@ -294,7 +326,16 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
   }
 
   return (
-    <ol className="chapter-timeline">
+    <>
+      <p className="chapter-timeline-help">
+        {pick(
+          language,
+          "Pulsa el círculo de la izquierda cuando termines cada capítulo. Puedes volver a pulsarlo para desmarcarlo.",
+          "Tap the circle on the left when you finish each chapter. Tap it again to unmark it.",
+          "Preme o círculo da esquerda cando remates cada capítulo. Prémeo de novo para desmarcalo."
+        )}
+      </p>
+      <ol className="chapter-timeline">
       {chapters.map((chapter, chapterIdx) => {
         const isNamed = !/^cap[íi]tulo\s*\d+\s*$/i.test(chapter.title.trim());
         const displayTitle = numberChapters && isNamed ? `${chapterIdx + 1}. ${chapter.title}` : chapter.title;
@@ -343,38 +384,49 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
                 </span>
               </div>
 
-              {/* Notas colapsables (tus notas siempre; las de otros tras leer). */}
-              {visibleNotes.length > 0 ? (
-                <div className="chapter-notes-block">
-                  <button type="button" className="chapter-notes-toggle" onClick={() => toggleNotesOpen(chapter.id, defaultOpen)} aria-expanded={notesOpen}>
+              {/* Barra de notas: chip (icono + nº, despliega) + botón "+" para añadir, en una fila. */}
+              <div className="chapter-notes-bar">
+                {visibleNotes.length > 0 ? (
+                  <button type="button" className="chapter-notes-chip" onClick={() => toggleNotesOpen(chapter.id, defaultOpen)} aria-expanded={notesOpen}>
+                    <Icon name="comment" size={13} /> <span className="chapter-notes-count">{visibleNotes.length}</span>
                     <span className={`chapter-notes-caret${notesOpen ? "" : " is-collapsed"}`} aria-hidden="true">▾</span>
-                    {pick(language, `Notas (${visibleNotes.length})`, `Notes (${visibleNotes.length})`, `Notas (${visibleNotes.length})`)}
                   </button>
-                  {notesOpen ? (
-                    <ul className="chapter-notes">
-                      {visibleNotes.map((note) => (
-                        <NoteCard
-                          key={note.id}
-                          note={note}
-                          language={language}
-                          mine={note.userId === activeUserId}
-                          activeUserId={activeUserId}
-                          members={members}
-                          thread={noteThreads.get(note.id) ?? []}
-                          defaultThreadOpen={defaultOpen || note.id === focusNoteId}
-                          onReact={onReactNote ? (emoji) => onReactNote(note.id, emoji) : undefined}
-                          onEdit={onEditNote ? (text) => onEditNote(note.id, text) : undefined}
-                          onDelete={onDeleteNote ? () => onDeleteNote(note.id) : undefined}
-                          onReplyComment={onReplyComment}
-                          onReactComment={onReactComment}
-                          onEditComment={onEditComment}
-                          onDeleteComment={onDeleteComment}
-                          onCommentOnNote={(text) => onCommentOnNote(note.id, text)}
-                        />
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
+                ) : null}
+                {openFor !== chapter.id ? (
+                  <button
+                    type="button"
+                    className="chapter-note-add-btn"
+                    onClick={() => { resetForm(); setOpenFor(chapter.id); }}
+                    aria-label={pick(language, "Añadir nota", "Add note", "Engadir nota")}
+                    title={pick(language, "Añadir nota", "Add note", "Engadir nota")}
+                  >
+                    <Icon name="plus" size={14} />
+                  </button>
+                ) : null}
+              </div>
+              {visibleNotes.length > 0 && notesOpen ? (
+                <ul className="chapter-notes">
+                  {visibleNotes.map((note) => (
+                    <NoteCard
+                      key={note.id}
+                      note={note}
+                      language={language}
+                      mine={note.userId === activeUserId}
+                      activeUserId={activeUserId}
+                      members={members}
+                      thread={noteThreads.get(note.id) ?? []}
+                      defaultThreadOpen={defaultOpen || note.id === focusNoteId}
+                      onReact={onReactNote ? (emoji) => onReactNote(note.id, emoji) : undefined}
+                      onEdit={onEditNote ? (text) => onEditNote(note.id, text) : undefined}
+                      onDelete={onDeleteNote ? () => onDeleteNote(note.id) : undefined}
+                      onReplyComment={onReplyComment}
+                      onReactComment={onReactComment}
+                      onEditComment={onEditComment}
+                      onDeleteComment={onDeleteComment}
+                      onCommentOnNote={(text) => onCommentOnNote(note.id, text)}
+                    />
+                  ))}
+                </ul>
               ) : null}
 
               {/* Las notas de OTROS solo tras leer el capítulo (anti-spoiler). */}
@@ -391,34 +443,46 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
                     <button type="button" className={`btn chapter-kind${noteKind === "note" ? " is-on" : ""}`} onClick={() => setNoteKind("note")}>
                       {pick(language, "Nota", "Note", "Nota")}
                     </button>
-                    <button type="button" className={`btn chapter-kind${noteKind === "reference" ? " is-on" : ""}`} onClick={() => setNoteKind("reference")}>
-                      {pick(language, "Referencia", "Reference", "Referencia")}
-                    </button>
                     <button type="button" className={`btn chapter-kind${noteKind === "prompt" ? " is-on" : ""}`} onClick={() => setNoteKind("prompt")}>
-                      {pick(language, "Pregunta", "Prompt", "Pregunta")}
+                      {pick(language, "Pregunta", "Question", "Pregunta")}
                     </button>
                   </div>
                   <textarea
                     rows={2}
                     value={noteText}
                     onChange={(event) => setNoteText(event.target.value)}
-                    placeholder={
-                      noteKind === "reference"
-                        ? pick(language, "Obra/autor citado + enlace (Wikipedia, etc.)", "Cited work/author + link (Wikipedia, etc.)", "Obra/autor citado + ligazón")
-                        : noteKind === "prompt"
-                          ? pick(language, "Pregunta para debatir este capítulo...", "A question to discuss this chapter...", "Pregunta para debater este capítulo...")
-                          : pick(language, "Nota sobre este capítulo... (pega enlaces: vídeo, imagen, web)", "A note about this chapter... (paste links: video, image, web)", "Nota sobre este capítulo... (pega ligazóns)")
-                    }
+                    placeholder={noteKind === "prompt"
+                      ? pick(language, "Tu pregunta para el club...", "Your question for the club...", "A túa pregunta para o club...")
+                      : pick(language, "Escribe tu nota...", "Write your note...", "Escribe a túa nota...")}
                   />
-                  <label className="chapter-note-image-field">
-                    <Icon name="link" size={13} />
-                    <input
-                      type="url"
-                      value={noteImage}
-                      onChange={(event) => setNoteImage(event.target.value)}
-                      placeholder={pick(language, "Enlace (opcional): vídeo de YouTube, imagen, web...", "Link (optional): YouTube video, image, web...", "Ligazón (opcional): vídeo, imaxe, web...")}
-                    />
-                  </label>
+                  {noteFile ? (
+                    <div className="chapter-note-image-preview">
+                      <img src={noteFile} alt="" />
+                      <button type="button" className="btn btn-tiny" onClick={() => setNoteFile("")}>{pick(language, "Quitar imagen", "Remove image", "Quitar imaxe")}</button>
+                    </div>
+                  ) : (
+                    <div className="chapter-note-media-row">
+                      <label className="btn chapter-note-upload">
+                        <Icon name="camera" size={13} /> {pick(language, "Imagen", "Image", "Imaxe")}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(event) => {
+                            const file = event.target.files?.[0];
+                            if (!file) return;
+                            void imageFileToDataUrl(file).then(setNoteFile).catch(() => undefined);
+                          }}
+                        />
+                      </label>
+                      <input
+                        className="chapter-note-link-input"
+                        type="url"
+                        value={noteImage}
+                        onChange={(event) => setNoteImage(event.target.value)}
+                        placeholder={pick(language, "Enlace (opcional)", "Link (optional)", "Ligazón (opcional)")}
+                      />
+                    </div>
+                  )}
                   <div className="chapter-note-actions">
                     <button type="button" className="btn" onClick={resetForm} disabled={saving}>
                       {pick(language, "Cancelar", "Cancel", "Cancelar")}
@@ -427,28 +491,18 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
                       type="button"
                       className="btn btn-primary"
                       onClick={() => submitNote(chapter.id)}
-                      disabled={saving || (!noteText.trim() && !noteImage.trim())}
+                      disabled={saving || (!noteText.trim() && !noteFile && !noteImage.trim())}
                     >
                       {pick(language, "Guardar nota", "Save note", "Gardar nota")}
                     </button>
                   </div>
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  className="btn chapter-add-note"
-                  onClick={() => {
-                    resetForm();
-                    setOpenFor(chapter.id);
-                  }}
-                >
-                  <Icon name="plus" size={12} /> {pick(language, "Añadir nota", "Add note", "Engadir nota")}
-                </button>
-              )}
+              ) : null}
             </div>
           </li>
         );
       })}
-    </ol>
+      </ol>
+    </>
   );
 };

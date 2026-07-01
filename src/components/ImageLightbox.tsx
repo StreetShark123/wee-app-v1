@@ -24,9 +24,17 @@ export const ImageLightbox = ({ url, onClose, showVisit = true }: { url: string;
         <img className="image-lightbox-img" src={url} alt="" />
         <div className="image-lightbox-actions">
           {showVisit ? (
-            <a className="btn" href={url} target="_blank" rel="noopener noreferrer nofollow">
-              <Icon name="link" size={13} /> {pick(language, "Visitar enlace original", "Visit original link", "Visitar ligazón orixinal")}
-            </a>
+            url.startsWith("data:") ? (
+              // Imagen subida: no hay enlace externo y el navegador bloquea abrir un
+              // data: en pestaña nueva → la descargamos en su lugar.
+              <a className="btn" href={url} download="imagen.jpg">
+                <Icon name="link" size={13} /> {pick(language, "Descargar imagen", "Download image", "Descargar imaxe")}
+              </a>
+            ) : (
+              <a className="btn" href={url} target="_blank" rel="noopener noreferrer nofollow">
+                <Icon name="link" size={13} /> {pick(language, "Visitar enlace original", "Visit original link", "Visitar ligazón orixinal")}
+              </a>
+            )
           ) : null}
           <button type="button" className="btn btn-primary" onClick={onClose}>
             {pick(language, "Cerrar", "Close", "Pechar")}

@@ -11,7 +11,7 @@
   --panel-1: #ece0c8;
   --line: #d6c9ac;
   --ink-0: #2a241b;
-  --ink-1: #6e6453;
+  --ink-1: #5a5142;   /* texto secundario: ~6:1 sobre papel (antes #6e6453, al filo de AA) */
   --brand: #2f6a66;
   --brand-strong: #245450;
   --accent-cyan: #2f6a66;
@@ -116,7 +116,7 @@ h4 {
 .community-loading-screen {
   position: fixed;
   inset: 0;
-  z-index: 120;
+  z-index: 300; /* logo de arranque: gana a la puntuación (z-200) si coinciden */
   display: grid;
   place-items: center;
   background:
@@ -704,6 +704,52 @@ h3 svg,
   gap: 0.42rem;
   font-size: 0.9rem;
 }
+
+.onboarding-glossary {
+  margin: 0.8rem 0 0;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.86rem;
+}
+.onboarding-glossary dt {
+  font-weight: 700;
+  color: var(--ink-0);
+}
+.onboarding-glossary dd {
+  margin: 0 0 0.5rem;
+  color: var(--ink-1);
+}
+
+.vote-deadline {
+  margin-top: 4px;
+}
+
+.activity-feed { margin-top: 1rem; }
+/* Ticker: una sola línea que rota las últimas novedades; al pulsar, se expande. */
+.activity-ticker {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  background: var(--panel-1); border: 1px solid var(--line); border-radius: var(--radius-md);
+  padding: 8px 12px; cursor: pointer; text-align: left; color: var(--ink-0);
+}
+.activity-ticker-label {
+  display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto;
+  font-size: 0.7rem; font-weight: 700; color: var(--ink-1);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.activity-ticker-now { display: inline-flex; align-items: center; gap: 6px; min-width: 0; flex: 1 1 auto; animation: activity-fade 0.4s ease; }
+.activity-ticker-now .user-badge, .activity-row .user-badge { flex: 0 0 auto; }
+.activity-ticker-text { font-size: 0.84rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto; }
+.activity-chip-time { font-size: 0.7rem; color: var(--ink-1); flex: 0 0 auto; }
+.activity-ticker-caret { color: var(--ink-1); flex: 0 0 auto; font-size: 0.82rem; }
+@keyframes activity-fade { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
+.activity-expanded { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; max-height: 320px; overflow-y: auto; }
+.activity-expanded li { margin: 0; }
+.activity-row {
+  width: 100%; display: flex; align-items: center; gap: 6px;
+  background: transparent; border: 0; border-bottom: 1px dashed var(--line);
+  padding: 8px 4px; text-align: left; cursor: pointer; color: var(--ink-0);
+}
+.activity-row:hover { background: var(--panel-1); }
 
 .page-section.narrow {
   max-width: 760px;
@@ -1329,7 +1375,7 @@ textarea::placeholder {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-1);
-  min-height: 38px;
+  min-height: 44px;   /* objetivo táctil accesible (antes 38px) */
   font-weight: 600;
 }
 
@@ -2371,6 +2417,80 @@ textarea::placeholder {
 }
 .request-name { font-weight: 600; font-size: 0.9rem; color: var(--ink-0); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .request-actions { display: inline-flex; gap: 6px; flex: 0 0 auto; }
+.reports-block { margin-top: 10px; display: grid; gap: 8px; }
+.report-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--panel-0); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 8px 11px;
+}
+.report-body { min-width: 0; display: grid; gap: 2px; }
+.report-meta { font-size: 0.78rem; color: var(--ink-1); }
+.report-text { font-size: 0.86rem; color: var(--ink-0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.report-actions { display: inline-flex; gap: 6px; flex: 0 0 auto; }
+.comment-reported { font-size: 0.76rem; color: var(--ink-1); font-style: italic; }
+.health-block { margin-top: 10px; }
+.health-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.health-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  padding: 6px 2px; border-bottom: 1px dashed var(--line);
+}
+.health-row.is-fading { opacity: 0.85; }
+.health-name { font-weight: 600; font-size: 0.88rem; color: var(--ink-0); display: inline-flex; align-items: baseline; gap: 6px; }
+.health-tag { font-size: 0.7rem; font-weight: 600; color: var(--danger, #a33); font-style: italic; }
+.health-stats { font-size: 0.76rem; color: var(--ink-1); text-align: right; flex: 1 1 auto; }
+
+.book-resources { padding-top: 10px; padding-bottom: 10px; }
+.book-resources-summary { cursor: pointer; font-weight: 700; font-size: 0.9rem; color: var(--ink-0); display: inline-flex; align-items: center; gap: 6px; }
+.book-resources-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.book-resources-list li { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.book-resource-link { display: inline-flex; align-items: center; gap: 5px; color: var(--brand); text-decoration: none; min-width: 0; }
+.book-resource-host { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.book-resource-by { font-size: 0.76rem; color: var(--ink-1); flex: 0 0 auto; }
+.book-convo-hint { margin-top: 0; }
+
+/* Onboarding como modal (reusa el chrome de readers-modal). */
+.onboarding-modal { max-width: 460px; }
+.onboarding-modal-done { width: 100%; margin-top: 12px; justify-content: center; }
+
+/* Actividad reciente en el perfil. */
+.profile-activity-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; }
+.profile-activity-item { margin: 0; }
+.profile-activity-link {
+  display: block; padding: 7px 2px; border-bottom: 1px dashed var(--line);
+  color: var(--ink-0); text-decoration: none;
+}
+.profile-activity-link:hover { background: var(--panel-1); }
+.profile-activity-text { font-size: 0.86rem; }
+.profile-activity-quote { color: var(--ink-1); }
+
+/* Affordance: los nombres que llevan al perfil se subrayan al pasar/tocar. */
+.comment-author-link, .member-name-link, .health-name-link { text-decoration: none; }
+.comment-author-link:hover, .member-name-link:hover, .health-name-link:hover,
+.comment-author-link:active, .member-name-link:active, .health-name-link:active { text-decoration: underline; }
+
+/* L1 · Affordance de desplegable: los summary ocultan su marcador y parecían texto
+   plano. Un caret ▸ que rota al abrir deja claro que se pueden pulsar. */
+.detail-subsection > summary,
+.chapter-redefine summary,
+.chapter-admin > summary,
+.cadence-manual summary,
+.chapter-collapsed summary { cursor: pointer; }
+.detail-subsection > summary::before,
+.chapter-redefine summary::before,
+.chapter-admin > summary::before,
+.cadence-manual summary::before,
+.chapter-collapsed summary::before {
+  content: "\25B8"; /* ▸ */
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 0.82em;
+  color: var(--ink-1);
+  transition: transform var(--motion-fast, 0.15s) ease;
+}
+.detail-subsection[open] > summary::before,
+.chapter-redefine[open] summary::before,
+.chapter-admin[open] > summary::before,
+.cadence-manual[open] summary::before,
+.chapter-collapsed[open] summary::before { transform: rotate(90deg); }
 .request-approve { color: var(--success); }
 .request-approve:hover:not(:disabled) { background: color-mix(in srgb, var(--success) 14%, transparent); border-color: var(--success); }
 .request-decline { color: var(--stamp); }
@@ -3238,6 +3358,13 @@ textarea:focus-visible {
   color: var(--ink-1);
   font-style: italic;
 }
+.book-author-link {
+  color: var(--brand-strong);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.book-author-link:hover { color: var(--brand); }
+.book-detail-meta { font-style: normal; color: var(--ink-1); }
 
 .book-detail-synopsis p {
   color: var(--ink-0);
@@ -3410,6 +3537,11 @@ textarea:focus-visible {
 }
 
 /* ───────────────────────────── Timeline de capítulos ────────────────────────── */
+.chapter-timeline-help {
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  color: var(--ink-1);
+}
 .chapter-timeline {
   list-style: none;
   margin: 4px 0 0;
@@ -3423,6 +3555,8 @@ textarea:focus-visible {
   padding: 0 0 16px 14px;
   border-left: 2px solid var(--line);
   scroll-margin-top: 5rem;
+  /* La "barra de lectura" avanza en verde al completar el capítulo. */
+  transition: border-left-color 0.4s var(--ease-standard, ease);
 }
 
 .chapter-node:last-child {
@@ -3454,6 +3588,18 @@ textarea:focus-visible {
   background: var(--brand);
   border-color: var(--brand);
   color: var(--bg-0);
+  /* "Vouce": el check da un pequeño bote al marcarse. */
+  animation: chapter-check-pop 0.42s var(--ease-standard, ease);
+}
+@keyframes chapter-check-pop {
+  0%   { transform: scale(0.7); }
+  45%  { transform: scale(1.28); }
+  70%  { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chapter-node.is-done .chapter-check { animation: none; }
+  .chapter-node { transition: none; }
 }
 
 .chapter-dot {
@@ -3489,7 +3635,7 @@ textarea:focus-visible {
 }
 
 .chapter-node.is-done .chapter-title {
-  color: var(--ink-1);
+  color: var(--success);
 }
 
 .chapter-num {
@@ -3782,12 +3928,13 @@ textarea:focus-visible {
 
 /* ─────────── Capítulos v2: checks claros + notas con media + edición ─────────── */
 .chapter-check {
+  position: relative;
   width: 28px;
   height: 28px;
   left: -15px;
-  border: 2px solid var(--line);
+  border: 2px solid var(--ink-1);   /* borde visible: círculo claramente tocable */
   background: var(--panel-1);
-  color: transparent;            /* check invisible hasta marcar */
+  color: color-mix(in srgb, var(--ink-1) 32%, transparent); /* ✓ tenue: "pulsa aquí" */
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -3796,10 +3943,17 @@ textarea:focus-visible {
     border-color var(--motion-fast) var(--ease-standard), color var(--motion-fast) var(--ease-standard);
 }
 .chapter-check svg { display: block; }
+/* Área táctil ampliada a ~44px sin agrandar el disco visual. */
+.chapter-check::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
 
-.chapter-check:hover:not(:disabled) {
+.chapter-check:hover:not(:disabled),
+.chapter-check:focus-visible:not(:disabled) {
   border-color: var(--success);
-  color: color-mix(in srgb, var(--success) 40%, transparent);
+  color: color-mix(in srgb, var(--success) 55%, transparent);
 }
 
 .chapter-node.is-done .chapter-check {
@@ -3822,7 +3976,7 @@ textarea:focus-visible {
 }
 
 .chapter-node.is-done .chapter-title {
-  color: var(--ink-1);
+  color: var(--success);
 }
 
 .chapter-meta {
@@ -3879,6 +4033,17 @@ textarea:focus-visible {
 
 .chapter-note-image-field input { flex: 1; }
 
+/* Composer de nota: fila con botón "Imagen" (sube del dispositivo) + campo enlace. */
+.chapter-note-media-row { display: flex; align-items: center; gap: 8px; }
+.chapter-note-upload { flex: 0 0 auto; cursor: pointer; }
+.chapter-note-upload input { display: none; }
+.chapter-note-link-input { flex: 1 1 auto; min-width: 0; }
+.chapter-note-image-preview { display: flex; align-items: flex-start; gap: 10px; }
+.chapter-note-image-preview img {
+  max-width: 120px; max-height: 120px; border-radius: var(--radius-md);
+  border: 1px solid var(--line); object-fit: cover;
+}
+
 .chapter-or {
   text-align: center;
   font-size: 0.8rem;
@@ -3930,6 +4095,7 @@ textarea:focus-visible {
   border-radius: var(--radius-pill);
   padding: 2px 7px;
 }
+.book-vote-badge-no { color: var(--ink-1); font-weight: 600; }
 
 /* Votación */
 .vote-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
@@ -4485,14 +4651,24 @@ textarea:focus-visible {
 }
 
 /* Notas colapsables + botón comentar en nota + preview de cadencia */
-.chapter-notes-block { margin-top: 4px; }
-.chapter-notes-toggle {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: transparent; border: 0; padding: 4px 0; cursor: pointer;
-  color: var(--ink-1); font-size: 0.78rem; font-weight: 600; min-height: 32px;
+/* Barra compacta de notas: chip (icono+nº) que despliega + botón "+" para añadir. */
+.chapter-notes-bar { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.chapter-notes-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--panel-1); border: 1px solid var(--line); border-radius: var(--radius-pill);
+  padding: 4px 10px; min-height: 32px; cursor: pointer;
+  color: var(--ink-1); font-size: 0.8rem; font-weight: 600;
 }
-.chapter-notes-toggle:hover { color: var(--brand-strong); }
-.chapter-notes-caret { transition: transform var(--motion-fast) var(--ease-standard); display: inline-block; }
+.chapter-notes-chip:hover { color: var(--brand-strong); border-color: var(--brand); }
+.chapter-notes-count { font-weight: 700; color: var(--ink-0); }
+.chapter-note-add-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; flex: 0 0 auto;
+  background: transparent; border: 1px dashed var(--line); border-radius: var(--radius-pill);
+  color: var(--brand); cursor: pointer;
+}
+.chapter-note-add-btn:hover { border-style: solid; border-color: var(--brand); background: var(--panel-1); }
+.chapter-notes-caret { transition: transform var(--motion-fast) var(--ease-standard); display: inline-block; font-size: 0.72rem; }
 .chapter-notes-caret.is-collapsed { transform: rotate(-90deg); }
 
 .chapter-note-comment {
@@ -4555,7 +4731,7 @@ textarea:focus-visible {
 }
 .image-lightbox-inner { display: flex; flex-direction: column; gap: 12px; max-width: 96vw; max-height: 90dvh; }
 .image-lightbox-img {
-  max-width: 96vw; max-height: 78dvh; width: auto; height: auto;
+  max-width: 96vw; max-height: 72dvh; width: auto; height: auto;
   object-fit: contain; border-radius: var(--radius-sm); background: var(--panel-1);
   box-shadow: 0 24px 60px rgb(0 0 0 / 55%);
 }
@@ -4771,8 +4947,9 @@ textarea:focus-visible {
 /* Fallback ligero de ruta perezosa (evita repetir la pantalla de carga completa) */
 .route-fallback { display: grid; place-items: center; min-height: 50vh; }
 /* Entre pantallas: elipsis que se teclea (puntuación de máquina de escribir) */
-/* Carga a pantalla completa: solo el glifo centrado en rojo, ciclando signos de
-   puntuación. Overlay fijo → tapa footer/topbar (no se ve nada más). */
+/* Carga DENTRO de la app: glifo centrado en rojo ciclando signos de puntuación.
+   z-200: el logo de arranque (.community-loading-screen, z-300) gana si coinciden,
+   así el "wee." sale solo al inicio y la puntuación en el resto de navegaciones. */
 .app-loading-screen {
   position: fixed;
   inset: 0;

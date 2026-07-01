@@ -311,8 +311,8 @@ export interface CommunityBan {
   createdAt?: string;
 }
 
-export const banMember = async (targetUserId: string): Promise<void> => {
-  await request<{ ok: true; banned: boolean }>("/community/admin/ban", { target_user_id: targetUserId });
+export const banMember = async (targetUserId: string, reason?: string): Promise<void> => {
+  await request<{ ok: true; banned: boolean }>("/community/admin/ban", { target_user_id: targetUserId, ...(reason ? { reason } : {}) });
 };
 
 export const unbanMember = async (globalUserId: string): Promise<void> => {
@@ -321,6 +321,69 @@ export const unbanMember = async (globalUserId: string): Promise<void> => {
 
 export const listBans = async (): Promise<{ bans: CommunityBan[] }> =>
   request<{ bans: CommunityBan[] }>("/community/bans/list", {});
+
+export const muteMember = async (targetUserId: string, minutes = 60): Promise<void> => {
+  await request<{ ok: true }>("/community/admin/mute", { target_user_id: targetUserId, minutes });
+};
+
+export const unmuteMember = async (targetUserId: string): Promise<void> => {
+  await request<{ ok: true }>("/community/admin/unmute", { target_user_id: targetUserId });
+};
+
+export const reportComment = async (commentId: string, reason?: string): Promise<void> => {
+  await request<{ ok: true }>("/comments/report", { comment_id: commentId, ...(reason ? { reason } : {}) });
+};
+
+export interface CommentReport {
+  id: string;
+  commentId: string;
+  bookId: string | null;
+  reason: string | null;
+  reporterAlias: string;
+  authorAlias: string;
+  text: string;
+  deleted: boolean;
+  createdAt: number;
+}
+
+export const listReports = async (): Promise<{ reports: CommentReport[] }> =>
+  request<{ reports: CommentReport[] }>("/community/reports/list", {});
+
+export const resolveReport = async (commentId: string): Promise<void> => {
+  await request<{ ok: true }>("/community/reports/resolve", { comment_id: commentId });
+};
+
+export interface ActivityEvent {
+  kind: "comment" | "note" | "read" | "proposal";
+  actorAlias: string;
+  actorAvatarUrl?: string | null;
+  actorColorIndex?: number | null;
+  bookId: string;
+  bookTitle: string;
+  commentId?: string;
+  text?: string;
+  at: number;
+}
+
+export const communityActivity = async (): Promise<{ events: ActivityEvent[] }> =>
+  request<{ events: ActivityEvent[] }>("/community/activity", {});
+
+export interface HealthMember {
+  id: string;
+  alias: string;
+  votes: number;
+  comments: number;
+  reading: number;
+  finished: number;
+  lastActive: number | null;
+  joinedAt: number;
+}
+
+export const communityHealth = async (): Promise<{ members: HealthMember[] }> =>
+  request<{ members: HealthMember[] }>("/community/health", {});
+
+export const remindVoters = async (bookId: string): Promise<{ reminded: number }> =>
+  request<{ ok: true; reminded: number }>("/community/remind", { book_id: bookId });
 
 export interface JoinRequestItem {
   id: string;
@@ -439,6 +502,7 @@ export interface ClubBook {
   description?: string;
   publishedYear?: number;
   pageCount?: number;
+  authorUrl?: string;
   totalChapters?: number;
   source: BookSourceTag;
   manuallyEdited: boolean;
@@ -450,8 +514,15 @@ export interface ClubBook {
   targetChapter?: number;
   targetDate?: string;
   numberChapters?: boolean;
+  voteDeadline?: number;
+  decidedBy?: "vote" | "deadline" | "admin";
   createdAt: number;
 }
+
+// Quórum de decisión de una propuesta: un tercio de los miembros activos,
+// mínimo 2 (idéntico al backend). Se mide sobre los votos emitidos.
+export const proposalQuorum = (activeCount: number): number =>
+  Math.max(2, Math.ceil(activeCount / 3));
 
 export interface BookStats {
   avgRating: number | null;
@@ -486,6 +557,7 @@ export interface NewBookPayload {
   description?: string | null;
   publishedYear?: number | null;
   pageCount?: number | null;
+  authorUrl?: string | null;
   totalChapters?: number | null;
   source: BookSourceTag;
   manuallyEdited: boolean;
@@ -518,6 +590,7 @@ export interface BookComment {
   createdAt: number;
   editedAt?: number;
   deleted?: boolean;
+  moderated?: boolean;
 }
 
 export interface BookMemberProgress extends MemberBook {
@@ -634,11 +707,20 @@ export interface UserProfileBook {
   updatedAt: number;
 }
 
+export interface UserProfileActivity {
+  kind: "comment" | "proposal";
+  bookId: string;
+  bookTitle: string;
+  text?: string;
+  at: number;
+}
+
 export interface UserProfile {
   user: { id: string; alias: string; avatarUrl?: string; role: string };
   finishedCount: number;
   avgRating: number | null;
   books: UserProfileBook[];
+  activity?: UserProfileActivity[];
 }
 
 export const getUserProfile = async (userId: string): Promise<UserProfile> =>

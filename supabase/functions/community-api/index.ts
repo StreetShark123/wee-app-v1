@@ -121,6 +121,20 @@ const verifyPassword = async (password: string, stored: string): Promise<{ ok: b
 
 const nowIso = (): string => new Date().toISOString();
 
+// Acepta URLs http(s) o imágenes subidas como data URL (data:image/...;base64).
+// Bloquea javascript:/data:text/html/file: y demás esquemas peligrosos que
+// podrían inyectarse en un <img src>/<a href> del cliente.
+const safeHttpUrl = (raw: unknown): string | null => {
+  const s = String(raw ?? "").trim();
+  if (!s) return null;
+  // Imagen subida del dispositivo: solo data URL de imagen, sin truncar (es larga).
+  if (/^data:image\/(png|jpe?g|gif|webp|avif);base64,[a-z0-9+/=]+$/i.test(s)) {
+    return s.length <= 1_500_000 ? s : null;
+  }
+  const url = s.slice(0, 1000);
+  return /^https?:\/\//i.test(url) ? url : null;
+};
+
 // ── Rate limiting server-side (tabla auth_throttle) ────────────────────────
 const clientIp = (req: Request): string =>
   req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
@@ -147,6 +161,10 @@ const isRateLimited = async (key: string, max: number, windowSec = 900): Promise
 
 const tooManyAttempts = () =>
   json(429, { message: "Demasiados intentos. Espera unos minutos e inténtalo de nuevo." });
+
+// Para escritura de contenido (no login): mensaje amable, no de "ataque".
+const slowDown = () =>
+  json(429, { code: "slow_down", message: "Vas muy rápido. Respira un momento y sigue en unos segundos." });
 
 const extractSessionToken = (req: Request): string | null => {
   const header = req.headers.get("x-wee-session");
@@ -253,6 +271,16 @@ const ownerOf = async (communityId: string): Promise<string | null> => {
   return (data?.created_by_user_id as string | undefined) ?? null;
 };
 
+// 403 si el miembro está silenciado (muted_until en el futuro); null si puede escribir.
+const mutedGate = async (communityId: string, userId: string): Promise<Response | null> => {
+  const { data } = await db.from("community_users").select("muted_until").eq("community_id", communityId).eq("id", userId).maybeSingle();
+  const until = data?.muted_until ? new Date(String(data.muted_until)).getTime() : 0;
+  if (until > Date.now()) {
+    return json(403, { code: "muted", until, message: "Estás en silencio temporal en este club. Podrás volver a escribir pronto." });
+  }
+  return null;
+};
+
 // Errores de BD: loguea el detalle real en servidor y devuelve un mensaje
 // genérico. Evita filtrar nombres de columnas/constraints de Postgres al cliente.
 const dbFail = (status: number, err: unknown, clientMessage = "Something went wrong"): Response => {
@@ -319,6 +347,9 @@ const rowToBook = (row: Record<string, any>): Record<string, any> => ({
   targetChapter: row.target_chapter ?? undefined,
   targetDate: row.target_date ?? undefined,
   numberChapters: row.number_chapters !== false,
+  voteDeadline: row.vote_deadline ? toMillis(row.vote_deadline) : undefined,
+  decidedBy: row.decided_by ?? undefined,
+  authorUrl: row.author_url ?? undefined,
   createdAt: toMillis(row.created_at)
 });
 
@@ -377,6 +408,19 @@ const activeMemberIdSet = async (communityId: string): Promise<Set<string>> => {
 const isBanned = async (communityId: string, globalUserId: string): Promise<boolean> => {
   const res = await db.from("community_bans").select("global_user_id").eq("community_id", communityId).eq("global_user_id", globalUserId).maybeSingle();
   return !!res.data;
+};
+
+// 403 de baneo localizado (español) e incluyendo el motivo si el admin lo dejó.
+const bannedResponse = async (communityId: string, globalUserId: string): Promise<Response> => {
+  const res = await db.from("community_bans").select("reason").eq("community_id", communityId).eq("global_user_id", globalUserId).maybeSingle();
+  const reason = (res.data?.reason as string | null) ?? null;
+  return json(403, {
+    code: "banned",
+    reason,
+    message: reason
+      ? `Ya no formas parte de este club. Motivo: ${reason}`
+      : "Ya no formas parte de este club."
+  });
 };
 
 // Inserta notificaciones (best-effort: nunca rompe la acción que las dispara).
@@ -448,6 +492,77 @@ const voteSummary = async (
     later: rows.filter((r: Record<string, any>) => r.vote === "later").length,
     myVote: (allRows.find((r: Record<string, any>) => r.user_id === userId)?.vote as string) ?? null
   };
+};
+
+// Quórum de decisión de una propuesta: al menos un tercio de los miembros
+// activos, mínimo 2. Se mide sobre los VOTOS EMITIDOS, no sobre el censo, para
+// que un club con muchos lurkers no se atasque en un limbo permanente.
+const PROPOSAL_QUORUM_RATIO = 1 / 3;
+const proposalQuorum = (activeCount: number): number =>
+  Math.max(2, Math.ceil(activeCount * PROPOSAL_QUORUM_RATIO));
+
+// Decide el resultado de una propuesta. Modo 'majority': alcanzado el quórum de
+// votantes, gana la mayoría simple (empate → sigue abierta). Modo 'all':
+// unanimidad de los que votaron (cualquier "no" con quórum la descarta). Si la
+// propuesta venció su plazo (expired), se resuelve con lo votado (mayoría
+// simple; sin votos → se descarta).
+const evaluateProposal = (
+  yes: number,
+  no: number,
+  activeCount: number,
+  mode: string,
+  expired = false
+): "reading" | "rejected" | "proposed" => {
+  const voters = yes + no;
+  const quorum = proposalQuorum(activeCount);
+  if (mode === "all") {
+    if (voters >= quorum && no === 0 && yes >= quorum) return "reading";
+    if (voters >= quorum && no > 0) return "rejected";
+  } else if (voters >= quorum) {
+    if (yes > no) return "reading";
+    if (no > yes) return "rejected";
+  }
+  if (expired) return yes > no ? "reading" : "rejected";
+  return "proposed";
+};
+
+// Resuelve perezosamente las propuestas cuyo plazo de votación ya venció (no hay
+// cron: lo hacemos al listar). Mejor esfuerzo; nunca rompe la lista.
+const resolveExpiredProposals = async (communityId: string): Promise<void> => {
+  try {
+    const [expiredRes, activeRes, modeRes] = await Promise.all([
+      db.from("books").select("id").eq("community_id", communityId).eq("status", "proposed").lt("vote_deadline", nowIso()),
+      db.from("community_users").select("id", { count: "exact", head: true }).eq("community_id", communityId).eq("status", "active"),
+      db.from("communities").select("approval_mode").eq("id", communityId).maybeSingle()
+    ]);
+    const expired = expiredRes.data ?? [];
+    if (expired.length === 0) return;
+    const activeCount = activeRes.count ?? 0;
+    const mode = (modeRes.data?.approval_mode as string) ?? "majority";
+    for (const row of expired) {
+      const bookId = String(row.id);
+      const summary = await voteSummary(communityId, bookId, "");
+      const outcome = evaluateProposal(summary.yes, summary.no, activeCount, mode, true);
+      if (outcome === "proposed") continue;
+      // El UPDATE actúa de lock: solo aplica si SIGUE 'proposed'. Así, si dos
+      // /books/list corren a la vez, solo el primero cambia el estado y notifica
+      // (evita book_approved duplicados).
+      const upd = await db
+        .from("books")
+        .update({ status: outcome, decided_by: "deadline" })
+        .eq("community_id", communityId)
+        .eq("id", bookId)
+        .eq("status", "proposed")
+        .select("id");
+      const won = (upd.data ?? []).length > 0;
+      if (won && outcome === "reading") {
+        const active = await activeMemberIdSet(communityId);
+        await notify(communityId, [...active].map((uid) => ({ user_id: uid, kind: "book_approved", book_id: bookId })));
+      }
+    }
+  } catch {
+    // best-effort
+  }
 };
 
 // Al expulsar/salir un miembro, sus libros pueden pasar a 'finished' (ya no
@@ -1209,7 +1324,7 @@ const handlers = {
     if (inviteRes.data.expires_at && Date.parse(inviteRes.data.expires_at) < Date.now()) return json(410, { message: "Invite expired" });
 
     const communityId = inviteRes.data.community_id as string;
-    if (await isBanned(communityId, globalAuth.user.id)) return json(403, { message: "You are banned from this club" });
+    if (await isBanned(communityId, globalAuth.user.id)) return await bannedResponse(communityId, globalAuth.user.id);
     const memberUpsert = await db.from("community_members").upsert(
       {
         community_id: communityId,
@@ -1286,7 +1401,7 @@ const handlers = {
       .maybeSingle();
     if (error || !comm) return json(404, { message: "Community not found" });
     if ((comm.visibility ?? "public") !== "public") return json(403, { message: "Community is not public" });
-    if (await isBanned(comm.id, globalAuth.user.id)) return json(403, { message: "You are banned from this club" });
+    if (await isBanned(comm.id, globalAuth.user.id)) return await bannedResponse(comm.id, globalAuth.user.id);
     const memberUpsert = await db.from("community_members").upsert(
       { community_id: comm.id, user_id: globalAuth.user.id, status: "active" },
       { onConflict: "community_id,user_id" }
@@ -1315,7 +1430,7 @@ const handlers = {
       .eq("slug", slug)
       .maybeSingle();
     if (error || !comm) return json(404, { message: "Community not found" });
-    if (await isBanned(comm.id, globalAuth.user.id)) return json(403, { message: "You are banned from this club" });
+    if (await isBanned(comm.id, globalAuth.user.id)) return await bannedResponse(comm.id, globalAuth.user.id);
     const visibility = (comm.visibility ?? "public") as string;
 
     // Ya es miembro activo → no hace falta solicitar.
@@ -1562,6 +1677,8 @@ const handlers = {
     if (auth instanceof Response) return auth;
     const denied = ensureAdmin(auth.role);
     if (denied) return denied;
+    // Solo el owner gestiona el equipo de admins (evita escaladas entre admins).
+    if ((await ownerOf(auth.community.id)) !== auth.user.id) return json(403, { message: "Solo el fundador del club puede nombrar admins" });
 
     const body = await parseBody(req);
     const target = String(body.target_user_id ?? "").trim();
@@ -1589,6 +1706,10 @@ const handlers = {
 
     const body = await parseBody(req);
     const target = String(body.target_user_id ?? "").trim();
+    // Solo el owner gestiona roles admin (salvo autodegradarse, que se permite abajo).
+    if (target !== auth.user.id && (await ownerOf(auth.community.id)) !== auth.user.id) {
+      return json(403, { message: "Solo el fundador del club puede cambiar roles de admin" });
+    }
     if (!target) return bad("target_user_id required");
     const targetUser = await db
       .from("community_users")
@@ -1670,10 +1791,18 @@ const handlers = {
     // No banear a otro admin (protege al equipo; degrádalo primero).
     const { data: targetRole } = await db.from("community_user_roles").select("role").eq("community_id", auth.community.id).eq("user_id", target).maybeSingle();
     if (targetRole?.role === "admin") return json(400, { message: "Demote the admin before banning" });
-    await db.from("community_bans").upsert({ community_id: auth.community.id, global_user_id: globalUserId, created_at: nowIso(), created_by: auth.user.id }, { onConflict: "community_id,global_user_id" });
+    const banReason = body.reason ? String(body.reason).trim().slice(0, 300) : null;
+    await db.from("community_bans").upsert({ community_id: auth.community.id, global_user_id: globalUserId, created_at: nowIso(), created_by: auth.user.id, reason: banReason }, { onConflict: "community_id,global_user_id" });
     await db.from("community_users").update({ status: "kicked" }).eq("id", target).eq("community_id", auth.community.id);
     await db.from("community_members").update({ status: "kicked" }).eq("community_id", auth.community.id).eq("user_id", globalUserId);
     await db.from("sessions").update({ revoked_at: nowIso() }).eq("user_id", target).eq("community_id", auth.community.id).is("revoked_at", null);
+    // Retira en cascada los comentarios del baneado (el texto tóxico ya no queda a la vista).
+    await db
+      .from("book_comments")
+      .update({ deleted_at: nowIso(), text: "", moderated: true })
+      .eq("community_id", auth.community.id)
+      .eq("user_id", target)
+      .is("deleted_at", null);
     await recomputeMemberBooks(auth.community.id, target);
     return json(200, { ok: true, banned: true });
   },
@@ -1688,6 +1817,38 @@ const handlers = {
     if (!globalUserId) return bad("global_user_id required");
     await db.from("community_bans").delete().eq("community_id", auth.community.id).eq("global_user_id", globalUserId);
     return json(200, { ok: true, banned: false });
+  },
+
+  // Silencio temporal: escalón previo al baneo. minutes por defecto 60.
+  "/community/admin/mute": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const denied = ensureAdmin(auth.role);
+    if (denied) return denied;
+    const body = await parseBody(req);
+    const target = String(body.target_user_id ?? "").trim();
+    if (!target) return bad("target_user_id required");
+    const minutes = Number.isFinite(Number(body.minutes)) ? Math.min(10080, Math.max(1, Math.floor(Number(body.minutes)))) : 60;
+    // No silenciar a un admin.
+    const { data: targetRole } = await db.from("community_user_roles").select("role").eq("community_id", auth.community.id).eq("user_id", target).maybeSingle();
+    if (targetRole?.role === "admin") return json(400, { message: "No puedes silenciar a un admin" });
+    const until = new Date(Date.now() + minutes * 60 * 1000).toISOString();
+    const upd = await db.from("community_users").update({ muted_until: until }).eq("community_id", auth.community.id).eq("id", target);
+    if (upd.error) return dbFail(400, upd.error);
+    return json(200, { ok: true, mutedUntil: toMillis(until) });
+  },
+
+  "/community/admin/unmute": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const denied = ensureAdmin(auth.role);
+    if (denied) return denied;
+    const body = await parseBody(req);
+    const target = String(body.target_user_id ?? "").trim();
+    if (!target) return bad("target_user_id required");
+    const upd = await db.from("community_users").update({ muted_until: null }).eq("community_id", auth.community.id).eq("id", target);
+    if (upd.error) return dbFail(400, upd.error);
+    return json(200, { ok: true });
   },
 
   "/community/bans/list": async (req: Request) => {
@@ -2096,10 +2257,106 @@ const handlers = {
     return json(200, { user: rowToCommunityUser(updated as Record<string, any>) });
   },
 
+  // Feed de actividad del club para la home: comentarios, anotaciones, capítulos
+  // leídos y propuestas de las ÚLTIMAS 24 HORAS, mezclados por fecha. Cada evento
+  // trae el actor (alias + color + avatar) para pintarlo. Es la "tira" de la home.
+  "/community/activity": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    // Una sola tanda en paralelo (antes había 2 round-trips extra: metaMap y títulos
+    // dependientes). Los títulos del club son pocos → se traen enteros de golpe.
+    const [commentsRes, notesRes, readsRes, proposalsRes, booksRes, metaMap] = await Promise.all([
+      db.from("book_comments").select("id,user_id,book_id,text,created_at").eq("community_id", auth.community.id).is("deleted_at", null).gte("created_at", since).order("created_at", { ascending: false }).limit(20),
+      db.from("chapter_notes").select("user_id,book_id,created_at").eq("community_id", auth.community.id).gte("created_at", since).order("created_at", { ascending: false }).limit(20),
+      db.from("chapter_completions").select("user_id,book_id,completed_at").eq("community_id", auth.community.id).gte("completed_at", since).order("completed_at", { ascending: false }).limit(20),
+      db.from("books").select("id,added_by,title,created_at").eq("community_id", auth.community.id).gte("created_at", since).order("created_at", { ascending: false }).limit(15),
+      db.from("books").select("id,title").eq("community_id", auth.community.id).limit(500),
+      clubUserMetaMap(auth.community.id)
+    ]);
+    const titleById = new Map((booksRes.data ?? []).map((b: Record<string, any>) => [b.id, b.title ?? ""]));
+    const actor = (uid: string) => {
+      const m = metaMap.get(uid);
+      return { actorAlias: m?.alias ?? "—", actorAvatarUrl: m?.avatarUrl ?? null, actorColorIndex: m?.colorIndex ?? null };
+    };
+    const events: Array<Record<string, any>> = [];
+    (commentsRes.data ?? []).forEach((c: Record<string, any>) => events.push({ kind: "comment", ...actor(c.user_id), bookId: c.book_id, bookTitle: titleById.get(c.book_id) ?? "", commentId: c.id, text: String(c.text ?? "").slice(0, 120), at: toMillis(c.created_at) }));
+    (notesRes.data ?? []).forEach((n: Record<string, any>) => events.push({ kind: "note", ...actor(n.user_id), bookId: n.book_id, bookTitle: titleById.get(n.book_id) ?? "", at: toMillis(n.created_at) }));
+    (readsRes.data ?? []).forEach((r: Record<string, any>) => events.push({ kind: "read", ...actor(r.user_id), bookId: r.book_id, bookTitle: titleById.get(r.book_id) ?? "", at: toMillis(r.completed_at) }));
+    (proposalsRes.data ?? []).forEach((b: Record<string, any>) => events.push({ kind: "proposal", ...actor(b.added_by), bookId: b.id, bookTitle: b.title ?? "", at: toMillis(b.created_at) }));
+    // Solo actores activos (los expulsados quedan como "—") y reciente primero.
+    const clean = events.filter((e) => e.actorAlias !== "—").sort((a, b) => (b.at ?? 0) - (a.at ?? 0));
+    return json(200, { events: clean.slice(0, 30) });
+  },
+
+  // Salud del club (solo admin): por miembro, cuánto participa y cuándo fue su
+  // última señal de vida. Ayuda al organizador a ver quién se engancha y quién se apaga.
+  "/community/health": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const denied = ensureAdmin(auth.role);
+    if (denied) return denied;
+    const [membersRes, votesRes, commentsRes, mbRes] = await Promise.all([
+      db.from("community_users").select("id,alias,created_at").eq("community_id", auth.community.id).eq("status", "active"),
+      db.from("book_votes").select("user_id").eq("community_id", auth.community.id),
+      db.from("book_comments").select("user_id,created_at").eq("community_id", auth.community.id).is("deleted_at", null),
+      db.from("member_books").select("user_id,shelf,updated_at").eq("community_id", auth.community.id)
+    ]);
+    const votesBy: Record<string, number> = {};
+    (votesRes.data ?? []).forEach((v: Record<string, any>) => { votesBy[v.user_id] = (votesBy[v.user_id] ?? 0) + 1; });
+    const commentsBy: Record<string, number> = {};
+    const lastBy: Record<string, number> = {};
+    (commentsRes.data ?? []).forEach((c: Record<string, any>) => {
+      commentsBy[c.user_id] = (commentsBy[c.user_id] ?? 0) + 1;
+      lastBy[c.user_id] = Math.max(lastBy[c.user_id] ?? 0, toMillis(c.created_at));
+    });
+    const readingBy: Record<string, number> = {};
+    const finishedBy: Record<string, number> = {};
+    (mbRes.data ?? []).forEach((m: Record<string, any>) => {
+      if (m.shelf === "reading") readingBy[m.user_id] = (readingBy[m.user_id] ?? 0) + 1;
+      if (m.shelf === "finished") finishedBy[m.user_id] = (finishedBy[m.user_id] ?? 0) + 1;
+      if (m.updated_at) lastBy[m.user_id] = Math.max(lastBy[m.user_id] ?? 0, toMillis(m.updated_at));
+    });
+    const members = (membersRes.data ?? []).map((m: Record<string, any>) => ({
+      id: m.id,
+      alias: m.alias,
+      votes: votesBy[m.id] ?? 0,
+      comments: commentsBy[m.id] ?? 0,
+      reading: readingBy[m.id] ?? 0,
+      finished: finishedBy[m.id] ?? 0,
+      lastActive: lastBy[m.id] ?? null,
+      joinedAt: toMillis(m.created_at)
+    }));
+    // Los que más se apagan primero (sin señal reciente).
+    members.sort((a, b) => (a.lastActive ?? 0) - (b.lastActive ?? 0));
+    return json(200, { members });
+  },
+
+  // Recordatorio del organizador: avisa a los miembros activos que aún no votaron
+  // la propuesta indicada (o, sin book_id, que hay propuestas abiertas por votar).
+  "/community/remind": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const denied = ensureAdmin(auth.role);
+    if (denied) return denied;
+    if (await isRateLimited(`remind:${auth.community.id}`, 6, 3600)) return slowDown();
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    if (!bookId) return bad("book_id required");
+    const active = await activeMemberIdSet(auth.community.id);
+    const votedRes = await db.from("book_votes").select("user_id").eq("community_id", auth.community.id).eq("book_id", bookId);
+    const voted = new Set((votedRes.data ?? []).map((v: Record<string, any>) => String(v.user_id)));
+    const targets = [...active].filter((uid) => uid !== auth.user.id && !voted.has(uid));
+    await notify(auth.community.id, targets.map((uid) => ({ user_id: uid, kind: "reminder", actor_id: auth.user.id, book_id: bookId })));
+    return json(200, { ok: true, reminded: targets.length });
+  },
+
   // ───────────────────────────── Club de lectura: libros ─────────────────────────
   "/books/list": async (req: Request) => {
     const auth = await requireSession(req);
     if (auth instanceof Response) return auth;
+    // Sin cron: al listar, resolvemos las propuestas cuyo plazo ya venció.
+    await resolveExpiredProposals(auth.community.id);
     const [booksRes, memberRes, votesRes, active] = await Promise.all([
       db
         .from("books")
@@ -2192,7 +2449,10 @@ const handlers = {
       source,
       manually_edited: Boolean(b.manuallyEdited),
       status: "proposed",
-      proposal_note: b.proposalNote ? String(b.proposalNote).trim().slice(0, 400) : null
+      proposal_note: b.proposalNote ? String(b.proposalNote).trim().slice(0, 400) : null,
+      author_url: safeHttpUrl(b.authorUrl),
+      // Plazo de votación: 7 días. Al vencer, resolveExpiredProposals la decide.
+      vote_deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
     };
     const ins = await db.from("books").insert(row).select("*").single();
     if (ins.error) {
@@ -2205,6 +2465,15 @@ const handlers = {
     await db.from("book_votes").upsert(
       { community_id: auth.community.id, book_id: ins.data.id, user_id: auth.user.id, vote: "yes", created_at: nowIso() },
       { onConflict: "book_id,user_id" }
+    );
+    // Avisa a los demás activos: hay una propuesta que votar (sin esto, el
+    // quórum es inalcanzable porque nadie se entera).
+    const active = await activeMemberIdSet(auth.community.id);
+    await notify(
+      auth.community.id,
+      [...active]
+        .filter((uid) => uid !== auth.user.id)
+        .map((uid) => ({ user_id: uid, kind: "book_proposed", actor_id: auth.user.id, book_id: ins.data.id }))
     );
     return json(200, { book: rowToBook(ins.data as Record<string, any>) });
   },
@@ -2228,7 +2497,7 @@ const handlers = {
     const [commentsRes, membersRes, chaptersRes, completionsRes, notesRes, metaMap] = await Promise.all([
       db
         .from("book_comments")
-        .select("id,user_id,text,parent_id,chapter_id,note_id,phase,pinned_at,created_at,edited_at,deleted_at")
+        .select("id,user_id,text,parent_id,chapter_id,note_id,phase,pinned_at,created_at,edited_at,deleted_at,moderated")
         .eq("community_id", auth.community.id)
         .eq("book_id", bookId)
         .order("created_at", { ascending: true }),
@@ -2353,7 +2622,8 @@ const handlers = {
           reactions: deleted ? [] : Object.values(reactionsByComment[row.id] ?? {}),
           createdAt: toMillis(row.created_at),
           editedAt: row.edited_at ? toMillis(row.edited_at) : undefined,
-          deleted
+          deleted,
+          moderated: !!row.moderated
         };
       }),
       members,
@@ -2366,6 +2636,10 @@ const handlers = {
   "/books/comment": async (req: Request) => {
     const auth = await requireSession(req);
     if (auth instanceof Response) return auth;
+    // Anti-flood: máx. 20 comentarios por minuto y usuario.
+    if (await isRateLimited(`comment:${auth.user.id}`, 20, 60)) return slowDown();
+    const cMuted = await mutedGate(auth.community.id, auth.user.id);
+    if (cMuted) return cMuted;
     const body = await parseBody(req);
     const bookId = String(body.book_id ?? "").trim();
     const text = String(body.text ?? "").trim().slice(0, 2000);
@@ -2376,14 +2650,16 @@ const handlers = {
     if (!text) return bad("text required");
 
     // Hilo "sobre una anotación": ancla el comentario al capítulo de la nota.
+    let noteAuthorId: string | null = null;
     if (noteId) {
       const noteRes = await db
         .from("chapter_notes")
-        .select("id,chapter_id")
+        .select("id,chapter_id,user_id")
         .eq("community_id", auth.community.id)
         .eq("id", noteId)
         .maybeSingle();
       if (noteRes.data?.chapter_id) chapterId = noteRes.data.chapter_id as string;
+      noteAuthorId = (noteRes.data?.user_id as string) ?? null;
     }
 
     const bookRes = await db
@@ -2457,6 +2733,11 @@ const handlers = {
         notified.add(parentAuthorId);
         recipients.push({ user_id: parentAuthorId, kind: "reply" });
       }
+      // Comentario en la nota de alguien: avisa al autor de la nota (si no es él mismo ni ya notificado).
+      if (noteAuthorId && noteAuthorId !== auth.user.id && !notified.has(noteAuthorId)) {
+        notified.add(noteAuthorId);
+        recipients.push({ user_id: noteAuthorId, kind: "note_comment" });
+      }
       if (recipients.length > 0) {
         await db.from("notifications").insert(
           recipients.map((r) => ({
@@ -2499,31 +2780,37 @@ const handlers = {
     const emoji = String(body.emoji ?? "").trim();
     if (!commentId) return bad("comment_id required");
     if (!["up", "down"].includes(emoji)) return bad("emoji must be up or down");
+    const rMuted = await mutedGate(auth.community.id, auth.user.id);
+    if (rMuted) return rMuted;
 
     const cRes = await db
       .from("book_comments")
-      .select("id")
+      .select("id,user_id,book_id")
       .eq("community_id", auth.community.id)
       .eq("id", commentId)
       .maybeSingle();
     if (cRes.error || !cRes.data) return json(404, { message: "Comment not found" });
 
+    // Sin maybeSingle: un usuario podría tener filas up Y down (datos legacy o carrera),
+    // y maybeSingle petaría con 2 filas. Contamos y decidimos.
     const existing = await db
       .from("comment_reactions")
       .select("emoji")
       .eq("comment_id", commentId)
-      .eq("user_id", auth.user.id)
-      .eq("emoji", emoji)
-      .maybeSingle();
-    if (existing.data) {
-      await db.from("comment_reactions").delete().eq("comment_id", commentId).eq("user_id", auth.user.id).eq("emoji", emoji);
-    } else {
-      // Un solo voto por usuario: quita el voto anterior (opuesto) y pon este.
+      .eq("user_id", auth.user.id);
+    if ((existing.data ?? []).length > 0) {
+      // Ya tenías voto (igual u opuesto): este clic te devuelve a 0 (nunca +1 → -1).
       await db.from("comment_reactions").delete().eq("comment_id", commentId).eq("user_id", auth.user.id);
+    } else {
       await db.from("comment_reactions").upsert(
         { community_id: auth.community.id, comment_id: commentId, user_id: auth.user.id, emoji, created_at: nowIso() },
         { onConflict: "comment_id,user_id,emoji" }
       );
+      // Avisa al autor cuando le dan un "up" (la gasolina social). Nunca en "down" ni a uno mismo.
+      const author = String(cRes.data.user_id);
+      if (emoji === "up" && author !== auth.user.id) {
+        await notify(auth.community.id, [{ user_id: author, kind: "reaction", actor_id: auth.user.id, book_id: cRes.data.book_id ?? null }]);
+      }
     }
     // Devolver el recuento actualizado de ese comentario.
     const all = await db.from("comment_reactions").select("emoji,user_id").eq("comment_id", commentId);
@@ -2544,7 +2831,7 @@ const handlers = {
     const noteId = String(body.note_id ?? "").trim();
     const text = String(body.text ?? "").trim().slice(0, 4000);
     if (!noteId) return bad("note_id required");
-    const imageUrl = body.image_url !== undefined ? (String(body.image_url ?? "").trim().slice(0, 1000) || null) : undefined;
+    const imageUrl = body.image_url !== undefined ? safeHttpUrl(body.image_url) : undefined;
     const kind = ["note", "reference", "prompt"].includes(body.kind) ? body.kind : undefined;
 
     const cur = await db
@@ -2668,9 +2955,11 @@ const handlers = {
       .maybeSingle();
     if (cur.error || !cur.data) return json(404, { message: "Comment not found" });
     if (cur.data.user_id !== auth.user.id) return json(403, { message: "Not your comment" });
+    // Editar un comentario destacado le quita el destacado: evita el "bait-and-switch"
+    // (lograr el pin con algo bueno y reescribirlo a otra cosa).
     const upd = await db
       .from("book_comments")
-      .update({ text, edited_at: nowIso() })
+      .update({ text, edited_at: nowIso(), pinned_at: null })
       .eq("community_id", auth.community.id)
       .eq("id", commentId)
       .select("id,text,edited_at")
@@ -2706,7 +2995,8 @@ const handlers = {
     if (hasReplies) {
       const soft = await db
         .from("book_comments")
-        .update({ deleted_at: nowIso(), text: "" })
+        // moderated = lo retira un admin que no es el autor (lápida honesta).
+        .update({ deleted_at: nowIso(), text: "", moderated: cur.data.user_id !== auth.user.id })
         .eq("community_id", auth.community.id)
         .eq("id", commentId);
       if (soft.error) return dbFail(400, soft.error);
@@ -2736,6 +3026,78 @@ const handlers = {
     if (upd.error) return dbFail(400, upd.error);
     return json(200, { ok: true, pinned });
   },
+
+  // Cualquier miembro puede denunciar un comentario (palanca que no es "discutir más").
+  "/comments/report": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    if (await isRateLimited(`report:${auth.user.id}`, 10, 3600)) return slowDown();
+    const body = await parseBody(req);
+    const commentId = String(body.comment_id ?? "").trim();
+    if (!commentId) return bad("comment_id required");
+    const reason = body.reason ? String(body.reason).trim().slice(0, 300) : null;
+    const cRes = await db.from("book_comments").select("id,user_id").eq("community_id", auth.community.id).eq("id", commentId).maybeSingle();
+    if (cRes.error || !cRes.data) return json(404, { message: "Comment not found" });
+    if (cRes.data.user_id === auth.user.id) return json(400, { message: "No puedes denunciar tu propio comentario" });
+    const ins = await db.from("comment_reports").upsert(
+      { community_id: auth.community.id, comment_id: commentId, reporter_id: auth.user.id, reason, created_at: nowIso(), resolved_at: null },
+      { onConflict: "community_id,comment_id,reporter_id" }
+    );
+    if (ins.error) return dbFail(400, ins.error);
+    return json(200, { ok: true });
+  },
+
+  // Cola de moderación: denuncias abiertas del club (solo admin).
+  "/community/reports/list": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const denied = ensureAdmin(auth.role);
+    if (denied) return denied;
+    const repRes = await db
+      .from("comment_reports")
+      .select("id,comment_id,reporter_id,reason,created_at")
+      .eq("community_id", auth.community.id)
+      .is("resolved_at", null)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    const reports = repRes.data ?? [];
+    const commentIds = [...new Set(reports.map((r: Record<string, any>) => r.comment_id))];
+    const aliasMap = await clubUserAliasMap(auth.community.id);
+    const commentsRes = commentIds.length
+      ? await db.from("book_comments").select("id,user_id,text,book_id,deleted_at").eq("community_id", auth.community.id).in("id", commentIds)
+      : { data: [] as Record<string, any>[] };
+    const byId = new Map((commentsRes.data ?? []).map((c: Record<string, any>) => [c.id, c]));
+    return json(200, {
+      reports: reports.map((r: Record<string, any>) => {
+        const c = byId.get(r.comment_id) as Record<string, any> | undefined;
+        return {
+          id: r.id,
+          commentId: r.comment_id,
+          bookId: c?.book_id ?? null,
+          reason: r.reason ?? null,
+          reporterAlias: aliasMap.get(r.reporter_id) ?? "—",
+          authorAlias: c ? (aliasMap.get(c.user_id) ?? "—") : "—",
+          text: c?.deleted_at ? "" : (c?.text ?? ""),
+          deleted: !!c?.deleted_at,
+          createdAt: toMillis(r.created_at)
+        };
+      })
+    });
+  },
+
+  "/community/reports/resolve": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const denied = ensureAdmin(auth.role);
+    if (denied) return denied;
+    const body = await parseBody(req);
+    const commentId = String(body.comment_id ?? "").trim();
+    if (!commentId) return bad("comment_id required");
+    const upd = await db.from("comment_reports").update({ resolved_at: nowIso() }).eq("community_id", auth.community.id).eq("comment_id", commentId);
+    if (upd.error) return dbFail(400, upd.error);
+    return json(200, { ok: true });
+  },
+
 
   "/books/progress": async (req: Request) => {
     const auth = await requireSession(req);
@@ -2969,11 +3331,15 @@ const handlers = {
   "/chapters/note/add": async (req: Request) => {
     const auth = await requireSession(req);
     if (auth instanceof Response) return auth;
+    // Anti-flood: máx. 20 notas por minuto y usuario.
+    if (await isRateLimited(`note:${auth.user.id}`, 20, 60)) return slowDown();
+    const nMuted = await mutedGate(auth.community.id, auth.user.id);
+    if (nMuted) return nMuted;
     const body = await parseBody(req);
     const chapterId = String(body.chapter_id ?? "").trim();
     const text = String(body.text ?? "").trim().slice(0, 4000);
     if (!chapterId) return bad("chapter_id required");
-    const imageUrl = body.image_url ? String(body.image_url).trim().slice(0, 1000) : null;
+    const imageUrl = safeHttpUrl(body.image_url);
     if (!text && !imageUrl) return bad("text or image required");
     const kind = ["reference", "prompt"].includes(body.kind) ? body.kind : "note";
 
@@ -3163,18 +3529,17 @@ const handlers = {
       ]);
       const activeCount = activeRes.count ?? 0;
       const mode = (modeRes.data?.approval_mode as string) ?? "majority";
-      // mayoría = más de la mitad de los miembros activos; unanimidad = todos.
-      const approved = activeCount > 0 && (mode === "all" ? summary.yes >= activeCount : summary.yes * 2 > activeCount);
-      // Auto-rechazo: mayoría de "no" (en ambos modos) descarta la propuesta.
-      const rejected = !approved && activeCount > 0 && summary.no * 2 > activeCount;
-      if (approved) {
-        await db.from("books").update({ status: "reading" }).eq("community_id", auth.community.id).eq("id", bookId);
+      // Decisión por quórum de VOTANTES (ver evaluateProposal): un club con
+      // lurkers ya no se atasca esperando una mayoría del censo entero.
+      const outcome = evaluateProposal(summary.yes, summary.no, activeCount, mode);
+      if (outcome === "reading") {
+        await db.from("books").update({ status: "reading", decided_by: "vote" }).eq("community_id", auth.community.id).eq("id", bookId);
         status = "reading";
         // Libro aprobado → a leer: avisa a los activos (menos quien dio el voto que lo aprobó).
         const active = await activeMemberIdSet(auth.community.id);
         await notify(auth.community.id, [...active].filter((uid) => uid !== auth.user.id).map((uid) => ({ user_id: uid, kind: "book_approved", actor_id: auth.user.id, book_id: bookId })));
-      } else if (rejected) {
-        await db.from("books").update({ status: "rejected" }).eq("community_id", auth.community.id).eq("id", bookId);
+      } else if (outcome === "rejected") {
+        await db.from("books").update({ status: "rejected", decided_by: "vote" }).eq("community_id", auth.community.id).eq("id", bookId);
         status = "rejected";
       }
     }
@@ -3195,18 +3560,28 @@ const handlers = {
     if (!status) return bad("status must be proposed|reading|finished|rejected");
 
     const prior = await db.from("books").select("status").eq("community_id", auth.community.id).eq("id", bookId).maybeSingle();
+    const priorStatus = (prior.data?.status as string) ?? "proposed";
+    // Si un admin decide una propuesta (proposed → reading/rejected), lo registramos como 'admin'.
+    const statusPatch: Record<string, unknown> = { status };
+    if (priorStatus === "proposed" && (status === "reading" || status === "rejected")) statusPatch.decided_by = "admin";
+    if (priorStatus === "rejected" && status === "proposed") statusPatch.decided_by = null; // reabrir: sin decisión aún
     const upd = await db
       .from("books")
-      .update({ status })
+      .update(statusPatch)
       .eq("community_id", auth.community.id)
       .eq("id", bookId)
       .select("*")
       .single();
     if (upd.error || !upd.data) return json(404, { message: upd.error?.message ?? "Book not found" });
     const prev = (prior.data?.status as string) ?? "proposed";
-    // Reabrir votación (rejected → proposed): resetea votos y re-vota "sí" el proponente.
+    // Reabrir votación (rejected → proposed): resetea votos, plazo nuevo y re-vota "sí" el proponente.
     if (prev === "rejected" && status === "proposed") {
       await db.from("book_votes").delete().eq("community_id", auth.community.id).eq("book_id", bookId);
+      await db
+        .from("books")
+        .update({ vote_deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() })
+        .eq("community_id", auth.community.id)
+        .eq("id", bookId);
       const addedBy = (upd.data as Record<string, any>).added_by;
       if (addedBy) {
         await db.from("book_votes").upsert(
@@ -3442,6 +3817,34 @@ const handlers = {
 
     const finishedItems = items.filter((i: Record<string, any>) => i.shelf === "finished");
     const ratings = finishedItems.map((i: Record<string, any>) => i.rating).filter((r: number) => typeof r === "number");
+
+    // Actividad reciente: comentarios y propuestas de este usuario (más nuevos primero).
+    const [actCommentsRes, actProposalsRes] = await Promise.all([
+      db.from("book_comments").select("book_id,text,created_at").eq("community_id", auth.community.id).eq("user_id", userId).is("deleted_at", null).order("created_at", { ascending: false }).limit(10),
+      db.from("books").select("id,title,created_at").eq("community_id", auth.community.id).eq("added_by", userId).order("created_at", { ascending: false }).limit(6)
+    ]);
+    const actComments = actCommentsRes.data ?? [];
+    const missingIds = unique(actComments.map((c: Record<string, any>) => c.book_id).filter((id: string) => !bookById.has(id)));
+    if (missingIds.length > 0) {
+      const extra = await db.from("books").select("id,title").eq("community_id", auth.community.id).in("id", missingIds);
+      (extra.data ?? []).forEach((b: Record<string, any>) => bookById.set(b.id, b));
+    }
+    const activity = [
+      ...actComments.map((c: Record<string, any>) => ({
+        kind: "comment",
+        bookId: c.book_id,
+        bookTitle: (bookById.get(c.book_id)?.title as string) ?? "",
+        text: String(c.text ?? "").slice(0, 140),
+        at: toMillis(c.created_at)
+      })),
+      ...(actProposalsRes.data ?? []).map((b: Record<string, any>) => ({
+        kind: "proposal",
+        bookId: b.id,
+        bookTitle: b.title ?? "",
+        at: toMillis(b.created_at)
+      }))
+    ].sort((a, b) => (b.at ?? 0) - (a.at ?? 0)).slice(0, 12);
+
     return json(200, {
       user: {
         id: userRes.data.id,
@@ -3451,7 +3854,8 @@ const handlers = {
       },
       finishedCount: finishedItems.length,
       avgRating: ratings.length > 0 ? Math.round((ratings.reduce((x: number, y: number) => x + y, 0) / ratings.length) * 10) / 10 : null,
-      books: items
+      books: items,
+      activity
     });
   }
 } as const;

@@ -28,6 +28,7 @@ export interface BookDraft {
   description: string | null;
   publishedYear: number | null;
   pageCount: number | null;
+  authorUrl: string | null;
   source: BookSource | "manual";
   manuallyEdited: boolean;
   proposalNote: string;
@@ -66,6 +67,7 @@ export const resultToDraft = (result: BookSearchResult): BookDraft => ({
   description: result.description,
   publishedYear: result.publishedYear,
   pageCount: result.pageCount,
+  authorUrl: null,
   source: result.source,
   manuallyEdited: false,
   proposalNote: ""
@@ -80,6 +82,7 @@ export const emptyDraft = (): BookDraft => ({
   description: null,
   publishedYear: null,
   pageCount: null,
+  authorUrl: null,
   source: "manual",
   manuallyEdited: true,
   proposalNote: ""

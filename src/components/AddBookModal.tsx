@@ -263,6 +263,15 @@ export const AddBookModal = ({ open, onClose, onAddBook, onToast }: AddBookModal
                         onChange={(event) => editField("author", event.target.value || null)}
                       />
                     </label>
+                    <label>
+                      {pick(language, "Enlace del autor (opcional)", "Author link (optional)", "Ligazón do autor (opcional)")}
+                      <input
+                        type="url"
+                        value={draft.authorUrl ?? ""}
+                        onChange={(event) => editField("authorUrl", event.target.value || null)}
+                        placeholder={pick(language, "Wikipedia, web...", "Wikipedia, website...", "Wikipedia, web...")}
+                      />
+                    </label>
                     <div className="book-review-row">
                       <label>
                         {pick(language, "Año", "Year", "Ano")}

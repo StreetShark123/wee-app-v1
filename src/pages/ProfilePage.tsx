@@ -100,10 +100,10 @@ export const ProfilePage = ({
         <div className="profile-stack">
           <div className="profile-hero">
             <div className="profile-head">
-              <Avatar user={profileUser} size={74} />
+              <Avatar user={profile ? { ...profileUser, id: profile.user.id, alias: profile.user.alias, avatarDataUrl: profile.user.avatarUrl } : profileUser} size={74} />
               <div>
-                <h2>{profileUser.alias}</h2>
-                <p className="hint">{isTargetAdmin ? pick(language, "Administra el club", "Club admin", "Administra o club") : pick(language, "Miembro del club", "Club member", "Membro do club")}</p>
+                <h2>{profile?.user.alias ?? profileUser.alias}</h2>
+                <p className="hint">{(profile?.user.role ?? profileUser.role) === "admin" ? pick(language, "Administra el club", "Club admin", "Administra o club") : pick(language, "Miembro del club", "Club member", "Membro do club")}</p>
               </div>
             </div>
 
@@ -219,6 +219,28 @@ export const ProfilePage = ({
             </article>
           ) : profile ? (
             <p className="hint profile-no-reads">{pick(language, "Aún no ha leído nada en el club.", "Hasn't read anything in the club yet.", "Aínda non leu nada no club.")}</p>
+          ) : null}
+
+          {profile && profile.activity && profile.activity.length > 0 ? (
+            <article className="settings-card profile-activity">
+              <div className="section-head">
+                <h3><Icon name="spark" /> {pick(language, "Actividad reciente", "Recent activity", "Actividade recente")}</h3>
+              </div>
+              <ul className="profile-activity-list">
+                {profile.activity.map((ev, i) => (
+                  <li key={`${ev.bookId}-${ev.at}-${i}`} className="profile-activity-item">
+                    <Link to={`/book/${ev.bookId}`} className="profile-activity-link">
+                      <span className="profile-activity-text">
+                        {ev.kind === "comment"
+                          ? pick(language, `Comentó en «${ev.bookTitle}»`, `Commented on “${ev.bookTitle}”`, `Comentou en «${ev.bookTitle}»`)
+                          : pick(language, `Propuso «${ev.bookTitle}»`, `Proposed “${ev.bookTitle}”`, `Propuxo «${ev.bookTitle}»`)}
+                        {ev.text ? <span className="profile-activity-quote"> · «{ev.text}»</span> : null}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </article>
           ) : null}
 
           <div className="profile-actions">

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { timeAgo } from "../lib/timeAgo";
 import { TopBar } from "../components/TopBar";
 import { Icon } from "../components/Icon";
 import { WeeMark } from "../components/WeeMark";
 import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
-import { listJoinRequests, decideJoinRequest, listInvites, revokeInvite, banMember, unbanMember, listBans, type JoinRequestItem, type CommunityInvite, type CommunityBan } from "../lib/communityApi";
+import { listJoinRequests, decideJoinRequest, listInvites, revokeInvite, banMember, unbanMember, listBans, muteMember, listReports, resolveReport, communityHealth, type JoinRequestItem, type CommunityInvite, type CommunityBan, type CommentReport, type HealthMember } from "../lib/communityApi";
 import type { User } from "../lib/types";
 
 interface CommunityPageProps {
@@ -146,6 +147,65 @@ export const CommunityPage = ({
       onToast?.(error instanceof Error ? error.message : pick(language, "No se pudo.", "Couldn't do that.", "Non se puido."));
     }
   };
+
+  const muteThisMember = async (userId: string, alias: string) => {
+    const ok = await confirm({
+      title: pick(language, `¿Silenciar a ${alias} 1 hora?`, `Mute ${alias} for 1 hour?`, `Silenciar a ${alias} 1 hora?`),
+      message: pick(language, "No podrá comentar ni añadir notas durante ese rato. Es un aviso, no un baneo.", "They won't be able to comment or add notes for a while. It's a warning, not a ban.", "Non poderá comentar nin engadir notas ese tempo. É un aviso, non un baneo."),
+      confirmLabel: pick(language, "Silenciar", "Mute", "Silenciar")
+    });
+    if (!ok) return;
+    setBusyMemberId(userId);
+    try {
+      await muteMember(userId, 60);
+      onToast?.(pick(language, `${alias} en silencio 1 hora.`, `${alias} muted for 1 hour.`, `${alias} en silencio 1 hora.`));
+    } catch (error) {
+      onToast?.(error instanceof Error ? error.message : pick(language, "No se pudo silenciar.", "Couldn't mute.", "Non se puido silenciar."));
+    } finally {
+      setBusyMemberId(null);
+    }
+  };
+
+  // Cola de denuncias (solo admin).
+  const [reports, setReports] = useState<CommentReport[]>([]);
+  const loadReports = useCallback(async () => {
+    if (!isAdmin) return;
+    try {
+      const { reports: list } = await listReports();
+      setReports(list);
+    } catch {
+      setReports([]);
+    }
+  }, [isAdmin]);
+  useEffect(() => {
+    void loadReports();
+  }, [loadReports]);
+
+  const resolveThisReport = async (commentId: string) => {
+    try {
+      await resolveReport(commentId);
+      setReports((prev) => prev.filter((r) => r.commentId !== commentId));
+    } catch {
+      /* noop */
+    }
+  };
+
+  // Salud del club (solo admin): quién participa y quién se apaga.
+  const [health, setHealth] = useState<HealthMember[]>([]);
+  const [showHealth, setShowHealth] = useState(false);
+  const loadHealth = useCallback(async () => {
+    if (!isAdmin) return;
+    try {
+      const { members } = await communityHealth();
+      setHealth(members);
+    } catch {
+      setHealth([]);
+    }
+  }, [isAdmin]);
+  useEffect(() => {
+    if (showHealth) void loadHealth();
+  }, [showHealth, loadHealth]);
+  const fadingMs = 1000 * 60 * 60 * 24 * 21; // 3 semanas sin señal = "se apaga"
 
   // Solicitudes de unión pendientes (solo admin, solo clubs privados).
   const loadJoinRequests = useCallback(async () => {
@@ -591,9 +651,14 @@ export const CommunityPage = ({
                       </button>
                     ) : null}
                     {isAdmin && !isMe && !isOwnerMember && member.role === "member" ? (
-                      <button type="button" className="btn btn-tiny btn-tiny-danger" disabled={busyThis} onClick={() => void banThisMember(member.id, member.alias)}>
-                        {pick(language, "Banear", "Ban", "Banear")}
-                      </button>
+                      <>
+                        <button type="button" className="btn btn-tiny" disabled={busyThis} onClick={() => void muteThisMember(member.id, member.alias)}>
+                          {pick(language, "Silenciar 1h", "Mute 1h", "Silenciar 1h")}
+                        </button>
+                        <button type="button" className="btn btn-tiny btn-tiny-danger" disabled={busyThis} onClick={() => void banThisMember(member.id, member.alias)}>
+                          {pick(language, "Banear", "Ban", "Banear")}
+                        </button>
+                      </>
                     ) : null}
                   </span>
                 </li>
@@ -602,6 +667,54 @@ export const CommunityPage = ({
           </ul>
           {isAdmin && !iAmOwner ? (
             <p className="hint">{pick(language, "Para nombrar o quitar admins hace falta ser el admin principal del club.", "Promoting or removing admins is reserved for the club's owner admin.", "Para nomear ou quitar admins cómpre ser o admin principal.")}</p>
+          ) : null}
+          {isAdmin && reports.length > 0 ? (
+            <div className="reports-block">
+              <p className="hint">{pick(language, `Denuncias por revisar (${reports.length}):`, `Reports to review (${reports.length}):`, `Denuncias por revisar (${reports.length}):`)}</p>
+              <ul className="request-list">
+                {reports.map((r) => (
+                  <li key={r.id} className="report-row">
+                    <div className="report-body">
+                      <span className="report-meta">{r.reporterAlias} → {r.authorAlias}{r.reason ? ` · ${r.reason}` : ""}</span>
+                      <span className="report-text">{r.deleted ? pick(language, "(comentario ya borrado)", "(comment already deleted)", "(comentario xa borrado)") : `«${r.text.slice(0, 140)}»`}</span>
+                    </div>
+                    <span className="report-actions">
+                      {r.bookId ? <Link to={`/book/${r.bookId}#c-${r.commentId}`} className="btn btn-tiny">{pick(language, "Ver", "View", "Ver")}</Link> : null}
+                      <button type="button" className="btn btn-tiny" onClick={() => void resolveThisReport(r.commentId)}>
+                        {pick(language, "Resolver", "Resolve", "Resolver")}
+                      </button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {isAdmin ? (
+            <div className="health-block">
+              <button type="button" className="btn btn-tiny" onClick={() => setShowHealth((v) => !v)}>
+                <Icon name="users" size={12} /> {showHealth ? pick(language, "Ocultar salud del club", "Hide club health", "Ocultar saúde do club") : pick(language, "Ver salud del club", "See club health", "Ver saúde do club")}
+              </button>
+              {showHealth ? (
+                health.length === 0 ? (
+                  <p className="hint">{pick(language, "Cargando…", "Loading…", "Cargando…")}</p>
+                ) : (
+                  <ul className="health-list">
+                    {health.map((m) => {
+                      const fading = m.lastActive == null || Date.now() - m.lastActive > fadingMs;
+                      return (
+                        <li key={m.id} className={`health-row${fading ? " is-fading" : ""}`}>
+                          <span className="health-name"><Link to={`/profile/${m.id}`} className="health-name-link">{m.alias}</Link>{fading ? <span className="health-tag">{pick(language, "se apaga", "fading", "apágase")}</span> : null}</span>
+                          <span className="health-stats">
+                            {pick(language, `${m.votes} votos · ${m.comments} coment. · ${m.reading + m.finished} libros`, `${m.votes} votes · ${m.comments} comments · ${m.reading + m.finished} books`, `${m.votes} votos · ${m.comments} coment. · ${m.reading + m.finished} libros`)}
+                            {m.lastActive ? ` · ${timeAgo(m.lastActive, language)}` : ` · ${pick(language, "sin actividad", "no activity", "sen actividade")}`}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )
+              ) : null}
+            </div>
           ) : null}
           {bans.length > 0 ? (
             <div className="banned-block">
