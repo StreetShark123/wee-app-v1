@@ -467,10 +467,10 @@ export const CommunityPage = ({
                 <li key={reqItem.id} className="request-row">
                   <span className="request-name">{reqItem.username}</span>
                   <span className="request-actions">
-                    <button type="button" className="btn btn-icon-compact request-approve" onClick={() => void decideRequest(reqItem.id, true)} disabled={busyRequestId === reqItem.id} title={pick(language, "Aceptar", "Approve", "Aceptar")}>
+                    <button type="button" className="btn btn-icon-compact request-approve" onClick={() => void decideRequest(reqItem.id, true)} disabled={busyRequestId === reqItem.id} title={pick(language, "Aceptar", "Approve", "Aceptar")} aria-label={pick(language, `Aceptar a ${reqItem.username}`, `Approve ${reqItem.username}`, `Aceptar a ${reqItem.username}`)}>
                       <Icon name="check" size={15} />
                     </button>
-                    <button type="button" className="btn btn-icon-compact request-decline" onClick={() => void decideRequest(reqItem.id, false)} disabled={busyRequestId === reqItem.id} title={pick(language, "Rechazar", "Decline", "Rexeitar")}>
+                    <button type="button" className="btn btn-icon-compact request-decline" onClick={() => void decideRequest(reqItem.id, false)} disabled={busyRequestId === reqItem.id} title={pick(language, "Rechazar", "Decline", "Rexeitar")} aria-label={pick(language, `Rechazar a ${reqItem.username}`, `Decline ${reqItem.username}`, `Rexeitar a ${reqItem.username}`)}>
                       <Icon name="x" size={15} />
                     </button>
                   </span>

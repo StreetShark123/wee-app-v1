@@ -2035,7 +2035,7 @@ const handlers = {
   "/books/list": async (req: Request) => {
     const auth = await requireSession(req);
     if (auth instanceof Response) return auth;
-    const [booksRes, memberRes, votesRes] = await Promise.all([
+    const [booksRes, memberRes, votesRes, active] = await Promise.all([
       db
         .from("books")
         .select("*")
@@ -2048,7 +2048,8 @@ const handlers = {
       db
         .from("book_votes")
         .select("book_id,user_id,vote")
-        .eq("community_id", auth.community.id)
+        .eq("community_id", auth.community.id),
+      activeMemberIdSet(auth.community.id)
     ]);
     if (booksRes.error) return dbFail(500, booksRes.error);
     if (memberRes.error) return dbFail(500, memberRes.error);
@@ -2057,16 +2058,19 @@ const handlers = {
     const voteByBook: Record<string, { yes: number; no: number; later: number; myVote: string | null }> = {};
     (votesRes.data ?? []).forEach((row: Record<string, any>) => {
       const v = (voteByBook[row.book_id] = voteByBook[row.book_id] ?? { yes: 0, no: 0, later: 0, myVote: null });
+      if (row.user_id === auth.user.id) v.myVote = row.vote; // el caller siempre es activo
+      if (!active.has(String(row.user_id))) return; // no contar votos de miembros kicked/left
       if (row.vote === "yes") v.yes += 1;
       else if (row.vote === "no") v.no += 1;
       else if (row.vote === "later") v.later += 1;
-      if (row.user_id === auth.user.id) v.myVote = row.vote;
     });
 
     // Estadísticas agregadas por libro (nota media, lectores activos, última actividad).
+    // Solo miembros ACTIVOS: nada de fantasmas expulsados/salidos inflando conteos.
     const statsByBook: Record<string, { ratings: number[]; readers: number; lastActivityAt: number }> = {};
     const allMembers = memberRes.data ?? [];
     allMembers.forEach((row: Record<string, any>) => {
+      if (!active.has(String(row.user_id))) return;
       const s = (statsByBook[row.book_id] = statsByBook[row.book_id] ?? { ratings: [], readers: 0, lastActivityAt: 0 });
       if (typeof row.rating === "number") s.ratings.push(row.rating);
       if (row.shelf === "reading" || row.shelf === "finished" || Number(row.chapters_done ?? 0) > 0) s.readers += 1;
