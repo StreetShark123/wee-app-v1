@@ -273,6 +273,9 @@ export const updateCommunity = async (payload: {
   rules_text?: string;
   visibility?: "public" | "private" | "invite";
   slug?: string;
+  invite_policy?: "admins_only" | "members_allowed";
+  book_policy?: "admins_only" | "members_allowed";
+  approval_mode?: "majority" | "all";
 }): Promise<CommunitySelection> => {
   const data = await request<{
     community: {
@@ -281,6 +284,8 @@ export const updateCommunity = async (payload: {
       description?: string;
       rules_text?: string;
       invite_policy: "admins_only" | "members_allowed";
+      book_policy?: "admins_only" | "members_allowed";
+      approval_mode?: "majority" | "all";
       slug?: string;
       visibility?: "public" | "private" | "invite";
     };
@@ -291,12 +296,31 @@ export const updateCommunity = async (payload: {
     description: data.community.description,
     rulesText: data.community.rules_text,
     invitePolicy: data.community.invite_policy,
+    bookPolicy: data.community.book_policy,
+    approvalMode: data.community.approval_mode,
     slug: data.community.slug,
     visibility: data.community.visibility
   };
   setSelectedCommunity(community);
   return community;
 };
+
+export interface CommunityBan {
+  globalUserId: string;
+  username: string;
+  createdAt?: string;
+}
+
+export const banMember = async (targetUserId: string): Promise<void> => {
+  await request<{ ok: true; banned: boolean }>("/community/admin/ban", { target_user_id: targetUserId });
+};
+
+export const unbanMember = async (globalUserId: string): Promise<void> => {
+  await request<{ ok: true; banned: boolean }>("/community/admin/unban", { global_user_id: globalUserId });
+};
+
+export const listBans = async (): Promise<{ bans: CommunityBan[] }> =>
+  request<{ bans: CommunityBan[] }>("/community/bans/list", {});
 
 export interface JoinRequestItem {
   id: string;

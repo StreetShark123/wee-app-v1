@@ -3,6 +3,8 @@ export interface CommunitySelection {
   name: string;
   description?: string;
   invitePolicy?: "admins_only" | "members_allowed";
+  bookPolicy?: "admins_only" | "members_allowed";
+  approvalMode?: "majority" | "all";
   rulesText?: string;
   slug?: string;
   visibility?: "public" | "private" | "invite";

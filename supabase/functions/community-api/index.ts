@@ -373,6 +373,12 @@ const activeMemberIdSet = async (communityId: string): Promise<Set<string>> => {
   return new Set((res.data ?? []).map((r: Record<string, any>) => String(r.id)));
 };
 
+// ¿El usuario global está baneado (permanentemente) de este club? Bloquea reingreso.
+const isBanned = async (communityId: string, globalUserId: string): Promise<boolean> => {
+  const res = await db.from("community_bans").select("global_user_id").eq("community_id", communityId).eq("global_user_id", globalUserId).maybeSingle();
+  return !!res.data;
+};
+
 // Inserta notificaciones (best-effort: nunca rompe la acción que las dispara).
 const notify = async (
   communityId: string,
@@ -1203,6 +1209,7 @@ const handlers = {
     if (inviteRes.data.expires_at && Date.parse(inviteRes.data.expires_at) < Date.now()) return json(410, { message: "Invite expired" });
 
     const communityId = inviteRes.data.community_id as string;
+    if (await isBanned(communityId, globalAuth.user.id)) return json(403, { message: "You are banned from this club" });
     const memberUpsert = await db.from("community_members").upsert(
       {
         community_id: communityId,
@@ -1279,6 +1286,7 @@ const handlers = {
       .maybeSingle();
     if (error || !comm) return json(404, { message: "Community not found" });
     if ((comm.visibility ?? "public") !== "public") return json(403, { message: "Community is not public" });
+    if (await isBanned(comm.id, globalAuth.user.id)) return json(403, { message: "You are banned from this club" });
     const memberUpsert = await db.from("community_members").upsert(
       { community_id: comm.id, user_id: globalAuth.user.id, status: "active" },
       { onConflict: "community_id,user_id" }
@@ -1307,6 +1315,7 @@ const handlers = {
       .eq("slug", slug)
       .maybeSingle();
     if (error || !comm) return json(404, { message: "Community not found" });
+    if (await isBanned(comm.id, globalAuth.user.id)) return json(403, { message: "You are banned from this club" });
     const visibility = (comm.visibility ?? "public") as string;
 
     // Ya es miembro activo → no hace falta solicitar.
@@ -1425,7 +1434,7 @@ const handlers = {
         .eq("community_id", auth.community.id)
         .eq("status", "active")
         .order("created_at", { ascending: true }),
-      db.from("communities").select("approval_mode,created_by_user_id,slug,visibility").eq("id", auth.community.id).maybeSingle()
+      db.from("communities").select("approval_mode,created_by_user_id,book_policy,slug,visibility").eq("id", auth.community.id).maybeSingle()
     ]);
 
     const memberList = (members ?? []).map((m: any) => ({ id: m.id, alias: m.alias, role: m.community_user_roles?.[0]?.role ?? "member" }));
@@ -1440,6 +1449,7 @@ const handlers = {
         rulesText: auth.community.rules_text ?? "",
         invite_policy: auth.community.invite_policy,
         approval_mode: (commRes.data?.approval_mode as string) ?? "majority",
+        book_policy: (commRes.data?.book_policy as string) ?? "members_allowed",
         slug: (commRes.data?.slug as string) ?? null,
         visibility: (commRes.data?.visibility as string) ?? "public",
         ownerId
@@ -1478,6 +1488,8 @@ const handlers = {
     if (description !== undefined) payload.description = description || null;
     if (rulesText !== undefined) payload.rules_text = rulesText || null;
     if (body.approval_mode === "all" || body.approval_mode === "majority") payload.approval_mode = body.approval_mode;
+    if (body.invite_policy === "admins_only" || body.invite_policy === "members_allowed") payload.invite_policy = body.invite_policy;
+    if (body.book_policy === "admins_only" || body.book_policy === "members_allowed") payload.book_policy = body.book_policy;
     if (["public", "private", "invite"].includes(body.visibility)) payload.visibility = body.visibility;
     if (body.slug !== undefined) {
       const newSlug = slugify(String(body.slug));
@@ -1492,7 +1504,7 @@ const handlers = {
       .from("communities")
       .update(payload)
       .eq("id", auth.community.id)
-      .select("id,name,description,rules_text,invite_policy,approval_mode,slug,visibility")
+      .select("id,name,description,rules_text,invite_policy,approval_mode,book_policy,slug,visibility")
       .single();
     if (error || !data) return json(400, { message: error?.message ?? "Community update failed" });
 
@@ -1504,6 +1516,7 @@ const handlers = {
         rules_text: data.rules_text ?? undefined,
         invite_policy: data.invite_policy,
         approval_mode: data.approval_mode ?? "majority",
+        book_policy: data.book_policy ?? "members_allowed",
         slug: data.slug ?? null,
         visibility: data.visibility ?? "public"
       }
@@ -1640,6 +1653,58 @@ const handlers = {
     await db.from("sessions").update({ revoked_at: nowIso() }).eq("user_id", target).eq("community_id", auth.community.id).is("revoked_at", null);
     await recomputeMemberBooks(auth.community.id, target); // sus lecturas a medias ya no bloquean 'finished'
     return json(200, { ok: true });
+  },
+
+  // Banear (permanente): expulsa + registra el baneo → el usuario no puede volver.
+  "/community/admin/ban": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const denied = ensureAdmin(auth.role);
+    if (denied) return denied;
+    const body = await parseBody(req);
+    const target = String(body.target_user_id ?? "").trim();
+    if (!target) return bad("target_user_id required");
+    const memberRes = await db.from("community_users").select("id,global_user_id").eq("community_id", auth.community.id).eq("id", target).maybeSingle();
+    if (memberRes.error || !memberRes.data?.global_user_id) return json(404, { message: "Member not found" });
+    const globalUserId = memberRes.data.global_user_id as string;
+    // No banear a otro admin (protege al equipo; degrádalo primero).
+    const { data: targetRole } = await db.from("community_user_roles").select("role").eq("community_id", auth.community.id).eq("user_id", target).maybeSingle();
+    if (targetRole?.role === "admin") return json(400, { message: "Demote the admin before banning" });
+    await db.from("community_bans").upsert({ community_id: auth.community.id, global_user_id: globalUserId, created_at: nowIso(), created_by: auth.user.id }, { onConflict: "community_id,global_user_id" });
+    await db.from("community_users").update({ status: "kicked" }).eq("id", target).eq("community_id", auth.community.id);
+    await db.from("community_members").update({ status: "kicked" }).eq("community_id", auth.community.id).eq("user_id", globalUserId);
+    await db.from("sessions").update({ revoked_at: nowIso() }).eq("user_id", target).eq("community_id", auth.community.id).is("revoked_at", null);
+    await recomputeMemberBooks(auth.community.id, target);
+    return json(200, { ok: true, banned: true });
+  },
+
+  "/community/admin/unban": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const denied = ensureAdmin(auth.role);
+    if (denied) return denied;
+    const body = await parseBody(req);
+    const globalUserId = String(body.global_user_id ?? "").trim();
+    if (!globalUserId) return bad("global_user_id required");
+    await db.from("community_bans").delete().eq("community_id", auth.community.id).eq("global_user_id", globalUserId);
+    return json(200, { ok: true, banned: false });
+  },
+
+  "/community/bans/list": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const denied = ensureAdmin(auth.role);
+    if (denied) return denied;
+    const res = await db.from("community_bans").select("global_user_id,created_at").eq("community_id", auth.community.id).order("created_at", { ascending: false });
+    const ids = (res.data ?? []).map((r: Record<string, any>) => r.global_user_id);
+    const names = new Map<string, string>();
+    if (ids.length > 0) {
+      const usersRes = await db.from("global_users").select("id,username").in("id", ids);
+      (usersRes.data ?? []).forEach((u: Record<string, any>) => names.set(u.id, u.username));
+    }
+    return json(200, {
+      bans: (res.data ?? []).map((r: Record<string, any>) => ({ globalUserId: r.global_user_id, username: names.get(r.global_user_id) ?? "—", createdAt: r.created_at }))
+    });
   },
 
   "/community/invite/create": async (req: Request) => {
@@ -2101,6 +2166,13 @@ const handlers = {
   "/books/create": async (req: Request) => {
     const auth = await requireSession(req);
     if (auth instanceof Response) return auth;
+    // Regla del club: si book_policy = admins_only, solo admins proponen libros.
+    if (auth.role !== "admin") {
+      const polRes = await db.from("communities").select("book_policy").eq("id", auth.community.id).maybeSingle();
+      if ((polRes.data?.book_policy as string) === "admins_only") {
+        return json(403, { message: "Only admins can add books in this club" });
+      }
+    }
     const body = await parseBody(req);
     const b = (body.book ?? {}) as Record<string, any>;
     const title = String(b.title ?? "").trim().slice(0, 300);

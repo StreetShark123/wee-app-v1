@@ -403,13 +403,17 @@ export const useAppData = () => {
     setCommunityMembers(data.members);
     setCommunityOwnerId(data.community.ownerId ?? null);
     if (data.community.id && data.community.name) {
+      const c = data.community as unknown as Record<string, unknown>;
       const selected: CommunitySelection = {
         id: data.community.id,
         name: data.community.name,
         description: data.community.description,
         rulesText: data.community.rulesText,
         slug: data.community.slug,
-        visibility: data.community.visibility
+        visibility: data.community.visibility,
+        invitePolicy: (c.invite_policy as CommunitySelection["invitePolicy"]) ?? undefined,
+        bookPolicy: (c.book_policy as CommunitySelection["bookPolicy"]) ?? undefined,
+        approvalMode: (c.approval_mode as CommunitySelection["approvalMode"]) ?? undefined
       };
       setSelectedCommunityState(selected);
       setSelectedCommunity(selected);
@@ -418,13 +422,16 @@ export const useAppData = () => {
   }, []);
 
   const updateCommunityDetails = useCallback(
-    async (input: { name?: string; description?: string; rulesText?: string; visibility?: "public" | "private" | "invite"; slug?: string }) => {
+    async (input: { name?: string; description?: string; rulesText?: string; visibility?: "public" | "private" | "invite"; slug?: string; invitePolicy?: "admins_only" | "members_allowed"; bookPolicy?: "admins_only" | "members_allowed"; approvalMode?: "majority" | "all" }) => {
       const community = await updateCommunity({
         name: input.name,
         description: input.description,
         rules_text: input.rulesText,
         visibility: input.visibility,
-        slug: input.slug
+        slug: input.slug,
+        invite_policy: input.invitePolicy,
+        book_policy: input.bookPolicy,
+        approval_mode: input.approvalMode
       });
       setSelectedCommunityState(community);
       setSelectedCommunity(community);

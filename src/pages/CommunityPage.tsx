@@ -5,17 +5,17 @@ import { Icon } from "../components/Icon";
 import { WeeMark } from "../components/WeeMark";
 import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
-import { listJoinRequests, decideJoinRequest, listInvites, revokeInvite, type JoinRequestItem, type CommunityInvite } from "../lib/communityApi";
+import { listJoinRequests, decideJoinRequest, listInvites, revokeInvite, banMember, unbanMember, listBans, type JoinRequestItem, type CommunityInvite, type CommunityBan } from "../lib/communityApi";
 import type { User } from "../lib/types";
 
 interface CommunityPageProps {
   activeUser: User;
-  selectedCommunity: { id: string; name: string; description?: string; rulesText?: string; slug?: string; visibility?: "public" | "private" | "invite" } | null;
+  selectedCommunity: { id: string; name: string; description?: string; rulesText?: string; slug?: string; visibility?: "public" | "private" | "invite"; invitePolicy?: "admins_only" | "members_allowed"; bookPolicy?: "admins_only" | "members_allowed"; approvalMode?: "majority" | "all" } | null;
   members: Array<{ id: string; alias: string; role: "admin" | "member" }>;
   ownerId?: string | null;
   communities: Array<{ community_id: string; name: string; role: "admin" | "member" }>;
   rulesText: string;
-  onUpdateCommunity: (input: { name?: string; description?: string; rulesText?: string; visibility?: "public" | "private" | "invite"; slug?: string }) => Promise<unknown>;
+  onUpdateCommunity: (input: { name?: string; description?: string; rulesText?: string; visibility?: "public" | "private" | "invite"; slug?: string; invitePolicy?: "admins_only" | "members_allowed"; bookPolicy?: "admins_only" | "members_allowed"; approvalMode?: "majority" | "all" }) => Promise<unknown>;
   onCreateInvite: () => Promise<{ id: string; code: string; token: string; link: string }>;
   onSwitchCommunity: (communityId: string) => Promise<void>;
   onLeaveCommunity: () => Promise<void> | void;
@@ -65,6 +65,11 @@ export const CommunityPage = ({
   const [busyRequestId, setBusyRequestId] = useState<string | null>(null);
   const [invites, setInvites] = useState<CommunityInvite[]>([]);
   const [generatingCode, setGeneratingCode] = useState(false);
+  const [invitePolicyInput, setInvitePolicyInput] = useState<"admins_only" | "members_allowed">(selectedCommunity?.invitePolicy ?? "admins_only");
+  const [bookPolicyInput, setBookPolicyInput] = useState<"admins_only" | "members_allowed">(selectedCommunity?.bookPolicy ?? "members_allowed");
+  const [approvalModeInput, setApprovalModeInput] = useState<"majority" | "all">(selectedCommunity?.approvalMode ?? "majority");
+  const [savingRules, setSavingRules] = useState(false);
+  const [bans, setBans] = useState<CommunityBan[]>([]);
   const otherCommunities = communities.filter((entry) => entry.community_id !== selectedCommunity?.id);
 
   // Orden: admin principal → admins → miembros.
@@ -76,8 +81,71 @@ export const CommunityPage = ({
     setDescriptionInput(selectedCommunity?.description ?? "");
     setVisibilityInput(selectedCommunity?.visibility ?? "public");
     setSlugInput(selectedCommunity?.slug ?? "");
+    setInvitePolicyInput(selectedCommunity?.invitePolicy ?? "admins_only");
+    setBookPolicyInput(selectedCommunity?.bookPolicy ?? "members_allowed");
+    setApprovalModeInput(selectedCommunity?.approvalMode ?? "majority");
     setIsEditingSettings(false);
-  }, [selectedCommunity?.name, selectedCommunity?.description, selectedCommunity?.visibility, selectedCommunity?.slug]);
+  }, [selectedCommunity?.name, selectedCommunity?.description, selectedCommunity?.visibility, selectedCommunity?.slug, selectedCommunity?.invitePolicy, selectedCommunity?.bookPolicy, selectedCommunity?.approvalMode]);
+
+  // Reglas del club (solo admin): guardar quién invita / añade libros / aprobación.
+  const saveRules = async () => {
+    setSavingRules(true);
+    try {
+      await onUpdateCommunity({ invitePolicy: invitePolicyInput, bookPolicy: bookPolicyInput, approvalMode: approvalModeInput });
+      onToast?.(pick(language, "Reglas actualizadas.", "Rules updated.", "Regras actualizadas."));
+    } catch (error) {
+      onToast?.(error instanceof Error ? error.message : pick(language, "No se guardó. Inténtalo otra vez.", "Couldn't save. Try again.", "Non se gardou. Inténtao outra vez."));
+    } finally {
+      setSavingRules(false);
+    }
+  };
+
+  // Baneados (solo admin).
+  const loadBans = useCallback(async () => {
+    if (!isAdmin) return;
+    try {
+      const { bans: rows } = await listBans();
+      setBans(rows);
+    } catch {
+      setBans([]);
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (isAdmin) void loadBans();
+    else setBans([]);
+  }, [isAdmin, selectedCommunity?.id, loadBans]);
+
+  const banThisMember = async (userId: string, alias: string) => {
+    const ok = await confirm({
+      title: pick(language, `¿Banear a ${alias}?`, `Ban ${alias}?`, `Banear a ${alias}?`),
+      message: pick(language, "No podrá volver a entrar aunque tenga un enlace o código.", "They won't be able to rejoin even with a link or code.", "Non poderá volver a entrar aínda que teña enlace ou código."),
+      confirmLabel: pick(language, "Banear", "Ban", "Banear"),
+      danger: true
+    });
+    if (!ok) return;
+    setBusyMemberId(userId);
+    try {
+      await banMember(userId);
+      onToast?.(pick(language, `${alias} baneado.`, `${alias} banned.`, `${alias} baneado.`));
+      await onRefreshMembers?.();
+      await loadBans();
+    } catch (error) {
+      onToast?.(error instanceof Error ? error.message : pick(language, "No se pudo banear.", "Couldn't ban.", "Non se puido banear."));
+    } finally {
+      setBusyMemberId(null);
+    }
+  };
+
+  const unbanThisUser = async (globalUserId: string) => {
+    try {
+      await unbanMember(globalUserId);
+      setBans((prev) => prev.filter((b) => b.globalUserId !== globalUserId));
+      onToast?.(pick(language, "Baneo retirado.", "Ban lifted.", "Baneo retirado."));
+    } catch (error) {
+      onToast?.(error instanceof Error ? error.message : pick(language, "No se pudo.", "Couldn't do that.", "Non se puido."));
+    }
+  };
 
   // Solicitudes de unión pendientes (solo admin, solo clubs privados).
   const loadJoinRequests = useCallback(async () => {
@@ -522,6 +590,11 @@ export const CommunityPage = ({
                         {pick(language, "Eliminar", "Remove", "Eliminar")}
                       </button>
                     ) : null}
+                    {isAdmin && !isMe && !isOwnerMember && member.role === "member" ? (
+                      <button type="button" className="btn btn-tiny btn-tiny-danger" disabled={busyThis} onClick={() => void banThisMember(member.id, member.alias)}>
+                        {pick(language, "Banear", "Ban", "Banear")}
+                      </button>
+                    ) : null}
                   </span>
                 </li>
               );
@@ -530,7 +603,58 @@ export const CommunityPage = ({
           {isAdmin && !iAmOwner ? (
             <p className="hint">{pick(language, "Para nombrar o quitar admins hace falta ser el admin principal del club.", "Promoting or removing admins is reserved for the club's owner admin.", "Para nomear ou quitar admins cómpre ser o admin principal.")}</p>
           ) : null}
+          {bans.length > 0 ? (
+            <div className="banned-block">
+              <p className="hint">{pick(language, "Baneados (no pueden volver):", "Banned (can't rejoin):", "Baneados (non poden volver):")}</p>
+              <ul className="request-list">
+                {bans.map((b) => (
+                  <li key={b.globalUserId} className="request-row">
+                    <span className="request-name">{b.username}</span>
+                    <button type="button" className="btn btn-tiny" onClick={() => void unbanThisUser(b.globalUserId)}>
+                      {pick(language, "Quitar baneo", "Unban", "Quitar baneo")}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </article>
+
+        {/* 3b · Reglas del club (permisos que decide el admin) */}
+        {isAdmin ? (
+          <article className="settings-card community-rules-card">
+            <h3><Icon name="shield" /> {pick(language, "Reglas del club", "Club rules", "Regras do club")}</h3>
+            <p className="hint">{pick(language, "Quién puede hacer qué en el club.", "Who can do what in the club.", "Quen pode facer que no club.")}</p>
+            <div className="stack community-settings-form">
+              <label className="form-field">
+                {pick(language, "Quién puede invitar gente", "Who can invite people", "Quen pode convidar xente")}
+                <select value={invitePolicyInput} onChange={(e) => setInvitePolicyInput(e.target.value as "admins_only" | "members_allowed")}>
+                  <option value="admins_only">{pick(language, "Solo admins", "Admins only", "Só admins")}</option>
+                  <option value="members_allowed">{pick(language, "Cualquier miembro", "Any member", "Calquera membro")}</option>
+                </select>
+              </label>
+              <label className="form-field">
+                {pick(language, "Quién puede proponer libros", "Who can propose books", "Quen pode propoñer libros")}
+                <select value={bookPolicyInput} onChange={(e) => setBookPolicyInput(e.target.value as "admins_only" | "members_allowed")}>
+                  <option value="members_allowed">{pick(language, "Cualquier miembro", "Any member", "Calquera membro")}</option>
+                  <option value="admins_only">{pick(language, "Solo admins", "Admins only", "Só admins")}</option>
+                </select>
+              </label>
+              <label className="form-field">
+                {pick(language, "Cómo se aprueba un libro", "How a book gets approved", "Como se aproba un libro")}
+                <select value={approvalModeInput} onChange={(e) => setApprovalModeInput(e.target.value as "majority" | "all")}>
+                  <option value="majority">{pick(language, "Por mayoría de síes", "By a majority of yes votes", "Por maioría de síes")}</option>
+                  <option value="all">{pick(language, "Por unanimidad", "Unanimously", "Por unanimidade")}</option>
+                </select>
+              </label>
+              <div className="community-settings-actions">
+                <button type="button" className="btn btn-primary btn-nav" onClick={saveRules} disabled={savingRules}>
+                  <Icon name="check" /> {pick(language, "Guardar reglas", "Save rules", "Gardar regras")}
+                </button>
+              </div>
+            </div>
+          </article>
+        ) : null}
 
         {/* 4 · Roles y moderación + Tus clubs (al final, juntos) */}
         <div className="settings-grid community-page-grid">
