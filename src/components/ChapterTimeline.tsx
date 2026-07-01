@@ -20,6 +20,7 @@ interface ChapterTimelineProps {
   lastReadChapterId?: string | null;
   numberChapters?: boolean;
   focusCommentId?: string | null;
+  spoilersOk?: boolean;
   onToggle: (chapterId: string, done: boolean) => void;
   onAddNote: (chapterId: string, text: string, kind: NoteKind, imageUrl?: string) => Promise<void>;
   onReactNote?: (noteId: string, emoji: string) => void;
@@ -276,7 +277,7 @@ const NoteCard = ({
   );
 };
 
-export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThreads, lastReadChapterId, numberChapters, focusCommentId, onToggle, onAddNote, onReactNote, onEditNote, onDeleteNote, onReplyComment, onReactComment, onEditComment, onDeleteComment, onCommentOnNote }: ChapterTimelineProps) => {
+export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThreads, lastReadChapterId, numberChapters, focusCommentId, spoilersOk = false, onToggle, onAddNote, onReactNote, onEditNote, onDeleteNote, onReplyComment, onReactComment, onEditComment, onDeleteComment, onCommentOnNote }: ChapterTimelineProps) => {
   const { language } = useI18n();
   const [openFor, setOpenFor] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
@@ -342,7 +343,8 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
         const myNotes = chapter.notes.filter((n) => n.userId === activeUserId);
         const otherNotes = chapter.notes.filter((n) => n.userId !== activeUserId);
         const chapterHasFocus = !!focusNoteId && chapter.notes.some((n) => n.id === focusNoteId);
-        let visibleNotes = chapter.doneByMe ? [...myNotes, ...otherNotes] : myNotes;
+        // spoilersOk (llegó la cita / libro terminado): se levanta el anti-spoiler.
+        let visibleNotes = chapter.doneByMe || spoilersOk ? [...myNotes, ...otherNotes] : myNotes;
         // Revela la nota objetivo de la notificación aunque sea de otro en capítulo sin leer:
         // el usuario ya forma parte de esa conversación.
         let revealedLocked = false;
@@ -353,7 +355,7 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
             revealedLocked = true;
           }
         }
-        const lockedCount = chapter.doneByMe ? 0 : otherNotes.length - (revealedLocked ? 1 : 0);
+        const lockedCount = chapter.doneByMe || spoilersOk ? 0 : otherNotes.length - (revealedLocked ? 1 : 0);
         const defaultOpen = chapter.id === lastReadChapterId || chapterHasFocus;
         const notesOpen = openOverride[chapter.id] ?? defaultOpen;
         return (

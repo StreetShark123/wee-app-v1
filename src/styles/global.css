@@ -2494,6 +2494,16 @@ textarea::placeholder {
 .reading-pace-ok { color: var(--success); font-weight: 700; }
 .reading-pace-behind { color: var(--warning); font-weight: 700; }
 
+/* Banner "hoy toca hablar": aparece cuando la cita ya llegó. */
+.discuss-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin-top: 1rem; padding: 12px 14px; border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--brand) 12%, var(--panel-0));
+  border: 1px solid color-mix(in srgb, var(--brand) 30%, var(--line));
+}
+.discuss-banner-text { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--ink-0); min-width: 0; }
+.discuss-banner-text .icon { color: var(--brand-strong); flex: 0 0 auto; }
+
 /* Onboarding como modal (reusa el chrome de readers-modal). */
 .onboarding-modal { max-width: 460px; }
 .onboarding-modal-done { width: 100%; margin-top: 12px; justify-content: center; }

@@ -354,6 +354,10 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const parsedPreview = parseChapterList(chaptersRaw);
   const daysLeft = book.targetDate ? Math.ceil((new Date(`${book.targetDate}T23:59:59`).getTime() - Date.now()) / 86400000) : null;
   const hasCadence = book.status === "reading" && (book.targetChapter || book.targetDate);
+  // Cuando la cita ya llegó (o el libro está terminado) toca hablar: se levanta el
+  // anti-spoiler y sale un banner que empuja a la conversación.
+  const meetingArrived = book.meetingAt != null && book.meetingAt <= Date.now();
+  const spoilersOk = book.status === "finished" || meetingArrived;
   // Hilos inline por nota: noteId → comentarios del hilo (raíces con ese noteId + sus
   // respuestas). El resto va a la "discusión general" de abajo.
   const noteThreads = (() => {
@@ -956,6 +960,17 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
           </section>
         ) : null}
 
+        {meetingArrived && book.status !== "proposed" ? (
+          <div className="discuss-banner">
+            <span className="discuss-banner-text">
+              <Icon name="users" size={15} /> {pick(language, `Toca hablar de «${book.title}» — sin miedo a los spoilers`, `Time to discuss “${book.title}” — spoilers welcome`, `Toca falar de «${book.title}» — sen medo aos spoilers`)}
+            </span>
+            <button type="button" className="btn btn-primary" onClick={() => document.getElementById("comments-composer")?.scrollIntoView({ behavior: "smooth", block: "center" })}>
+              {pick(language, "Ir a la conversación", "Go to the conversation", "Ir á conversa")}
+            </button>
+          </div>
+        ) : null}
+
         {book.status === "reading" || book.status === "finished" ? (
           <MeetingCard
             book={book}
@@ -989,12 +1004,12 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                   <p className="chapter-alldone"><Icon name="check" /> {pick(language, "Has leído todos los capítulos.", "You've read every chapter.", "Liches todos os capítulos.")}</p>
                   <details className="chapter-collapsed">
                     <summary>{pick(language, `Ver los ${total} capítulos`, `Show the ${total} chapters`, `Ver os ${total} capítulos`)}</summary>
-                    <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} members={clubMembers} noteThreads={noteThreads} lastReadChapterId={lastReadChapterId} numberChapters={book.numberChapters !== false} focusCommentId={focusCommentId} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} onReplyComment={handleReply} onReactComment={handleReact} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onCommentOnNote={handleCommentOnNote} />
+                    <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} members={clubMembers} noteThreads={noteThreads} lastReadChapterId={lastReadChapterId} numberChapters={book.numberChapters !== false} focusCommentId={focusCommentId} spoilersOk={spoilersOk} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} onReplyComment={handleReply} onReactComment={handleReact} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onCommentOnNote={handleCommentOnNote} />
                   </details>
                 </>
               ) : (
                 <>
-                  <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} members={clubMembers} noteThreads={noteThreads} lastReadChapterId={lastReadChapterId} numberChapters={book.numberChapters !== false} focusCommentId={focusCommentId} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} onReplyComment={handleReply} onReactComment={handleReact} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onCommentOnNote={handleCommentOnNote} />
+                  <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} members={clubMembers} noteThreads={noteThreads} lastReadChapterId={lastReadChapterId} numberChapters={book.numberChapters !== false} focusCommentId={focusCommentId} spoilersOk={spoilersOk} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} onReplyComment={handleReply} onReactComment={handleReact} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onCommentOnNote={handleCommentOnNote} />
                   <button
                     type="button"
                     className="btn chapter-mark-all"
