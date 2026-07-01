@@ -582,47 +582,60 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
         </div>
 
         <section className="page-section book-detail-head">
-          <div className="book-cover-wrap">
-            {isAdmin && !editOpen ? (
-              <button type="button" className="book-edit-corner" onClick={openEdit} aria-label={pick(language, "Editar libro", "Edit book", "Editar libro")} title={pick(language, "Editar", "Edit", "Editar")}>
-                <Icon name="pencil" size={14} />
-              </button>
-            ) : null}
-            {book.coverUrl ? (
-              <button type="button" className="book-cover book-cover-lg book-cover-btn" onClick={() => setCoverLightbox(true)} aria-label={pick(language, "Ver portada", "View cover", "Ver portada")}>
-                <img src={book.coverUrl} alt="" />
-              </button>
-            ) : (
-              <span className="book-cover book-cover-lg book-cover-empty" aria-hidden="true">
-                <Icon name="book" />
-              </span>
-            )}
-          </div>
           {coverLightbox && book.coverUrl ? <ImageLightbox url={book.coverUrl} onClose={() => setCoverLightbox(false)} showVisit={false} /> : null}
           {readersOpen ? <ReadersModal members={members} total={total} bookStatus={book.status} clubMembers={clubMembers} onClose={() => setReadersOpen(false)} /> : null}
-          <div className="book-detail-meta">
-            <div className="book-status-row">
-              <span className={`book-card-status book-card-status-${book.status}`}>{statusLabel(book.status, language)}</span>
-              {book.featured === "gold" ? (
-                <span className="book-featured-tag"><Icon name="star" size={12} /> {pick(language, "Destacado", "Featured", "Destacado")}</span>
+
+          <div className="book-head-top">
+            <div className="book-head-info">
+              <div className="book-status-row">
+                <span className={`book-card-status book-card-status-${book.status}`}>{statusLabel(book.status, language)}</span>
+                {book.featured === "gold" ? (
+                  <span className="book-featured-tag"><Icon name="star" size={12} /> {pick(language, "Destacado", "Featured", "Destacado")}</span>
+                ) : null}
+              </div>
+              <h1>{book.title}</h1>
+              <p className="book-detail-author">
+                {book.author ? (
+                  book.authorUrl ? (
+                    <a className="book-author-link" href={book.authorUrl} target="_blank" rel="noopener noreferrer nofollow" title={pick(language, `Más sobre ${book.author}`, `More about ${book.author}`, `Máis sobre ${book.author}`)}>
+                      {book.author}
+                    </a>
+                  ) : (
+                    book.author
+                  )
+                ) : (
+                  pick(language, "Autor desconocido", "Unknown author", "Autor descoñecido")
+                )}
+              </p>
+              {book.publishedYear || book.pageCount ? (
+                <p className="book-detail-metaline">
+                  {[
+                    book.publishedYear ? String(book.publishedYear) : null,
+                    book.pageCount ? pick(language, `${book.pageCount} págs.`, `${book.pageCount} pp.`, `${book.pageCount} páxs.`) : null
+                  ].filter(Boolean).join(" · ")}
+                </p>
               ) : null}
             </div>
-            <h1>{book.title}</h1>
-            <p className="book-detail-author">
-              {book.author ? (
-                book.authorUrl ? (
-                  <a className="book-author-link" href={book.authorUrl} target="_blank" rel="noopener noreferrer nofollow" title={pick(language, `Más sobre ${book.author}`, `More about ${book.author}`, `Máis sobre ${book.author}`)}>
-                    {book.author}
-                  </a>
-                ) : (
-                  book.author
-                )
+
+            <div className="book-cover-wrap">
+              {isAdmin && !editOpen ? (
+                <button type="button" className="book-edit-corner" onClick={openEdit} aria-label={pick(language, "Editar libro", "Edit book", "Editar libro")} title={pick(language, "Editar", "Edit", "Editar")}>
+                  <Icon name="pencil" size={14} />
+                </button>
+              ) : null}
+              {book.coverUrl ? (
+                <button type="button" className="book-cover book-cover-lg book-cover-btn" onClick={() => setCoverLightbox(true)} aria-label={pick(language, "Ver portada", "View cover", "Ver portada")}>
+                  <img src={book.coverUrl} alt="" />
+                </button>
               ) : (
-                pick(language, "Autor desconocido", "Unknown author", "Autor descoñecido")
+                <span className="book-cover book-cover-lg book-cover-empty" aria-hidden="true">
+                  <Icon name="book" />
+                </span>
               )}
-              {book.publishedYear ? <span className="book-detail-meta"> · {book.publishedYear}</span> : null}
-              {book.pageCount ? <span className="book-detail-meta"> · {pick(language, `${book.pageCount} págs.`, `${book.pageCount} pp.`, `${book.pageCount} páxs.`)}</span> : null}
-            </p>
+            </div>
+          </div>
+
+          <div className="book-head-rest">
             {(book.status === "reading" || book.status === "finished") && members.length > 0 ? (
               <button type="button" className="book-readers-row" onClick={() => setReadersOpen(true)} aria-label={pick(language, "Ver quién lo está leyendo", "See who's reading it", "Ver quen o está lendo")}>
                 <span className="book-readers-stack">

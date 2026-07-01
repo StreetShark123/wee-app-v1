@@ -3383,15 +3383,36 @@ textarea:focus-visible {
 }
 .book-action-bar { margin-bottom: -2px; }
 
+/* Cabecera: fila 1 (info a la izquierda | portada a la derecha) + fila 2
+   (descripción y demás, a todo el ancho). En móvil pasa a una columna con la
+   portada arriba (ver media query más abajo). */
 .book-detail-head {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.book-head-top {
   display: grid;
-  grid-template-columns: 1fr 84px;   /* texto ancho a la izquierda, portada pequeña a la derecha */
+  grid-template-columns: minmax(0, 1fr) 96px;
   gap: var(--sp-4);
   align-items: start;
 }
-.book-detail-head .book-detail-meta { grid-column: 1; grid-row: 1; }
-.book-cover-wrap { position: relative; grid-column: 2; grid-row: 1; }
+.book-head-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+.book-cover-wrap {
+  position: relative;
+  width: 96px;
+}
+.book-head-rest {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
 /* Estrella de destacado como tag junto al estado (ya no va sobre la portada). */
 .book-featured-tag {
   display: inline-flex; align-items: center; gap: 4px;
@@ -3427,13 +3448,14 @@ textarea:focus-visible {
   min-width: 0;
 }
 
-.book-detail-meta h1 {
+.book-head-info h1 {
   font-size: 1.4rem;
   line-height: 1.2;
   margin: 0;
 }
 
 .book-detail-author {
+  margin: 0;
   color: var(--ink-1);
   font-style: italic;
 }
@@ -3443,7 +3465,12 @@ textarea:focus-visible {
   text-underline-offset: 2px;
 }
 .book-author-link:hover { color: var(--brand); }
-.book-detail-meta { font-style: normal; color: var(--ink-1); }
+/* Año · páginas: una sola línea (antes colisionaba con .book-detail-meta). */
+.book-detail-metaline {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ink-1);
+}
 
 .book-detail-synopsis p {
   color: var(--ink-0);
@@ -3608,11 +3635,11 @@ textarea:focus-visible {
   line-height: 1.45;
 }
 
-@media (max-width: 520px) {
-  .book-detail-head {
-    grid-template-columns: 76px 1fr;
-    gap: 12px;
-  }
+@media (max-width: 560px) {
+  /* Móvil: una columna. Portada arriba (order -1), luego info; la descripción
+     queda debajo por el orden natural de .book-head-rest. */
+  .book-head-top { grid-template-columns: minmax(0, 1fr); }
+  .book-cover-wrap { order: -1; width: 116px; }
 }
 
 /* ───────────────────────────── Timeline de capítulos ────────────────────────── */
