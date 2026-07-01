@@ -1,6 +1,6 @@
 import React, { Suspense, lazy } from "react";
 import ReactDOM from "react-dom/client";
-import { LazyMotion } from "framer-motion";
+import { LazyMotion, MotionConfig } from "framer-motion";
 import App from "./App";
 import { ConfirmProvider } from "./lib/confirm";
 import { isAnalyticsOptedOut } from "./lib/usageAnalytics";
@@ -35,9 +35,11 @@ const Analytics = lazy(async () => ({ default: (await import("@vercel/analytics/
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <LazyMotion features={loadMotionFeatures}>
-      <ConfirmProvider>
-        <App />
-      </ConfirmProvider>
+      <MotionConfig reducedMotion="user">
+        <ConfirmProvider>
+          <App />
+        </ConfirmProvider>
+      </MotionConfig>
     </LazyMotion>
     {!isAnalyticsOptedOut() ? (
       <Suspense fallback={null}>
