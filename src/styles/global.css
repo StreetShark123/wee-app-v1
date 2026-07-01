@@ -2991,6 +2991,25 @@ textarea:focus-visible {
   background: var(--panel-1);
 }
 
+/* Propuesta descartada: portada apagada en gris + etiqueta roja. */
+.book-card-rejected { opacity: 0.7; }
+.book-card-rejected .book-card-cover { filter: grayscale(1) contrast(0.9); }
+.book-card-rejected .book-card-title { text-decoration: line-through; text-decoration-color: var(--stamp); }
+.book-card-rejected-tag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  font-family: var(--font-type);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: var(--stamp);
+  border-radius: var(--radius-pill);
+  padding: 2px 7px;
+}
+
 .book-card-cover-empty {
   display: grid;
   place-items: center;

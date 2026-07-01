@@ -48,15 +48,20 @@ export const BookCard = memo(({ book, member, onOpen }: BookCardProps) => {
   return (
     <button
       type="button"
-      className={`book-card${book.featured === "gold" ? " book-card-featured-gold" : ""}${mine ? " book-card-mine" : ""}`}
+      className={`book-card${book.featured === "gold" ? " book-card-featured-gold" : ""}${mine ? " book-card-mine" : ""}${book.status === "rejected" ? " book-card-rejected" : ""}`}
       onClick={() => onOpen?.(book)}
-      aria-label={mine ? pick(language, `${book.title} (lo estás leyendo)`, `${book.title} (you're reading it)`, `${book.title} (estalo a ler)`) : book.title}
+      aria-label={book.status === "rejected"
+        ? pick(language, `${book.title} (propuesta descartada)`, `${book.title} (proposal declined)`, `${book.title} (proposta descartada)`)
+        : mine ? pick(language, `${book.title} (lo estás leyendo)`, `${book.title} (you're reading it)`, `${book.title} (estalo a ler)`) : book.title}
     >
       {book.featured === "gold" ? (
         <span className="book-ribbon" aria-label={pick(language, "Lectura principal del club", "Club's main read", "Lectura principal do club")} title={pick(language, "Lectura principal", "Main read", "Lectura principal")} />
       ) : null}
       {book.status === "proposed" && book.votes && book.votes.yes > 0 ? (
         <span className="book-vote-badge"><Icon name="check" size={11} /> {book.votes.yes}</span>
+      ) : null}
+      {book.status === "rejected" ? (
+        <span className="book-card-rejected-tag">{pick(language, "descartado", "declined", "descartado")}</span>
       ) : null}
       {book.coverUrl ? (
         <img className="book-card-cover" src={book.coverUrl} alt="" loading="lazy" />
