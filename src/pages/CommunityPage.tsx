@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { TopBar } from "../components/TopBar";
 import { Icon } from "../components/Icon";
+import { WeeMark } from "../components/WeeMark";
 import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { listJoinRequests, decideJoinRequest, listInvites, revokeInvite, type JoinRequestItem, type CommunityInvite } from "../lib/communityApi";
@@ -197,8 +198,8 @@ export const CommunityPage = ({
     try {
       if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
         await navigator.share({
-          title: pick(language, "Invitación a Wee", "Wee invite", "Invitación a Wee"),
-          text: pick(language, "Únete a nuestro club de lectura en Wee.", "Join our Wee community.", "Únete á nosa comunidade en Wee."),
+          title: pick(language, "Nuestro club de lectura en Wee", "Our reading club on Wee", "O noso club de lectura en Wee"),
+          text: pick(language, "Lee, comparte y comenta con quien tú quieres.", "Read, share and comment with whoever you want.", "Le, comparte e comenta con quen ti queiras."),
           url
         });
         onToast?.(pick(language, "Invitación compartida.", "Invite shared.", "Invitación compartida."));
@@ -395,7 +396,7 @@ export const CommunityPage = ({
 
         {/* 2 · Invitar gente — accesible y destacado */}
         <article className="settings-card community-invite-card">
-          <h3><Icon name="link" /> {pick(language, "Invitar gente", "Invite people", "Convidar xente")}</h3>
+          <h3><WeeMark size={20} /> {pick(language, "Invitar gente", "Invite people", "Convidar xente")}</h3>
           <p className="hint">
             {selectedCommunity?.visibility === "invite"
               ? pick(language, "Club cerrado: comparte el enlace y un código de invitación.", "Invite-only club: share the link and an invite code.", "Club pechado: comparte a ligazón e un código de invitación.")

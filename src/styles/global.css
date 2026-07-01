@@ -2295,6 +2295,12 @@ textarea::placeholder {
 .invite-code-chip:has(.invite-url) { gap: 8px; }
 .invite-code-hint { display: inline-flex; align-items: center; gap: 4px; font-size: 0.74rem; color: var(--ink-1); flex: 0 0 auto; }
 
+/* Marca Wee (W en cuadrado de papel) */
+.wee-mark { flex: 0 0 auto; vertical-align: middle; }
+.wee-mark-square { fill: var(--panel-1); }
+.wee-mark-border { fill: none; stroke: var(--line); stroke-width: 1.5; }
+.wee-mark-w { font-family: var(--font-type); font-size: 40px; fill: var(--ink-0); }
+
 /* Generar código (clubs cerrados) */
 .invite-code-block { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
 .invite-code-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
