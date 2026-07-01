@@ -2297,6 +2297,10 @@ textarea::placeholder {
 
 /* Generar código (clubs cerrados) */
 .invite-code-block { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.invite-code-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.invite-code-row { display: flex; align-items: stretch; gap: 6px; }
+.invite-code-row .invite-code-chip { flex: 1 1 auto; }
+.invite-code-value.is-expired { text-decoration: line-through; color: var(--ink-1); }
 
 /* Visibilidad del club: tres opciones tipo ficha */
 .visibility-options { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }

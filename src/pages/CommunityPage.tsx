@@ -4,7 +4,7 @@ import { TopBar } from "../components/TopBar";
 import { Icon } from "../components/Icon";
 import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
-import { listJoinRequests, decideJoinRequest, type JoinRequestItem } from "../lib/communityApi";
+import { listJoinRequests, decideJoinRequest, listInvites, revokeInvite, type JoinRequestItem, type CommunityInvite } from "../lib/communityApi";
 import type { User } from "../lib/types";
 
 interface CommunityPageProps {
@@ -62,7 +62,7 @@ export const CommunityPage = ({
   const [slugInput, setSlugInput] = useState(selectedCommunity?.slug ?? "");
   const [joinRequests, setJoinRequests] = useState<JoinRequestItem[]>([]);
   const [busyRequestId, setBusyRequestId] = useState<string | null>(null);
-  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [invites, setInvites] = useState<CommunityInvite[]>([]);
   const [generatingCode, setGeneratingCode] = useState(false);
   const otherCommunities = communities.filter((entry) => entry.community_id !== selectedCommunity?.id);
 
@@ -151,15 +151,39 @@ export const CommunityPage = ({
   };
 
 
+  const loadInvites = useCallback(async () => {
+    try {
+      const { invites: rows } = await listInvites();
+      setInvites(rows);
+    } catch {
+      setInvites([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAdmin && selectedCommunity?.visibility === "invite") void loadInvites();
+    else setInvites([]);
+  }, [isAdmin, selectedCommunity?.id, selectedCommunity?.visibility, loadInvites]);
+
   const generateCode = async () => {
     setGeneratingCode(true);
     try {
-      const invite = await onCreateInvite();
-      setInviteCode(invite.code);
+      await onCreateInvite();
+      await loadInvites();
     } catch (error) {
       onToast?.(error instanceof Error ? error.message : pick(language, "No se pudo generar el código.", "Couldn't generate the code.", "Non se puido xerar o código."));
     } finally {
       setGeneratingCode(false);
+    }
+  };
+
+  const revokeCode = async (inviteId: string) => {
+    try {
+      await revokeInvite(inviteId);
+      setInvites((prev) => prev.filter((i) => i.id !== inviteId));
+      onToast?.(pick(language, "Código anulado.", "Code revoked.", "Código anulado."));
+    } catch (error) {
+      onToast?.(error instanceof Error ? error.message : pick(language, "No se pudo anular.", "Couldn't revoke.", "Non se puido anular."));
     }
   };
 
@@ -400,16 +424,32 @@ export const CommunityPage = ({
             )}
             {selectedCommunity?.visibility === "invite" && isAdmin ? (
               <div className="invite-code-block">
-                {inviteCode ? (
-                  <button type="button" className="invite-code-chip" onClick={() => copy(inviteCode, pick(language, "Código", "Code", "Código"))} title={pick(language, "Tocar para copiar", "Tap to copy", "Tocar para copiar")}>
-                    <span className="invite-code-value">{inviteCode}</span>
-                    <span className="invite-code-hint"><Icon name="copy" size={12} /> {pick(language, "copiar código", "copy code", "copiar código")}</span>
-                  </button>
-                ) : null}
+                {invites.length > 0 ? (
+                  <ul className="invite-code-list">
+                    {invites.map((inv) => {
+                      const expired = !!inv.expiresAt && Date.parse(inv.expiresAt) < Date.now();
+                      return (
+                        <li key={inv.id} className="invite-code-row">
+                          <button type="button" className="invite-code-chip" onClick={() => copy(inv.code, pick(language, "Código", "Code", "Código"))} title={pick(language, "Tocar para copiar", "Tap to copy", "Tocar para copiar")}>
+                            <span className={`invite-code-value${expired ? " is-expired" : ""}`}>{inv.code}</span>
+                            <span className="invite-code-hint">
+                              {expired
+                                ? pick(language, "caducado", "expired", "caducado")
+                                : <><Icon name="copy" size={12} /> {pick(language, "copiar", "copy", "copiar")}</>}
+                            </span>
+                          </button>
+                          <button type="button" className="btn btn-icon-compact request-decline" onClick={() => void revokeCode(inv.id)} title={pick(language, "Anular código", "Revoke code", "Anular código")} aria-label={pick(language, "Anular código", "Revoke code", "Anular código")}>
+                            <Icon name="x" size={15} />
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className="hint">{pick(language, "Aún no hay códigos. Genera uno para invitar.", "No codes yet. Generate one to invite.", "Aínda non hai códigos. Xera un para convidar.")}</p>
+                )}
                 <button type="button" className="btn btn-nav" onClick={() => void generateCode()} disabled={generatingCode}>
-                  <Icon name="dice" /> {inviteCode
-                    ? pick(language, "Nuevo código", "New code", "Novo código")
-                    : pick(language, "Generar código de invitación", "Generate invite code", "Xerar código de invitación")}
+                  <Icon name="dice" /> {pick(language, "Generar código de invitación", "Generate invite code", "Xerar código de invitación")}
                 </button>
               </div>
             ) : null}

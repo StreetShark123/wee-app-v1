@@ -20,6 +20,7 @@ interface CommunitiesPickerPageProps {
     description?: string;
     rulesText?: string;
     invitePolicy: "admins_only" | "members_allowed";
+    visibility?: "public" | "private" | "invite";
   }) => Promise<CommunitySelection>;
   onSaveSettings: (input: { defaultCommunityId?: string | null; skipPicker?: boolean }) => Promise<void>;
   onLogout: () => Promise<void>;
@@ -45,6 +46,7 @@ export const CommunitiesPickerPage = ({
   const [communityName, setCommunityName] = useState("");
   const [communityDescription, setCommunityDescription] = useState("");
   const [invitePolicy, setInvitePolicy] = useState<"admins_only" | "members_allowed">("admins_only");
+  const [visibility, setVisibility] = useState<"public" | "private" | "invite">("public");
   const [persistChoice, setPersistChoice] = useState(Boolean(skipPicker));
   const [creatingCommunity, setCreatingCommunity] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -112,6 +114,7 @@ export const CommunitiesPickerPage = ({
         name: communityName.trim(),
         description: communityDescription.trim() || undefined,
         invitePolicy,
+        visibility,
         rulesText: undefined
       });
       await onReload();
@@ -244,6 +247,13 @@ export const CommunitiesPickerPage = ({
             >
               <label className="form-field">{pick(language, "Nombre", "Name", "Nome")}<input value={communityName} onChange={(event) => setCommunityName(event.target.value)} /></label>
               <label className="form-field">{pick(language, "Descripción", "Description", "Descrición")}<input value={communityDescription} onChange={(event) => setCommunityDescription(event.target.value)} /></label>
+              <label className="form-field">{pick(language, "Visibilidad", "Visibility", "Visibilidade")}
+                <select value={visibility} onChange={(event) => setVisibility(event.target.value as "public" | "private" | "invite")}>
+                  <option value="public">{pick(language, "Público — cualquiera con el enlace entra", "Public — anyone with the link joins", "Público — calquera coa ligazón entra")}</option>
+                  <option value="private">{pick(language, "Privado — hay que solicitar entrada", "Private — people request to join", "Privado — hai que solicitar entrada")}</option>
+                  <option value="invite">{pick(language, "Cerrado — solo con código", "Invite-only — code required", "Pechado — só con código")}</option>
+                </select>
+              </label>
               <label className="form-field">{pick(language, "Invitaciones", "Invites", "Invitacións")}
                 <select value={invitePolicy} onChange={(event) => setInvitePolicy(event.target.value as "admins_only" | "members_allowed")}>
                   <option value="admins_only">{pick(language, "Solo admins", "Admins only", "Só admins")}</option>

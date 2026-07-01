@@ -1051,6 +1051,7 @@ const handlers = {
     const description = String(body.description ?? "").trim() || null;
     const rulesText = String(body.rules_text ?? "").trim() || null;
     const invitePolicy: InvitePolicy = body.invite_policy === "members_allowed" ? "members_allowed" : "admins_only";
+    const visibility = ["public", "private", "invite"].includes(body.visibility) ? body.visibility : "public";
     const code = normalizeCode(String(body.code ?? randomCode()));
     const expiresAt = body.invite_expires_at ? new Date(String(body.invite_expires_at)).toISOString() : null;
 
@@ -1064,7 +1065,7 @@ const handlers = {
 
     const createCommunityRes = await db
       .from("communities")
-      .insert({ name, name_norm: normalizeCommunityName(name), description, rules_text: rulesText, invite_policy: invitePolicy, slug: await uniqueSlug(name), visibility: "public" })
+      .insert({ name, name_norm: normalizeCommunityName(name), description, rules_text: rulesText, invite_policy: invitePolicy, slug: await uniqueSlug(name), visibility })
       .select("id,name,description,slug,visibility")
       .single();
     if (createCommunityRes.error || !createCommunityRes.data) {
@@ -1668,6 +1669,29 @@ const handlers = {
       .eq("community_id", auth.community.id)
       .is("revoked_at", null);
     return json(200, { ok: true });
+  },
+
+  "/community/invite/list": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    if (!canManageInvites(auth.role, auth.community.invite_policy)) {
+      return json(403, { message: "Invite policy forbids this action" });
+    }
+    // Solo códigos vivos (no revocados). El cliente sabe si están caducados por expires_at.
+    const { data } = await db
+      .from("community_invites")
+      .select("id,code,expires_at,created_at")
+      .eq("community_id", auth.community.id)
+      .is("revoked_at", null)
+      .order("created_at", { ascending: false });
+    return json(200, {
+      invites: (data ?? []).map((i: Record<string, unknown>) => ({
+        id: i.id,
+        code: i.code,
+        expiresAt: i.expires_at ?? null,
+        createdAt: i.created_at ?? null
+      }))
+    });
   },
 
   "/data/bootstrap": async (req: Request) => {

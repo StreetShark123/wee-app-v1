@@ -193,6 +193,7 @@ export const createCommunity = async (input: {
   description?: string;
   rules_text?: string;
   invite_policy: "admins_only" | "members_allowed";
+  visibility?: "public" | "private" | "invite";
   code?: string;
   invite_expires_at?: string;
 }): Promise<CommunityPreviewResponse> => {
@@ -333,6 +334,16 @@ export const leaveCommunity = async (): Promise<void> => {
 
 export const createInvite = async (input?: { code?: string; expires_at?: string }): Promise<{ id: string; code: string; token: string; link: string }> =>
   request<{ id: string; code: string; token: string; link: string }>("/community/invite/create", input ?? {});
+
+export interface CommunityInvite {
+  id: string;
+  code: string;
+  expiresAt?: string | null;
+  createdAt?: string | null;
+}
+
+export const listInvites = async (): Promise<{ invites: CommunityInvite[] }> =>
+  request<{ invites: CommunityInvite[] }>("/community/invite/list", {});
 
 export const revokeInvite = async (inviteId: string): Promise<void> => {
   await request<{ ok: true }>("/community/invite/revoke", { invite_id: inviteId });

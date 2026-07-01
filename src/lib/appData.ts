@@ -344,13 +344,14 @@ export const useAppData = () => {
 
   const createCommunityFlow = useCallback(
     async (
-      input: { name: string; description?: string; rulesText?: string; invitePolicy: "admins_only" | "members_allowed"; inviteExpiry?: string }
+      input: { name: string; description?: string; rulesText?: string; invitePolicy: "admins_only" | "members_allowed"; visibility?: "public" | "private" | "invite"; inviteExpiry?: string }
     ): Promise<{ id: string; name: string; description?: string; inviteCode?: string; inviteToken?: string }> => {
       const created = await createCommunity({
         name: input.name,
         description: input.description,
         rules_text: input.rulesText,
         invite_policy: input.invitePolicy,
+        visibility: input.visibility,
         invite_expires_at: input.inviteExpiry
       });
       const selected: CommunitySelection = {
