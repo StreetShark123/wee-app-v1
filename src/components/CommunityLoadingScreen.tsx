@@ -1,9 +1,6 @@
 import { m } from "framer-motion";
 
 interface CommunityLoadingScreenProps {
-  communityName?: string;
-  topics?: string[];
-  usersCount?: number;
   finishing?: boolean;
 }
 

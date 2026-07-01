@@ -675,11 +675,7 @@ const AppRoutes = () => {
           onToast={showToast}
         />
         {showLoadingOverlay ? (
-          <CommunityLoadingScreen
-            communityName={selectedCommunity?.name}
-            usersCount={users.length}
-            finishing={loaderFinishing}
-          />
+          <CommunityLoadingScreen finishing={loaderFinishing} />
         ) : null}
       </NotificationsContext.Provider>
     </I18nContext.Provider>

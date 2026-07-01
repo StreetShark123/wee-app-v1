@@ -270,12 +270,7 @@ export const CommunitiesPickerPage = ({
         {error ? <p className="error community-picker-error">{error}</p> : null}
       </section>
       {loadingId ? (
-        <CommunityLoadingScreen
-          communityName={enteringCommunityName ?? undefined}
-          topics={[]}
-          usersCount={0}
-          finishing={false}
-        />
+        <CommunityLoadingScreen finishing={false} />
       ) : null}
     </main>
   );
