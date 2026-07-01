@@ -3233,6 +3233,26 @@ textarea:focus-visible {
   line-height: 1.6;
   margin: 0;
 }
+/* Colapsada: recorta a 5 líneas; el toggle "ver más/menos" la abre y la cierra. */
+.book-detail-synopsis:not(.is-open) p {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+  overflow: hidden;
+}
+.book-synopsis-toggle {
+  margin-top: 6px;
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--brand-strong);
+  cursor: pointer;
+}
+.book-synopsis-toggle:hover { text-decoration: underline; }
 .book-detail-synopsis p::first-letter {
   float: left;
   font-weight: 500;
