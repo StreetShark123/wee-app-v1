@@ -310,7 +310,15 @@ const AppRoutes = () => {
     void reloadNotifications();
     const onFocus = () => void reloadNotifications();
     window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+    // Sondeo periódico para que lleguen sin tener que refocalizar la pestaña.
+    // Solo cuando la pestaña está visible (no gastar en background).
+    const poll = window.setInterval(() => {
+      if (!document.hidden) void reloadNotifications();
+    }, 45000);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      window.clearInterval(poll);
+    };
   }, [reloadNotifications]);
 
   const markAllNotificationsAsRead = useCallback((): void => {

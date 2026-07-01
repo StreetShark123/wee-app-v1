@@ -253,6 +253,13 @@ const ownerOf = async (communityId: string): Promise<string | null> => {
   return (data?.created_by_user_id as string | undefined) ?? null;
 };
 
+// Errores de BD: loguea el detalle real en servidor y devuelve un mensaje
+// genérico. Evita filtrar nombres de columnas/constraints de Postgres al cliente.
+const dbFail = (status: number, err: unknown, clientMessage = "Something went wrong"): Response => {
+  console.error("[community-api] db error:", err instanceof Error ? err.message : err);
+  return json(status, { message: clientMessage });
+};
+
 const canManageInvites = (role: Role, policy: InvitePolicy): boolean => role === "admin" || policy === "members_allowed";
 
 const parseBody = async (req: Request): Promise<Record<string, any>> => {
@@ -366,6 +373,28 @@ const activeMemberIdSet = async (communityId: string): Promise<Set<string>> => {
   return new Set((res.data ?? []).map((r: Record<string, any>) => String(r.id)));
 };
 
+// Inserta notificaciones (best-effort: nunca rompe la acción que las dispara).
+const notify = async (
+  communityId: string,
+  rows: Array<{ user_id: string; kind: string; actor_id?: string | null; book_id?: string | null; text?: string | null }>
+): Promise<void> => {
+  if (!rows.length) return;
+  try {
+    await db.from("notifications").insert(
+      rows.map((r) => ({
+        community_id: communityId,
+        user_id: r.user_id,
+        actor_id: r.actor_id ?? null,
+        kind: r.kind,
+        book_id: r.book_id ?? null,
+        text: r.text ?? null
+      }))
+    );
+  } catch {
+    // best-effort
+  }
+};
+
 const recomputeBookStatus = async (communityId: string, bookId: string): Promise<string> => {
   const [bookRes, memberRes, active] = await Promise.all([
     db.from("books").select("status").eq("community_id", communityId).eq("id", bookId).maybeSingle(),
@@ -387,6 +416,10 @@ const recomputeBookStatus = async (communityId: string, bookId: string): Promise
   const allFinished = readers.length > 0 && readers.every((m: Record<string, any>) => m.shelf === "finished");
   const status = allFinished ? "finished" : "reading";
   await db.from("books").update({ status }).eq("community_id", communityId).eq("id", bookId);
+  if (current !== "finished" && status === "finished") {
+    // El club entero terminó el libro: avisa a todos los activos.
+    await notify(communityId, [...active].map((uid) => ({ user_id: uid, kind: "book_finished", book_id: bookId })));
+  }
   return status;
 };
 
@@ -801,7 +834,7 @@ const handlers = {
       .select("id")
       .eq("username_norm", usernameNorm)
       .maybeSingle();
-    if (exists.error) return json(400, { message: exists.error.message });
+    if (exists.error) return dbFail(400, exists.error);
     if (exists.data) return json(409, { message: "USERNAME_EXISTS" });
 
     const inserted = await db
@@ -825,7 +858,7 @@ const handlers = {
       created_at: nowIso(),
       expires_at: expiresAt
     });
-    if (sErr.error) return json(500, { message: sErr.error.message });
+    if (sErr.error) return dbFail(500, sErr.error);
 
     return json(
       200,
@@ -873,7 +906,7 @@ const handlers = {
       created_at: nowIso(),
       expires_at: expiresAt
     });
-    if (sErr.error) return json(500, { message: sErr.error.message });
+    if (sErr.error) return dbFail(500, sErr.error);
 
     const settingsRes = await db
       .from("user_settings")
@@ -912,7 +945,7 @@ const handlers = {
       .select("community_id,status")
       .eq("user_id", globalAuth.user.id)
       .eq("status", "active");
-    if (membershipsRes.error) return json(500, { message: membershipsRes.error.message });
+    if (membershipsRes.error) return dbFail(500, membershipsRes.error);
 
     const communityIds = (membershipsRes.data ?? []).map((entry: any) => String(entry.community_id));
     let communityById = new Map<string, { name: string; description?: string }>();
@@ -931,8 +964,8 @@ const handlers = {
           .eq("user_id", globalAuth.user.id)
           .in("community_id", communityIds)
       ]);
-      if (communitiesRes.error) return json(500, { message: communitiesRes.error.message });
-      if (profilesRes.error) return json(500, { message: profilesRes.error.message });
+      if (communitiesRes.error) return dbFail(500, communitiesRes.error);
+      if (profilesRes.error) return dbFail(500, profilesRes.error);
 
       communityById = new Map(
         (communitiesRes.data ?? []).map((entry: any) => [
@@ -955,7 +988,7 @@ const handlers = {
           .select("community_id,user_id,role")
           .in("community_id", communityIds)
           .in("user_id", communityUserIds);
-        if (rolesRes.error) return json(500, { message: rolesRes.error.message });
+        if (rolesRes.error) return dbFail(500, rolesRes.error);
         roleByCommunityId = new Map(
           (rolesRes.data ?? []).map((entry: any) => [String(entry.community_id), (entry.role ?? "member") as Role])
         );
@@ -995,7 +1028,7 @@ const handlers = {
       updated_at: nowIso()
     };
     const result = await db.from("user_settings").upsert(payload, { onConflict: "user_id" });
-    if (result.error) return json(400, { message: result.error.message });
+    if (result.error) return dbFail(400, result.error);
     return json(200, { settings: { default_community_id: payload.default_community_id ?? undefined, skip_picker: payload.skip_picker } });
   },
 
@@ -1060,7 +1093,7 @@ const handlers = {
         return json(409, { message: "COMMUNITY_NAME_EXISTS" });
       }
     } catch (error) {
-      return json(500, { message: error instanceof Error ? error.message : "Could not validate community name" });
+      return json(500, { message: "Could not validate community name" });
     }
 
     const createCommunityRes = await db
@@ -1086,7 +1119,7 @@ const handlers = {
       { community_id: communityId, user_id: profileRes.data.community_user_id, role: "admin" },
       { onConflict: "community_id,user_id" }
     );
-    if (roleUpsert.error) return json(500, { message: roleUpsert.error.message });
+    if (roleUpsert.error) return dbFail(500, roleUpsert.error);
     // El creador es el "admin principal" (owner) del club.
     await db.from("communities").update({ created_by_user_id: profileRes.data.community_user_id }).eq("id", communityId).is("created_by_user_id", null);
 
@@ -1098,7 +1131,7 @@ const handlers = {
       created_at: nowIso(),
       expires_at: expiresAt
     });
-    if (inviteInsert.error) return json(500, { message: inviteInsert.error.message });
+    if (inviteInsert.error) return dbFail(500, inviteInsert.error);
 
     return json(200, {
       community_id: communityId,
@@ -1178,7 +1211,7 @@ const handlers = {
       },
       { onConflict: "community_id,user_id" }
     );
-    if (memberUpsert.error) return json(400, { message: memberUpsert.error.message });
+    if (memberUpsert.error) return dbFail(400, memberUpsert.error);
 
     await ensureCommunityProfileForGlobalUser(communityId, globalAuth.user);
 
@@ -1250,7 +1283,7 @@ const handlers = {
       { community_id: comm.id, user_id: globalAuth.user.id, status: "active" },
       { onConflict: "community_id,user_id" }
     );
-    if (memberUpsert.error) return json(400, { message: memberUpsert.error.message });
+    if (memberUpsert.error) return dbFail(400, memberUpsert.error);
     await ensureCommunityProfileForGlobalUser(comm.id, globalAuth.user);
     return json(200, {
       community_id: comm.id,
@@ -1296,7 +1329,7 @@ const handlers = {
       { community_id: comm.id, user_id: globalAuth.user.id, status: "pending", created_at: nowIso(), decided_at: null, decided_by: null },
       { onConflict: "community_id,user_id" }
     );
-    if (up.error) return json(400, { message: up.error.message });
+    if (up.error) return dbFail(400, up.error);
     return json(200, { requested: true });
   },
 
@@ -1355,7 +1388,11 @@ const handlers = {
         { onConflict: "community_id,user_id" }
       );
       const globalUserRes = await db.from("global_users").select("id,username").eq("id", reqRes.data.user_id).maybeSingle();
-      if (globalUserRes.data) await ensureCommunityProfileForGlobalUser(auth.community.id, globalUserRes.data as { id: string; username: string });
+      if (globalUserRes.data) {
+        const profile = await ensureCommunityProfileForGlobalUser(auth.community.id, globalUserRes.data as { id: string; username: string });
+        // Avisa al recién aceptado.
+        await notify(auth.community.id, [{ user_id: profile.communityUserId, kind: "join_approved", actor_id: auth.user.id }]);
+      }
     }
     await db.from("join_requests").update({ status: approve ? "approved" : "rejected", decided_at: nowIso(), decided_by: auth.user.id }).eq("id", requestId);
     return json(200, { ok: true, approved: approve });
@@ -1429,7 +1466,7 @@ const handlers = {
           return json(409, { message: "COMMUNITY_NAME_EXISTS" });
         }
       } catch (error) {
-        return json(500, { message: error instanceof Error ? error.message : "Could not validate community name" });
+        return json(500, { message: "Could not validate community name" });
       }
     }
 
@@ -1527,6 +1564,7 @@ const handlers = {
     }
 
     await db.from("community_user_roles").upsert({ community_id: auth.community.id, user_id: target, role: "admin" }, { onConflict: "community_id,user_id" });
+    await notify(auth.community.id, [{ user_id: target, kind: "promoted", actor_id: auth.user.id }]);
     return json(200, { ok: true });
   },
 
@@ -1738,8 +1776,8 @@ const handlers = {
     const postsPromise = includePosts ? postsQuery : Promise.resolve({ data: [], error: null } as const);
     const [usersRes, postsRes, prefsRes] = await Promise.all([usersPromise, postsPromise, prefsPromise]);
 
-    if (usersRes.error) return json(500, { message: usersRes.error.message });
-    if (postsRes.error) return json(500, { message: postsRes.error.message });
+    if (usersRes.error) return dbFail(500, usersRes.error);
+    if (postsRes.error) return dbFail(500, postsRes.error);
 
     const rawPosts = (postsRes.data ?? []) as Record<string, any>[];
     const hasMore = rawPosts.length > pageLimit;
@@ -1774,10 +1812,10 @@ const handlers = {
           .eq("community_id", auth.community.id)
           .in("post_id", postIds)
       ]);
-      if (commentsRes.error) return json(500, { message: commentsRes.error.message });
-      if (votesRes.error) return json(500, { message: votesRes.error.message });
-      if (sharesRes.error) return json(500, { message: sharesRes.error.message });
-      if (opensRes.error) return json(500, { message: opensRes.error.message });
+      if (commentsRes.error) return dbFail(500, commentsRes.error);
+      if (votesRes.error) return dbFail(500, votesRes.error);
+      if (sharesRes.error) return dbFail(500, sharesRes.error);
+      if (opensRes.error) return dbFail(500, opensRes.error);
 
       comments = commentsRes.data ?? [];
       votes = votesRes.data ?? [];
@@ -1791,7 +1829,7 @@ const handlers = {
           .select("comment_id,user_id")
           .eq("community_id", auth.community.id)
           .in("comment_id", commentIds);
-        if (commentAuraRes.error) return json(500, { message: commentAuraRes.error.message });
+        if (commentAuraRes.error) return dbFail(500, commentAuraRes.error);
         commentAura = commentAuraRes.data ?? [];
       }
     }
@@ -2010,9 +2048,9 @@ const handlers = {
         .select("book_id,user_id,vote")
         .eq("community_id", auth.community.id)
     ]);
-    if (booksRes.error) return json(500, { message: booksRes.error.message });
-    if (memberRes.error) return json(500, { message: memberRes.error.message });
-    if (votesRes.error) return json(500, { message: votesRes.error.message });
+    if (booksRes.error) return dbFail(500, booksRes.error);
+    if (memberRes.error) return dbFail(500, memberRes.error);
+    if (votesRes.error) return dbFail(500, votesRes.error);
 
     const voteByBook: Record<string, { yes: number; no: number; later: number; myVote: string | null }> = {};
     (votesRes.data ?? []).forEach((row: Record<string, any>) => {
@@ -2083,7 +2121,7 @@ const handlers = {
       if (ins.error.message.toLowerCase().includes("duplicate")) {
         return json(409, { message: "BOOK_ALREADY_IN_CLUB" });
       }
-      return json(400, { message: ins.error.message });
+      return dbFail(400, ins.error);
     }
     // Quien propone el libro vota "sí" por defecto (lo propuso, lo quiere leer).
     await db.from("book_votes").upsert(
@@ -2106,7 +2144,7 @@ const handlers = {
       .eq("community_id", auth.community.id)
       .eq("id", bookId)
       .maybeSingle();
-    if (bookRes.error) return json(500, { message: bookRes.error.message });
+    if (bookRes.error) return dbFail(500, bookRes.error);
     if (!bookRes.data) return json(404, { message: "Book not found" });
 
     const [commentsRes, membersRes, chaptersRes, completionsRes, notesRes, metaMap] = await Promise.all([
@@ -2140,11 +2178,11 @@ const handlers = {
         .order("created_at", { ascending: true }),
       clubUserMetaMap(auth.community.id)
     ]);
-    if (commentsRes.error) return json(500, { message: commentsRes.error.message });
-    if (membersRes.error) return json(500, { message: membersRes.error.message });
-    if (chaptersRes.error) return json(500, { message: chaptersRes.error.message });
-    if (completionsRes.error) return json(500, { message: completionsRes.error.message });
-    if (notesRes.error) return json(500, { message: notesRes.error.message });
+    if (commentsRes.error) return dbFail(500, commentsRes.error);
+    if (membersRes.error) return dbFail(500, membersRes.error);
+    if (chaptersRes.error) return dbFail(500, chaptersRes.error);
+    if (completionsRes.error) return dbFail(500, completionsRes.error);
+    if (notesRes.error) return dbFail(500, notesRes.error);
 
     const members = (membersRes.data ?? []).map((row: Record<string, any>) => ({
       ...rowToMemberBook(row),
@@ -2296,7 +2334,7 @@ const handlers = {
       .insert({ community_id: auth.community.id, book_id: bookId, user_id: auth.user.id, text, parent_id: parentId, chapter_id: chapterId, note_id: noteId })
       .select("id,user_id,text,parent_id,chapter_id,note_id,created_at")
       .single();
-    if (ins.error) return json(400, { message: ins.error.message });
+    if (ins.error) return dbFail(400, ins.error);
 
     // Voto propio por defecto (estilo Reddit): el autor arranca con +1.
     await db.from("comment_reactions").upsert(
@@ -2445,7 +2483,7 @@ const handlers = {
       .eq("id", noteId)
       .select("id,chapter_id,user_id,kind,text,image_url,created_at,edited_at")
       .single();
-    if (upd.error) return json(400, { message: upd.error.message });
+    if (upd.error) return dbFail(400, upd.error);
     return json(200, {
       note: {
         id: upd.data.id,
@@ -2480,7 +2518,7 @@ const handlers = {
       return json(403, { message: "Not allowed to delete this note" });
     }
     const del = await db.from("chapter_notes").delete().eq("community_id", auth.community.id).eq("id", noteId);
-    if (del.error) return json(400, { message: del.error.message });
+    if (del.error) return dbFail(400, del.error);
     return json(200, { ok: true });
   },
 
@@ -2553,7 +2591,7 @@ const handlers = {
       .eq("id", commentId)
       .select("id,text,edited_at")
       .single();
-    if (upd.error) return json(400, { message: upd.error.message });
+    if (upd.error) return dbFail(400, upd.error);
     return json(200, { id: upd.data.id, text: upd.data.text, editedAt: upd.data.edited_at ? toMillis(upd.data.edited_at) : undefined });
   },
 
@@ -2587,11 +2625,11 @@ const handlers = {
         .update({ deleted_at: nowIso(), text: "" })
         .eq("community_id", auth.community.id)
         .eq("id", commentId);
-      if (soft.error) return json(400, { message: soft.error.message });
+      if (soft.error) return dbFail(400, soft.error);
       return json(200, { ok: true, mode: "soft" });
     }
     const del = await db.from("book_comments").delete().eq("community_id", auth.community.id).eq("id", commentId);
-    if (del.error) return json(400, { message: del.error.message });
+    if (del.error) return dbFail(400, del.error);
     return json(200, { ok: true, mode: "hard" });
   },
 
@@ -2639,7 +2677,7 @@ const handlers = {
       )
       .select("*")
       .single();
-    if (upsert.error) return json(400, { message: upsert.error.message });
+    if (upsert.error) return dbFail(400, upsert.error);
 
     const status = await recomputeBookStatus(auth.community.id, bookId);
     return json(200, { myMember: rowToMemberBook(upsert.data as Record<string, any>), bookStatus: status });
@@ -2681,7 +2719,7 @@ const handlers = {
       )
       .select("*")
       .single();
-    if (upsert.error) return json(400, { message: upsert.error.message });
+    if (upsert.error) return dbFail(400, upsert.error);
 
     const status = await recomputeBookStatus(auth.community.id, bookId);
     return json(200, { myMember: rowToMemberBook(upsert.data as Record<string, any>), bookStatus: status });
@@ -2713,7 +2751,7 @@ const handlers = {
       .eq("id", bookId)
       .select("*")
       .single();
-    if (upd.error) return json(400, { message: upd.error.message });
+    if (upd.error) return dbFail(400, upd.error);
     return json(200, { book: rowToBook(upd.data as Record<string, any>) });
   },
 
@@ -2750,7 +2788,7 @@ const handlers = {
       title
     }));
     const ins = await db.from("book_chapters").insert(rows).select("id,idx,title");
-    if (ins.error) return json(400, { message: ins.error.message });
+    if (ins.error) return dbFail(400, ins.error);
 
     await db.from("books").update({ total_chapters: titles.length }).eq("community_id", auth.community.id).eq("id", bookId);
     // Reset de progreso (las completions se borraron en cascada).
@@ -2803,14 +2841,14 @@ const handlers = {
         },
         { onConflict: "chapter_id,user_id" }
       );
-      if (up.error) return json(400, { message: up.error.message });
+      if (up.error) return dbFail(400, up.error);
     } else {
       const del = await db
         .from("chapter_completions")
         .delete()
         .eq("chapter_id", chapterId)
         .eq("user_id", auth.user.id);
-      if (del.error) return json(400, { message: del.error.message });
+      if (del.error) return dbFail(400, del.error);
     }
 
     const member = await recomputeMemberFromChapters(auth.community.id, bookId, auth.user.id);
@@ -2856,7 +2894,7 @@ const handlers = {
       })
       .select("id,chapter_id,user_id,kind,text,image_url,created_at")
       .single();
-    if (ins.error) return json(400, { message: ins.error.message });
+    if (ins.error) return dbFail(400, ins.error);
 
     // Voto propio por defecto (estilo Reddit): el autor arranca con +1.
     await db.from("note_reactions").upsert(
@@ -2915,7 +2953,7 @@ const handlers = {
       .eq("id", bookId)
       .select("*")
       .single();
-    if (upd.error) return json(400, { message: upd.error.message });
+    if (upd.error) return dbFail(400, upd.error);
     return json(200, { book: rowToBook(upd.data as Record<string, any>) });
   },
 
@@ -2958,7 +2996,7 @@ const handlers = {
       .eq("id", bookId)
       .select("*")
       .single();
-    if (upd.error) return json(400, { message: upd.error.message });
+    if (upd.error) return dbFail(400, upd.error);
     return json(200, { book: rowToBook(upd.data as Record<string, any>) });
   },
 
@@ -2983,7 +3021,7 @@ const handlers = {
     if (body.target_chapter !== undefined) patch.target_chapter = Number.isFinite(Number(body.target_chapter)) && Number(body.target_chapter) > 0 ? Math.floor(Number(body.target_chapter)) : null;
     if (body.target_date !== undefined) patch.target_date = body.target_date ? String(body.target_date).slice(0, 10) : null;
     const upd = await db.from("books").update(patch).eq("community_id", auth.community.id).eq("id", bookId).select("*").single();
-    if (upd.error) return json(400, { message: upd.error.message });
+    if (upd.error) return dbFail(400, upd.error);
     return json(200, { book: rowToBook(upd.data as Record<string, any>) });
   },
 
@@ -3010,7 +3048,7 @@ const handlers = {
       { community_id: auth.community.id, book_id: bookId, user_id: auth.user.id, vote, created_at: nowIso() },
       { onConflict: "book_id,user_id" }
     );
-    if (up.error) return json(400, { message: up.error.message });
+    if (up.error) return dbFail(400, up.error);
 
     let status = bookRes.data.status as string;
     if (status === "proposed") {
@@ -3026,6 +3064,9 @@ const handlers = {
       if (approved) {
         await db.from("books").update({ status: "reading" }).eq("community_id", auth.community.id).eq("id", bookId);
         status = "reading";
+        // Libro aprobado → a leer: avisa a los activos (menos quien dio el voto que lo aprobó).
+        const active = await activeMemberIdSet(auth.community.id);
+        await notify(auth.community.id, [...active].filter((uid) => uid !== auth.user.id).map((uid) => ({ user_id: uid, kind: "book_approved", actor_id: auth.user.id, book_id: bookId })));
       }
     }
     const votes = await voteSummary(auth.community.id, bookId, auth.user.id);
@@ -3044,6 +3085,7 @@ const handlers = {
     const status = ["proposed", "reading", "finished"].includes(body.status) ? body.status : null;
     if (!status) return bad("status must be proposed|reading|finished");
 
+    const prior = await db.from("books").select("status").eq("community_id", auth.community.id).eq("id", bookId).maybeSingle();
     const upd = await db
       .from("books")
       .update({ status })
@@ -3052,6 +3094,12 @@ const handlers = {
       .select("*")
       .single();
     if (upd.error || !upd.data) return json(404, { message: upd.error?.message ?? "Book not found" });
+    const prev = (prior.data?.status as string) ?? "proposed";
+    if (prev !== status && (status === "reading" || status === "finished")) {
+      const active = await activeMemberIdSet(auth.community.id);
+      const kind = status === "reading" ? "book_approved" : "book_finished";
+      await notify(auth.community.id, [...active].filter((uid) => uid !== auth.user.id).map((uid) => ({ user_id: uid, kind, actor_id: auth.user.id, book_id: bookId })));
+    }
     return json(200, { book: rowToBook(upd.data as Record<string, any>) });
   },
 
@@ -3081,7 +3129,7 @@ const handlers = {
     }
 
     const del = await db.from("books").delete().eq("community_id", auth.community.id).eq("id", bookId);
-    if (del.error) return json(500, { message: del.error.message });
+    if (del.error) return dbFail(500, del.error);
     return json(200, { ok: true });
   },
 
@@ -3099,7 +3147,7 @@ const handlers = {
       .select("id")
       .eq("community_id", auth.community.id)
       .eq("book_id", bookId);
-    if (chaptersRes.error) return json(500, { message: chaptersRes.error.message });
+    if (chaptersRes.error) return dbFail(500, chaptersRes.error);
     const chapterIds = (chaptersRes.data ?? []).map((r: Record<string, any>) => r.id as string);
 
     if (done) {
@@ -3112,7 +3160,7 @@ const handlers = {
           completed_at: nowIso()
         }));
         const up = await db.from("chapter_completions").upsert(rows, { onConflict: "chapter_id,user_id" });
-        if (up.error) return json(400, { message: up.error.message });
+        if (up.error) return dbFail(400, up.error);
       }
     } else {
       const del = await db
@@ -3121,7 +3169,7 @@ const handlers = {
         .eq("community_id", auth.community.id)
         .eq("book_id", bookId)
         .eq("user_id", auth.user.id);
-      if (del.error) return json(400, { message: del.error.message });
+      if (del.error) return dbFail(400, del.error);
     }
 
     const member = await recomputeMemberFromChapters(auth.community.id, bookId, auth.user.id);
@@ -3139,7 +3187,7 @@ const handlers = {
       .eq("user_id", auth.user.id)
       .order("created_at", { ascending: false })
       .limit(50);
-    if (res.error) return json(500, { message: res.error.message });
+    if (res.error) return dbFail(500, res.error);
     const rows = res.data ?? [];
     const bookIds = unique(rows.map((r: Record<string, any>) => r.book_id).filter(Boolean));
     const actorIds = unique(rows.map((r: Record<string, any>) => r.actor_id).filter(Boolean));
@@ -3303,6 +3351,8 @@ Deno.serve(async (req) => {
   try {
     return await handler(req);
   } catch (error) {
-    return json(500, { message: error instanceof Error ? error.message : "Unhandled error" });
+    // Detalle real solo en logs de servidor; al cliente, mensaje genérico.
+    console.error("[community-api] unhandled:", error instanceof Error ? error.message : error);
+    return json(500, { message: "Unhandled error" });
   }
 });
