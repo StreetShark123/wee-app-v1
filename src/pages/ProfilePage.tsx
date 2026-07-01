@@ -21,11 +21,32 @@ interface ProfilePageProps {
   onOpenShareModal?: () => void;
 }
 
+// Redimensiona el avatar a un thumbnail pequeño (máx 192px, JPEG) antes de
+// guardarlo: las fotos de móvil pesan varios MB y se guardaban en base64 tal
+// cual, inflando cada lista de miembros/comentarios. object-fit:cover recorta.
+const AVATAR_MAX_PX = 192;
 const fileToDataUrl = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
     reader.onerror = () => reject(new Error("Could not read image"));
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const img = new Image();
+      img.onerror = () => resolve(dataUrl); // si no carga, guarda el original
+      img.onload = () => {
+        const scale = Math.min(1, AVATAR_MAX_PX / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(dataUrl);
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      img.src = dataUrl;
+    };
     reader.readAsDataURL(file);
   });
 

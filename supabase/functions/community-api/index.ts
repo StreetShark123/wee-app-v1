@@ -1175,13 +1175,28 @@ const handlers = {
       .select("id", { count: "exact", head: true })
       .eq("community_id", data.id)
       .eq("status", "active");
+    // Vista previa de caras (hasta 6, más antiguos primero) para que la landing
+    // muestre que hay gente de verdad en el club.
+    const { data: memberRows } = await db
+      .from("community_users")
+      .select("alias,avatar_url,created_at")
+      .eq("community_id", data.id)
+      .eq("status", "active")
+      .order("created_at", { ascending: true })
+      .limit(6);
     return json(200, {
       community_id: data.id,
       name: data.name,
       description: data.description ?? undefined,
       visibility: data.visibility ?? "public",
       slug: data.slug,
-      memberCount: count ?? 0
+      memberCount: count ?? 0,
+      members: (memberRows ?? []).map((m: Record<string, unknown>) => {
+        // Solo servimos el avatar si es un thumbnail razonable (~≤60KB). Los
+        // avatares legacy full-res (varios MB) caen a iniciales en la landing.
+        const url = typeof m.avatar_url === "string" && m.avatar_url.length <= 60_000 ? m.avatar_url : undefined;
+        return { alias: String(m.alias ?? ""), avatar_url: url };
+      })
     });
   },
 

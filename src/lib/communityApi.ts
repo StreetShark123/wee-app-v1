@@ -213,6 +213,7 @@ export interface CommunitySlugPreview {
   visibility: "public" | "private" | "invite";
   slug: string;
   memberCount: number;
+  members?: Array<{ alias: string; avatar_url?: string }>;
 }
 
 export const previewCommunityBySlug = async (slug: string): Promise<CommunitySlugPreview> =>

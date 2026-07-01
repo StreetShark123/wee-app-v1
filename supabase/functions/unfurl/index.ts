@@ -51,18 +51,46 @@ const isPrivateIpv4 = (host: string): boolean => {
   const parts = host.split(".").map((item) => Number(item));
   if (parts.length !== 4 || parts.some((item) => Number.isNaN(item) || item < 0 || item > 255)) return false;
   const [a, b] = parts;
-  if (a === 10 || a === 127) return true;
+  if (a === 0 || a === 10 || a === 127) return true; // este host, privada, loopback
+  if (a === 169 && b === 254) return true; // link-local: incluye metadata cloud 169.254.169.254
   if (a === 192 && b === 168) return true;
   if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT 100.64.0.0/10
+  if (a >= 224) return true; // multicast + reservado
   return false;
 };
 
 const isBlockedHost = (host: string): boolean => {
-  const normalized = host.trim().toLowerCase();
+  const normalized = host.trim().toLowerCase().replace(/^\[/, "").replace(/\]$/, "");
   if (!normalized) return true;
   if (normalized === "localhost" || normalized.endsWith(".local") || normalized.endsWith(".internal")) return true;
+  // IPv6: loopback, link-local, ULA, y IPv4-mapeada (::ffff:127.0.0.1, etc.)
   if (normalized === "::1" || normalized.startsWith("fe80:") || normalized.startsWith("fc") || normalized.startsWith("fd")) return true;
+  if (normalized.startsWith("::ffff:")) return isBlockedHost(normalized.slice("::ffff:".length));
   return isPrivateIpv4(normalized);
+};
+
+const MAX_REDIRECTS = 5;
+
+// Sigue redirecciones MANUALMENTE re-validando el host en cada salto: si no, un
+// host público puede redirigir (302) a localhost o al endpoint de metadatos.
+const safeFetch = async (startUrl: string, init: RequestInit): Promise<Response> => {
+  let current = startUrl;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    const parsed = new URL(current);
+    if (!["http:", "https:"].includes(parsed.protocol) || isBlockedHost(parsed.hostname)) {
+      throw new Error("Blocked host");
+    }
+    const response = await fetch(current, { ...init, redirect: "manual" });
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (!location) return response;
+      current = new URL(location, current).toString(); // el bucle re-valida el destino
+      continue;
+    }
+    return response;
+  }
+  throw new Error("Too many redirects");
 };
 
 const parseJwtPayload = (token: string): Record<string, unknown> | null => {
@@ -468,8 +496,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const response = await fetch(canonicalUrl, {
-      redirect: "follow",
+    const response = await safeFetch(canonicalUrl, {
       headers: {
         "user-agent":
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",

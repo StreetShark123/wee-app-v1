@@ -3657,6 +3657,30 @@ textarea:focus-visible {
   margin: 0 0 6px;
 }
 
+/* Caras de miembros: stack solapado, para que se vea que hay gente. */
+.landing-avatars {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 4px 0 2px;
+}
+.landing-avatar {
+  width: 40px;
+  height: 40px;
+  margin-left: -12px;
+  border: 2px solid var(--panel-0);
+  box-shadow: 0 1px 3px rgb(74 54 30 / 18%);
+  font-size: 0.85rem;
+}
+.landing-avatar:first-child {
+  margin-left: 0;
+}
+.landing-avatar-more {
+  background: var(--panel-1);
+  color: var(--ink-1);
+  font-size: 0.78rem;
+}
+
 .invite-choice {
   display: flex;
   flex-direction: column;

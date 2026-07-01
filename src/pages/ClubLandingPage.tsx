@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Icon } from "../components/Icon";
 import { pick, useI18n } from "../lib/i18n";
+import { colorFromString, getInitials } from "../lib/utils";
 import type { CommunitySelection } from "../lib/communitySession";
 import type { CommunitySlugPreview } from "../lib/communityApi";
 
@@ -91,6 +92,20 @@ export const ClubLandingPage = ({ isLoggedIn, onPreviewBySlug, onJoinPublic, onR
           <span className="invite-eyebrow">{pick(language, "Club de lectura", "Reading club", "Club de lectura")}</span>
           <h1 className="invite-club-name">{club.name}</h1>
           {club.description ? <p className="invite-club-desc">{club.description}</p> : null}
+          {club.members && club.members.length > 1 ? (
+            <div className="landing-avatars" aria-hidden="true">
+              {club.members.slice(0, 6).map((m, i) =>
+                m.avatar_url ? (
+                  <img key={i} src={m.avatar_url} alt="" width={40} height={40} className="avatar landing-avatar" />
+                ) : (
+                  <span key={i} className="avatar avatar-fallback landing-avatar" style={{ background: colorFromString(m.alias) }}>
+                    {getInitials(m.alias)}
+                  </span>
+                )
+              )}
+              {club.memberCount > 6 ? <span className="avatar avatar-fallback landing-avatar landing-avatar-more">+{club.memberCount - 6}</span> : null}
+            </div>
+          ) : null}
           <p className="hint">{memberLabel}</p>
           {club.visibility === "public" ? (
             isLoggedIn ? (
