@@ -2156,7 +2156,7 @@ const handlers = {
     const [commentsRes, membersRes, chaptersRes, completionsRes, notesRes, metaMap] = await Promise.all([
       db
         .from("book_comments")
-        .select("id,user_id,text,parent_id,chapter_id,note_id,created_at,edited_at,deleted_at")
+        .select("id,user_id,text,parent_id,chapter_id,note_id,phase,created_at,edited_at,deleted_at")
         .eq("community_id", auth.community.id)
         .eq("book_id", bookId)
         .order("created_at", { ascending: true }),
@@ -2276,6 +2276,7 @@ const handlers = {
           parentId: row.parent_id ?? undefined,
           chapterId: row.chapter_id ?? undefined,
           noteId: row.note_id ?? undefined,
+          phase: (row.phase as string) ?? "reading",
           reactions: deleted ? [] : Object.values(reactionsByComment[row.id] ?? {}),
           createdAt: toMillis(row.created_at),
           editedAt: row.edited_at ? toMillis(row.edited_at) : undefined,
@@ -2314,11 +2315,14 @@ const handlers = {
 
     const bookRes = await db
       .from("books")
-      .select("id,title")
+      .select("id,title,status")
       .eq("community_id", auth.community.id)
       .eq("id", bookId)
       .maybeSingle();
     if (bookRes.error || !bookRes.data) return json(404, { message: "Book not found" });
+    // Fase del comentario = estado del libro al escribirlo (proposed vs reading/finished).
+    // Permite plegar la discusión de propuesta al aprobar sin duplicar secciones.
+    const commentPhase = (bookRes.data.status as string) === "proposed" ? "proposed" : "reading";
 
     // Validar que el padre pertenece al mismo libro/club (y no anidar más de 1 nivel).
     let parentAuthorId: string | null = null;
@@ -2337,8 +2341,8 @@ const handlers = {
 
     const ins = await db
       .from("book_comments")
-      .insert({ community_id: auth.community.id, book_id: bookId, user_id: auth.user.id, text, parent_id: parentId, chapter_id: chapterId, note_id: noteId })
-      .select("id,user_id,text,parent_id,chapter_id,note_id,created_at")
+      .insert({ community_id: auth.community.id, book_id: bookId, user_id: auth.user.id, text, parent_id: parentId, chapter_id: chapterId, note_id: noteId, phase: commentPhase })
+      .select("id,user_id,text,parent_id,chapter_id,note_id,phase,created_at")
       .single();
     if (ins.error) return dbFail(400, ins.error);
 
@@ -2406,6 +2410,7 @@ const handlers = {
         parentId: ins.data.parent_id ?? undefined,
         chapterId: ins.data.chapter_id ?? undefined,
         noteId: ins.data.note_id ?? undefined,
+        phase: (ins.data.phase as string) ?? "reading",
         reactions: [{ emoji: "up", count: 1, mine: true }],
         createdAt: toMillis(ins.data.created_at)
       }
@@ -3039,8 +3044,8 @@ const handlers = {
     const body = await parseBody(req);
     const bookId = String(body.book_id ?? "").trim();
     if (!bookId) return bad("book_id required");
-    const vote = ["yes", "no", "later"].includes(body.vote) ? body.vote : null;
-    if (!vote) return bad("vote must be yes|no|later");
+    const vote = ["yes", "no"].includes(body.vote) ? body.vote : null;
+    if (!vote) return bad("vote must be yes|no");
 
     const bookRes = await db
       .from("books")
@@ -3067,12 +3072,17 @@ const handlers = {
       const mode = (modeRes.data?.approval_mode as string) ?? "majority";
       // mayoría = más de la mitad de los miembros activos; unanimidad = todos.
       const approved = activeCount > 0 && (mode === "all" ? summary.yes >= activeCount : summary.yes * 2 > activeCount);
+      // Auto-rechazo: mayoría de "no" (en ambos modos) descarta la propuesta.
+      const rejected = !approved && activeCount > 0 && summary.no * 2 > activeCount;
       if (approved) {
         await db.from("books").update({ status: "reading" }).eq("community_id", auth.community.id).eq("id", bookId);
         status = "reading";
         // Libro aprobado → a leer: avisa a los activos (menos quien dio el voto que lo aprobó).
         const active = await activeMemberIdSet(auth.community.id);
         await notify(auth.community.id, [...active].filter((uid) => uid !== auth.user.id).map((uid) => ({ user_id: uid, kind: "book_approved", actor_id: auth.user.id, book_id: bookId })));
+      } else if (rejected) {
+        await db.from("books").update({ status: "rejected" }).eq("community_id", auth.community.id).eq("id", bookId);
+        status = "rejected";
       }
     }
     const votes = await voteSummary(auth.community.id, bookId, auth.user.id);
@@ -3088,8 +3098,8 @@ const handlers = {
     const body = await parseBody(req);
     const bookId = String(body.book_id ?? "").trim();
     if (!bookId) return bad("book_id required");
-    const status = ["proposed", "reading", "finished"].includes(body.status) ? body.status : null;
-    if (!status) return bad("status must be proposed|reading|finished");
+    const status = ["proposed", "reading", "finished", "rejected"].includes(body.status) ? body.status : null;
+    if (!status) return bad("status must be proposed|reading|finished|rejected");
 
     const prior = await db.from("books").select("status").eq("community_id", auth.community.id).eq("id", bookId).maybeSingle();
     const upd = await db
@@ -3101,6 +3111,17 @@ const handlers = {
       .single();
     if (upd.error || !upd.data) return json(404, { message: upd.error?.message ?? "Book not found" });
     const prev = (prior.data?.status as string) ?? "proposed";
+    // Reabrir votación (rejected → proposed): resetea votos y re-vota "sí" el proponente.
+    if (prev === "rejected" && status === "proposed") {
+      await db.from("book_votes").delete().eq("community_id", auth.community.id).eq("book_id", bookId);
+      const addedBy = (upd.data as Record<string, any>).added_by;
+      if (addedBy) {
+        await db.from("book_votes").upsert(
+          { community_id: auth.community.id, book_id: bookId, user_id: addedBy, vote: "yes", created_at: nowIso() },
+          { onConflict: "book_id,user_id" }
+        );
+      }
+    }
     if (prev !== status && (status === "reading" || status === "finished")) {
       const active = await activeMemberIdSet(auth.community.id);
       const kind = status === "reading" ? "book_approved" : "book_finished";
