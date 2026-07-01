@@ -151,7 +151,7 @@ export const CommunityPage = ({
   const muteThisMember = async (userId: string, alias: string) => {
     const ok = await confirm({
       title: pick(language, `¿Silenciar a ${alias} 1 hora?`, `Mute ${alias} for 1 hour?`, `Silenciar a ${alias} 1 hora?`),
-      message: pick(language, "No podrá comentar ni añadir notas durante ese rato. Es un aviso, no un baneo.", "They won't be able to comment or add notes for a while. It's a warning, not a ban.", "Non poderá comentar nin engadir notas ese tempo. É un aviso, non un baneo."),
+      message: pick(language, "No podrá comentar ni anotar un rato. Es un aviso, no un baneo.", "They won't be able to comment or add notes for a while. It's a warning, not a ban.", "Non poderá comentar nin engadir notas ese tempo. É un aviso, non un baneo."),
       confirmLabel: pick(language, "Silenciar", "Mute", "Silenciar")
     });
     if (!ok) return;

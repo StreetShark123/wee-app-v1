@@ -71,7 +71,7 @@ export const NotificationsMenu = () => {
                         : notification.kind === "note_comment"
                         ? pick(language, `${notification.actorAlias} comentó tu nota`, `${notification.actorAlias} commented on your note`, `${notification.actorAlias} comentou a túa nota`)
                         : notification.kind === "reminder"
-                          ? pick(language, "Recordatorio: hay una propuesta esperando tu voto", "Reminder: a proposal is waiting for your vote", "Recordatorio: hai unha proposta esperando o teu voto")
+                          ? pick(language, "Recordatorio: una propuesta espera tu voto", "Reminder: a proposal is waiting for your vote", "Recordatorio: hai unha proposta esperando o teu voto")
                         : notification.kind === "book_proposed"
                           ? pick(language, `${notification.actorAlias} propuso un libro: ¡vota!`, `${notification.actorAlias} proposed a book — vote!`, `${notification.actorAlias} propuxo un libro: vota!`)
                           : notification.kind === "book_approved"

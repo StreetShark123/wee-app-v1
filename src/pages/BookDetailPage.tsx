@@ -680,7 +680,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
             <label className="form-field">
               {pick(language, "URL de la portada", "Cover image URL", "URL da portada")}
               <input type="url" value={edit.coverUrl} onChange={(event) => setEdit((prev) => ({ ...prev, coverUrl: event.target.value }))} placeholder="https://..." />
-              <span className="field-help">{pick(language, "Si Google no trae la portada correcta, pega aquí la URL de una imagen.", "If Google's cover is wrong, paste an image URL here.", "Se Google non trae a portada correcta, pega aquí o URL dunha imaxe.")}</span>
+              <span className="field-help">{pick(language, "¿Portada incorrecta? Pega la URL de una imagen.", "If Google's cover is wrong, paste an image URL here.", "Se Google non trae a portada correcta, pega aquí o URL dunha imaxe.")}</span>
             </label>
             {edit.coverUrl.trim() ? <img className="book-edit-preview" src={edit.coverUrl} alt="" /> : null}
             <label className="form-field">
@@ -769,7 +769,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                   </div>
                 </div>
               ) : (
-                <p className="hint">{pick(language, "Pon tus minutos al día y pulsa Calcular: te propondremos una fecha para terminarlo juntos.", "Set your minutes per day and tap Calculate: we'll suggest a date to finish it together.", "Pon os teus minutos ao día e preme Calcular: proporémosche unha data para rematalo xuntos.")}</p>
+                <p className="hint">{pick(language, "Pon tus minutos y pulsa Calcular: te proponemos fecha de fin.", "Set your minutes per day and tap Calculate: we'll suggest a date to finish it together.", "Pon os teus minutos ao día e preme Calcular: proporémosche unha data para rematalo xuntos.")}</p>
               )}
 
               <details className="cadence-manual">
@@ -814,7 +814,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                 </label>
                 <details className="chapter-redefine">
                   <summary>{pick(language, "Redefinir la lista de capítulos", "Redefine the chapter list", "Redefinir a lista de capítulos")}</summary>
-                  <p className="hint">{pick(language, "Ojo: reemplaza la lista y reinicia el progreso de todos.", "Careful: replaces the list and resets everyone's progress.", "Ollo: substitúe a lista e reinicia o progreso de todos.")}</p>
+                  <p className="hint">{pick(language, "Reemplaza la lista y reinicia el progreso de todos.", "Careful: replaces the list and resets everyone's progress.", "Ollo: substitúe a lista e reinicia o progreso de todos.")}</p>
                   <textarea
                     rows={5}
                     value={chaptersRaw}
@@ -855,7 +855,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                 {facilitatorAlias ? <span className="book-proposal-by">{facilitatorAlias}: </span> : null}«{book.proposalNote}»
               </blockquote>
             ) : null}
-            <p className="hint">{pick(language, "Cuando vota un tercio del club, gana la mayoría (o lo decide un admin). Si nadie vota, el plazo lo resuelve solo.", "Once a third of the club votes, the majority wins (or an admin decides). If nobody votes, the deadline resolves it.", "Cando vota un terzo do club, gaña a maioría (ou decídeo un admin). Se ninguén vota, o prazo resólveo só.")}</p>
+            <p className="hint">{pick(language, "Con un tercio del club votando, gana la mayoría. Si nadie vota, lo resuelve el plazo o un admin.", "Once a third of the club votes, the majority wins (or an admin decides). If nobody votes, the deadline resolves it.", "Cando vota un terzo do club, gaña a maioría (ou decídeo un admin). Se ninguén vota, o prazo resólveo só.")}</p>
             {activeMemberCount > 0 ? (
               <div className="vote-quorum">
                 <span className="vote-quorum-bar"><span className="vote-quorum-fill" style={{ width: `${Math.min(100, Math.round((votersCount / quorum) * 100))}%` }} /></span>
@@ -921,7 +921,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
             <div className="section-head">
               <h2><Icon name="x" /> {pick(language, "Propuesta descartada", "Proposal declined", "Proposta descartada")}</h2>
             </div>
-            <p className="hint">{pick(language, "El club no la sacó adelante. Un admin puede reabrir la votación.", "The club didn't take it forward. An admin can reopen the vote.", "O club non a sacou adiante. Un admin pode reabrir a votación.")}</p>
+            <p className="hint">{pick(language, "Descartada. Un admin puede reabrir la votación.", "The club didn't take it forward. An admin can reopen the vote.", "O club non a sacou adiante. Un admin pode reabrir a votación.")}</p>
             {isAdmin ? (
               <button type="button" className="btn btn-primary" disabled={busy} onClick={() => handleStatus("proposed")}>
                 <Icon name="dice" /> {pick(language, "Reabrir votación", "Reopen voting", "Reabrir votación")}
@@ -1018,7 +1018,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               </label>
             </div>
           ) : (
-            <p className="hint">{pick(language, "Quien añadió el libro aún no ha definido los capítulos.", "Whoever added the book hasn't set the chapters yet.", "Quen engadiu o libro aínda non definiu os capítulos.")}</p>
+            <p className="hint">{pick(language, "Aún no hay capítulos definidos.", "Whoever added the book hasn't set the chapters yet.", "Quen engadiu o libro aínda non definiu os capítulos.")}</p>
           )}
 
           {/* Valoración: solo cuando has marcado TODOS los capítulos */}
@@ -1040,7 +1040,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                     disabled={busy}
                     onClick={() => saveRating(value)}
                   >
-                    <Icon name="spark" size={18} />
+                    <Icon name="star" size={18} />
                   </button>
                 ))}
               </div>
@@ -1049,14 +1049,14 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                 rows={2}
                 value={reviewInput}
                 onChange={(event) => setReviewInput(event.target.value)}
-                placeholder={pick(language, "Reseña (opcional). Se verá cuando todos terminen.", "Review (optional). Shown when everyone finishes.", "Reseña (opcional).")}
+                placeholder={pick(language, "Reseña (opcional). Se ve cuando todos terminen.", "Review (optional). Shown when everyone finishes.", "Reseña (opcional).")}
               />
               <button type="button" className="btn" disabled={busy} onClick={handleFinish}>
                 {pick(language, "Guardar reseña", "Save review", "Gardar reseña")}
               </button>
             </div>
           ) : named ? (
-            <p className="hint chapter-rating-hint">{pick(language, "La valoración aparece cuando marcas todos los capítulos.", "Rating appears once you've checked every chapter.", "A valoración aparece cando marcas todos os capítulos.")}</p>
+            <p className="hint chapter-rating-hint">{pick(language, "La valoración se abre al marcar todos los capítulos.", "Rating appears once you've checked every chapter.", "A valoración aparece cando marcas todos os capítulos.")}</p>
           ) : null}
         </section>
 
@@ -1089,10 +1089,10 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               ? pick(language, "Discusión de la propuesta", "Proposal discussion", "Discusión da proposta")
               : pick(language, "Conversación del club", "Club conversation", "Conversa do club")}</h2>
           </div>
-          <p className="hint book-convo-hint">{pick(language, "Aquí se habla del libro entero. Para comentar un capítulo, usa sus notas arriba.", "This is about the whole book. To discuss a chapter, use its notes above.", "Aquí fálase do libro enteiro. Para comentar un capítulo, usa as súas notas arriba.")}</p>
+          <p className="hint book-convo-hint">{pick(language, "Del libro entero. Para un capítulo, usa sus notas (arriba).", "This is about the whole book. To discuss a chapter, use its notes above.", "Aquí fálase do libro enteiro. Para comentar un capítulo, usa as súas notas arriba.")}</p>
           <p className="hint">{isProposalPhase
             ? pick(language, "¿Lo leemos? Comentad por qué sí o por qué no antes de votar.", "Shall we read it? Discuss the pros and cons before voting.", "Lémolo? Comentade os prós e contras antes de votar.")
-            : pick(language, "Ideas sobre todo el libro. Para debatir un capítulo, comenta en sus notas (arriba). Sin spoilers 👀", "Thoughts about the whole book. To discuss a chapter, comment on its notes (above). No spoilers 👀", "Ideas sobre todo o libro. Para debater un capítulo, comenta nas súas notas (arriba). Sen spoilers 👀")}</p>
+            : pick(language, "Del libro entero. Para un capítulo, usa sus notas (arriba). Sin spoilers 👀", "Thoughts about the whole book. To discuss a chapter, comment on its notes (above). No spoilers 👀", "Ideas sobre todo o libro. Para debater un capítulo, comenta nas súas notas (arriba). Sen spoilers 👀")}</p>
 
           {/* Archivo plegado de la propuesta: la discusión de "¿lo leemos?" queda guardada
               pero fuera de en medio una vez el libro sale de propuesto. */}
@@ -1145,8 +1145,8 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
           )}
           {(isProposalPhase ? proposalComments : clubComments).length === 0 ? (
             <p className="hint">{isProposalPhase
-              ? pick(language, "Aún no hay comentarios. Abre tú el debate sobre la propuesta.", "No comments yet. Open the conversation about the proposal.", "Aínda non hai comentarios. Abre ti o debate sobre a proposta.")
-              : pick(language, "Aún no hay comentarios del club sobre el libro.", "No club comments about the book yet.", "Aínda non hai comentarios do club sobre o libro.")}</p>
+              ? pick(language, "Sin comentarios. Abre tú el debate.", "No comments yet. Open the conversation about the proposal.", "Aínda non hai comentarios. Abre ti o debate sobre a proposta.")
+              : pick(language, "Sin comentarios todavía.", "No club comments about the book yet.", "Aínda non hai comentarios do club sobre o libro.")}</p>
           ) : (
             <NoteThread
               comments={isProposalPhase ? proposalComments : clubComments}

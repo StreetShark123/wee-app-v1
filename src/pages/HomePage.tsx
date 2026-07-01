@@ -119,14 +119,14 @@ export const HomePage = ({
     });
   const finished = visibleBooks.filter((book) => book.status === "finished");
 
-  const renderShelf = (title: string, list: typeof books, emptyHint: string) =>
+  const renderShelf = (title: string, list: typeof books, emptyHint: string, variant = "") =>
     list.length === 0 ? (
-      <div className="shelf-empty-row">
+      <div className={`shelf-empty-row shelf-${variant}`}>
         <span className="shelf-empty-title">{title}</span>
         <span className="shelf-empty-hint">{emptyHint}</span>
       </div>
     ) : (
-      <section className="page-section shelf-section">
+      <section className={`page-section shelf-section shelf-${variant}`}>
         <div className="shelf-head">
           <h3 className="shelf-title">{title}</h3>
           <span className="shelf-count">{list.length}</span>
@@ -159,11 +159,11 @@ export const HomePage = ({
           </ol>
           <dl className="onboarding-glossary">
             <dt>{pick(language, "Propuesta", "Proposal", "Proposta")}</dt>
-            <dd>{pick(language, "un libro que el club aún está votando si leer.", "a book the club is still voting on.", "un libro que o club aínda está votando se ler.")}</dd>
+            <dd>{pick(language, "un libro que aún estáis votando.", "a book the club is still voting on.", "un libro que o club aínda está votando se ler.")}</dd>
             <dt>{pick(language, "Quórum", "Quorum", "Quórum")}</dt>
-            <dd>{pick(language, "los votos mínimos (de cualquier signo) para decidir; cuando se llega, gana la mayoría.", "the minimum votes (either way) to decide; once reached, the majority wins.", "os votos mínimos (de calquera signo) para decidir; cando se chega, gaña a maioría.")}</dd>
+            <dd>{pick(language, "Los votos mínimos para decidir. Al llegar, gana la mayoría.", "the minimum votes (either way) to decide; once reached, the majority wins.", "os votos mínimos (de calquera signo) para decidir; cando se chega, gaña a maioría.")}</dd>
             <dt>{pick(language, "En lectura", "Reading", "En lectura")}</dt>
-            <dd>{pick(language, "el libro aprobado que el club lee ahora, capítulo a capítulo.", "the approved book the club is reading now, chapter by chapter.", "o libro aprobado que o club le agora, capítulo a capítulo.")}</dd>
+            <dd>{pick(language, "el libro que leéis ahora, capítulo a capítulo.", "the approved book the club is reading now, chapter by chapter.", "o libro aprobado que o club le agora, capítulo a capítulo.")}</dd>
           </dl>
             <button type="button" className="btn btn-primary onboarding-modal-done" onClick={closeOnboarding}>{pick(language, "Entendido", "Got it", "Entendido")}</button>
           </div>
@@ -240,17 +240,20 @@ export const HomePage = ({
             {renderShelf(
               pick(language, "En lectura", "Reading now", "En lectura"),
               reading,
-              pick(language, "Aún nada en lectura. Aprobad una propuesta para empezar.", "Nothing being read yet. Approve a proposal to start.", "Aínda nada en lectura. Aprobade unha proposta.")
+              pick(language, "Aún nada en lectura. Aprobad una propuesta para empezar.", "Nothing being read yet. Approve a proposal to start.", "Aínda nada en lectura. Aprobade unha proposta."),
+              "reading"
             )}
             {renderShelf(
               pick(language, "Propuestas", "Proposals", "Propostas"),
               proposals,
-              pick(language, "Sin propuestas. Añade un libro y votad.", "No proposals. Add a book and vote.", "Sen propostas. Engade un libro e votade.")
+              pick(language, "Sin propuestas. Añade un libro y votad.", "No proposals. Add a book and vote.", "Sen propostas. Engade un libro e votade."),
+              "proposed"
             )}
             {renderShelf(
               pick(language, "Leídos", "Read", "Lidos"),
               finished,
-              pick(language, "Todavía no habéis terminado ningún libro juntos.", "You haven't finished a book together yet.", "Aínda non rematastes ningún libro xuntos.")
+              pick(language, "Aún no habéis terminado ningún libro.", "You haven't finished a book together yet.", "Aínda non rematastes ningún libro xuntos."),
+              "finished"
             )}
           </>
         )}

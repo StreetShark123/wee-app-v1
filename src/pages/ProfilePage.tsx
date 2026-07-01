@@ -130,7 +130,7 @@ export const ProfilePage = ({
                   className="btn"
                   onClick={() => {
                     void onUpdateAvatar(activeUser.id, undefined);
-                    onToast(pick(language, "Foto eliminada. Ahora se muestra tu avatar con iniciales.", "Photo removed. Your initials avatar is now shown.", "Foto eliminada. Agora móstrase o teu avatar con iniciais."));
+                    onToast(pick(language, "Foto eliminada. Vuelve tu avatar de iniciales.", "Photo removed. Your initials avatar is now shown.", "Foto eliminada. Agora móstrase o teu avatar con iniciais."));
                   }}
                 >
                   <Icon name="trash" /> {pick(language, "Quitar foto", "Remove photo", "Quitar foto")}
@@ -218,7 +218,7 @@ export const ProfilePage = ({
               ) : null}
             </article>
           ) : profile ? (
-            <p className="hint profile-no-reads">{pick(language, "Aún no ha leído nada en el club.", "Hasn't read anything in the club yet.", "Aínda non leu nada no club.")}</p>
+            <p className="hint profile-no-reads">{pick(language, "Aún no ha leído nada.", "Hasn't read anything in the club yet.", "Aínda non leu nada no club.")}</p>
           ) : null}
 
           {profile && profile.activity && profile.activity.length > 0 ? (

@@ -197,7 +197,7 @@ const CommentItem = ({
             members={members}
             rows={2}
             autoFocus
-            placeholder={pick(language, "Tu respuesta... (@ para mencionar)", "Your reply... (@ to mention)", "A túa resposta... (@ para mencionar)")}
+            placeholder={pick(language, "Tu respuesta... (@ menciona)", "Your reply... (@ to mention)", "A túa resposta... (@ para mencionar)")}
           />
           <div className="comment-reply-actions">
             <button type="button" className="btn" onClick={() => setReplyOpen(false)} disabled={sending}>

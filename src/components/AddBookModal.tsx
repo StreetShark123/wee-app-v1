@@ -322,7 +322,7 @@ export const AddBookModal = ({ open, onClose, onAddBook, onToast }: AddBookModal
 
                 <label>
                   {pick(language, "¿Por qué lo recomiendas?", "Why do you recommend it?", "Por que o recomendas?")}
-                  <span className="field-hint">{pick(language, "Un buen motivo convence al club y ayuda a que salga adelante.", "A good reason convinces the club and helps it get picked.", "Un bo motivo convence ao club e axuda a que saia adiante.")}</span>
+                  <span className="field-hint">{pick(language, "Un buen motivo convence al club.", "A good reason convinces the club and helps it get picked.", "Un bo motivo convence ao club e axuda a que saia adiante.")}</span>
                   <textarea
                     rows={2}
                     value={draft.proposalNote}

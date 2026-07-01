@@ -24,6 +24,17 @@
   --warning: #b07a2b;
   --stamp: #9a3b2e;
   --ink-scarlet: #b5382b;
+  /* ── Color semántico por estado del libro (ver docs/wee-color-system.md).
+     Rompe la planitud: cada estante/estado tiene su acento y su superficie. ── */
+  --status-reading: var(--accent-mint);    /* verde: lectura activa */
+  --status-proposed: var(--accent-amber);  /* ámbar: pendiente de voto */
+  --status-finished: var(--accent-violet); /* violeta: terminado/archivado (distinto del verde) */
+  --status-rejected: var(--ink-1);         /* apagado: descartado */
+  --live: var(--accent-amber);             /* "en vivo": actividad reciente */
+  /* Superficies tintadas muy suaves para separar secciones sin salir del papel */
+  --tint-reading: color-mix(in srgb, var(--accent-mint) 7%, var(--panel-0));
+  --tint-proposed: color-mix(in srgb, var(--accent-amber) 8%, var(--panel-0));
+  --tint-live: color-mix(in srgb, var(--accent-amber) 9%, var(--panel-1));
   --tag-font-type: 0.72rem;
   --shadow-warm: 0 2px 10px rgb(74 54 30 / 9%);
   --shadow-warm-lg: 0 10px 24px rgb(74 54 30 / 14%);
@@ -300,8 +311,8 @@ h4 {
 .brand-tag {
   font-family: var(--font-sans);
   font-style: normal;
-  font-weight: 600;
-  font-size: 1.08rem;
+  font-weight: 700;
+  font-size: 1.18rem;
   text-transform: none;
   letter-spacing: 0;
   color: var(--ink-0);
@@ -314,8 +325,17 @@ h4 {
 .brand-copy {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
   min-width: 0;
+}
+/* Marca de identidad: un "lomo" teal antes del nombre del club. */
+.brand-copy::before {
+  content: "";
+  width: 7px;
+  height: 20px;
+  border-radius: 3px;
+  flex: 0 0 auto;
+  background: linear-gradient(var(--brand), var(--brand-strong));
 }
 
 .nav-pill.active,
@@ -728,14 +748,16 @@ h3 svg,
 /* Ticker: una sola línea que rota las últimas novedades; al pulsar, se expande. */
 .activity-ticker {
   width: 100%; display: flex; align-items: center; gap: 8px;
-  background: var(--panel-1); border: 1px solid var(--line); border-radius: var(--radius-md);
+  background: var(--tint-live); border: 1px solid color-mix(in srgb, var(--live) 24%, var(--line));
+  border-left: 3px solid var(--live); border-radius: var(--radius-md);
   padding: 8px 12px; cursor: pointer; text-align: left; color: var(--ink-0);
 }
 .activity-ticker-label {
   display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto;
-  font-size: 0.7rem; font-weight: 700; color: var(--ink-1);
+  font-size: 0.7rem; font-weight: 700; color: var(--live);
   text-transform: uppercase; letter-spacing: 0.04em;
 }
+.activity-ticker-label .icon { color: var(--live); }
 .activity-ticker-now { display: inline-flex; align-items: center; gap: 6px; min-width: 0; flex: 1 1 auto; animation: activity-fade 0.4s ease; }
 .activity-ticker-now .user-badge, .activity-row .user-badge { flex: 0 0 auto; }
 .activity-ticker-text { font-size: 0.84rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto; }
@@ -4078,7 +4100,19 @@ textarea:focus-visible {
   background: var(--panel-1);
   border-radius: var(--radius-pill);
   padding: 1px 8px;
+  font-weight: 700;
 }
+/* Identidad de estante: un cuadradito de color + contador tintado por estado. */
+.shelf-title::before {
+  content: ""; width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto;
+  background: var(--ink-1);
+}
+.shelf-reading .shelf-title::before { background: var(--status-reading); }
+.shelf-proposed .shelf-title::before { background: var(--status-proposed); }
+.shelf-finished .shelf-title::before { background: var(--status-finished); }
+.shelf-reading .shelf-count { color: var(--status-reading); background: color-mix(in srgb, var(--status-reading) 13%, var(--panel-0)); }
+.shelf-proposed .shelf-count { color: var(--status-proposed); background: color-mix(in srgb, var(--status-proposed) 15%, var(--panel-0)); }
+.shelf-finished .shelf-count { color: var(--status-finished); background: color-mix(in srgb, var(--status-finished) 13%, var(--panel-0)); }
 
 .book-vote-badge {
   position: absolute;
