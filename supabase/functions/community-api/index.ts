@@ -1345,7 +1345,7 @@ const handlers = {
       .eq("community_id", auth.community.id)
       .eq("status", "pending")
       .order("created_at", { ascending: true });
-    if (error) return json(500, { message: error.message });
+    if (error) return dbFail(500, error);
     const rows = data ?? [];
     const ids = rows.map((r: Record<string, any>) => r.user_id);
     const names = new Map<string, string>();
@@ -1865,11 +1865,13 @@ const handlers = {
     if (auth instanceof Response) return auth;
     const body = await parseBody(req);
     const post = normalizePostPayload((body.post ?? {}) as Record<string, any>);
-    if (!post.id) return bad("post.id required");
+    // Id de fila generado en SERVIDOR: no se confía en el del cliente (evita
+    // squatting de PK e ids predecibles). Se devuelve en la respuesta.
+    post.id = crypto.randomUUID();
 
     const row = postToRow({ ...post, userId: auth.user.id }, auth);
     const { error } = await db.from("posts").insert(row);
-    if (error) return json(400, { message: error.message });
+    if (error) return dbFail(400, error);
 
     await syncOwnInteractions(auth, { ...post, userId: auth.user.id });
     return json(200, { ...post, userId: auth.user.id });
@@ -1896,7 +1898,7 @@ const handlers = {
 
     const row = postToRow({ ...post, userId: current.data.user_id }, auth);
     const { error } = await db.from("posts").update(row).eq("id", postId).eq("community_id", auth.community.id);
-    if (error) return json(400, { message: error.message });
+    if (error) return dbFail(400, error);
 
     await syncOwnInteractions(auth, { ...post, userId: current.data.user_id });
     return json(200, { ...post, userId: current.data.user_id });
@@ -1919,7 +1921,7 @@ const handlers = {
       return json(403, { message: "Not allowed to delete this post" });
     }
     const { error } = await db.from("posts").delete().eq("id", postId).eq("community_id", auth.community.id);
-    if (error) return json(400, { message: error.message });
+    if (error) return dbFail(400, error);
     return json(200, { ok: true });
   },
 
@@ -1932,7 +1934,7 @@ const handlers = {
       .eq("community_id", auth.community.id)
       .eq("user_id", auth.user.id)
       .maybeSingle();
-    if (error) return json(500, { message: error.message });
+    if (error) return dbFail(500, error);
     if (!data) return json(200, null);
     return json(200, {
       userId: auth.user.id,
@@ -1956,7 +1958,7 @@ const handlers = {
       updated_at: nowIso()
     };
     const { error } = await db.from("user_preferences").upsert(payload, { onConflict: "community_id,user_id" });
-    if (error) return json(400, { message: error.message });
+    if (error) return dbFail(400, error);
     return json(200, {
       userId: auth.user.id,
       preferredTopics: payload.preferred_topics,
@@ -1979,7 +1981,7 @@ const handlers = {
       reason,
       created_at: nowIso()
     });
-    if (error) return json(400, { message: error.message });
+    if (error) return dbFail(400, error);
     return json(200, { ok: true });
   },
 
@@ -2016,7 +2018,7 @@ const handlers = {
         .update(updatePayload)
         .eq("community_id", auth.community.id)
         .eq("id", auth.user.id);
-      if (error) return json(400, { message: error.message });
+      if (error) return dbFail(400, error);
     }
 
     const { data: updated, error: readError } = await db
@@ -2025,7 +2027,7 @@ const handlers = {
       .eq("community_id", auth.community.id)
       .eq("id", auth.user.id)
       .single();
-    if (readError) return json(500, { message: readError.message });
+    if (readError) return dbFail(500, readError);
     return json(200, { user: rowToCommunityUser(updated as Record<string, any>) });
   },
 
