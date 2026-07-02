@@ -42,7 +42,10 @@ export default defineConfig({
       output: {
         // Vendor estable en su propio chunk: el cambio de código de app no invalida su caché.
         manualChunks: {
-          "react-vendor": ["react", "react-dom", "react-router-dom"]
+          "react-vendor": ["react", "react-dom", "react-router-dom"],
+          // Iconografía (Phosphor) aparte: pesa (~26 kB gzip, 6 pesos por glifo)
+          // y casi nunca cambia → cache-hit persistente entre deploys.
+          icons: ["@phosphor-icons/react"]
         }
       }
     }

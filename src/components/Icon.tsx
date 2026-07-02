@@ -1,4 +1,56 @@
 import type { CSSProperties } from "react";
+import {
+  ArrowLeft,
+  Bell,
+  BookOpen,
+  Camera,
+  CaretDown,
+  CaretUp,
+  ChatCircleText,
+  Check,
+  Copy,
+  Diamond,
+  DiceFive,
+  DownloadSimple,
+  Eye,
+  EyeSlash,
+  Flame,
+  GearSix,
+  Heart,
+  House,
+  Leaf,
+  Lightning,
+  LinkSimple,
+  ListDashes,
+  MagnifyingGlass,
+  MoonStars,
+  Newspaper,
+  PaperPlaneTilt,
+  PencilSimple,
+  Pepper,
+  Plus,
+  ShieldCheck,
+  SignOut,
+  Sparkle,
+  Spiral,
+  Star,
+  Tag,
+  Target,
+  ThumbsDown,
+  ThumbsUp,
+  Trash,
+  Trophy,
+  UploadSimple,
+  User,
+  UsersThree,
+  X,
+  type Icon as PhosphorIcon
+} from "@phosphor-icons/react";
+
+// Iconografía de la app: Phosphor en peso "duotone" — dos capas de tinta
+// (trazo + aguada al 20%), como una ilustración impresa a dos tintas. Sustituye
+// al set casero de paths sólidos. La API (name/size/className/style) se
+// mantiene: los call sites no cambian.
 
 export type IconName =
   | "home"
@@ -46,6 +98,53 @@ export type IconName =
   | "x"
   | "copy";
 
+const GLYPHS: Record<IconName, PhosphorIcon> = {
+  home: House,
+  user: User,
+  link: LinkSimple,
+  comment: ChatCircleText,
+  logout: SignOut,
+  camera: Camera,
+  trash: Trash,
+  upload: UploadSimple,
+  download: DownloadSimple,
+  timeline: ListDashes,
+  tag: Tag,
+  arrowLeft: ArrowLeft,
+  arrowUp: CaretUp,
+  arrowDown: CaretDown,
+  search: MagnifyingGlass,
+  plus: Plus,
+  bolt: Lightning,
+  users: UsersThree,
+  check: Check,
+  flame: Flame,
+  chili: Pepper,
+  news: Newspaper,
+  book: BookOpen,
+  settings: GearSix,
+  trophy: Trophy,
+  dice: DiceFive,
+  heart: Heart,
+  spark: Sparkle,
+  spiral: Spiral,
+  star: Star,
+  moon: MoonStars,
+  leaf: Leaf,
+  diamond: Diamond,
+  target: Target,
+  eye: Eye,
+  eyeOff: EyeSlash,
+  shield: ShieldCheck,
+  bell: Bell,
+  send: PaperPlaneTilt,
+  thumbUp: ThumbsUp,
+  thumbDown: ThumbsDown,
+  pencil: PencilSimple,
+  x: X,
+  copy: Copy
+};
+
 interface IconProps {
   name: IconName;
   size?: number;
@@ -53,87 +152,7 @@ interface IconProps {
   style?: CSSProperties;
 }
 
-const PATHS: Record<IconName, string> = {
-  home: "M3 11.8 12 4l9 7.8V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",
-  user:
-    "M12 12a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9zm0 2c4.4 0 8 2.2 8 5v2H4v-2c0-2.8 3.6-5 8-5z",
-  link: "M10.6 13.4 9.2 12l4.8-4.8a3 3 0 1 1 4.2 4.2l-2 2-1.4-1.4 2-2a1 1 0 0 0-1.4-1.4zm2.8-2.8 1.4 1.4L10 16.8a3 3 0 1 1-4.2-4.2l2-2 1.4 1.4-2 2a1 1 0 1 0 1.4 1.4z",
-  comment:
-    "M4 5h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9l-5 4v-4H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zm1 3v2h14V8zm0 4v2h9v-2z",
-  logout:
-    "M10 4h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-8v-2h8V6h-8zm1.8 3.8L10.4 9.2 12.6 11H3v2h9.6l-2.2 1.8 1.4 1.4L17 12z",
-  camera:
-    "M8 6 9.4 4h5.2L16 6h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zm4 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0-2a2 2 0 1 1 0-4 2 2 0 0 1 0 4z",
-  trash: "M9 3h6l1 2h5v2H3V5h5zm-2 6h2v9H7zm4 0h2v9h-2zm4 0h2v9h-2z",
-  upload:
-    "M11 15V7.8L8.4 10.4 7 9l5-5 5 5-1.4 1.4L13 7.8V15zM5 17h14v3H5z",
-  download:
-    "M11 4h2v7.2l2.6-2.6L17 10l-5 5-5-5 1.4-1.4 2.6 2.6zM5 17h14v3H5z",
-  timeline:
-    "M6 5h2v14H6zm5 1h9v2h-9zm0 5h7v2h-7zm0 5h9v2h-9zM5 9a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm0 5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm0 5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z",
-  tag: "M3 11V4h7l10 10-6 6L4 10zm5-4a2 2 0 1 0 0 4 2 2 0 0 0 0-4z",
-  arrowLeft: "M11 5 4 12l7 7 1.4-1.4L7.8 13H20v-2H7.8l4.6-4.6z",
-  arrowUp: "M6 14.6 7.4 16 12 11.4 16.6 16 18 14.6l-6-6z",
-  arrowDown: "M6 9.4 7.4 8 12 12.6 16.6 8 18 9.4l-6 6z",
-  search: "M11 19a8 8 0 1 1 5.3-14l4.35 4.35-1.4 1.4L14.9 6.4A6 6 0 1 0 17 11h2a8 8 0 0 1-8 8z",
-  plus: "M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z",
-  bolt: "M13 2 4 13h6l-1 9 9-11h-6z",
-  users:
-    "M9.5 11a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7zm8 1a3 3 0 1 1 0-6 3 3 0 0 1 0 6zM3 20a6.5 6.5 0 0 1 13 0h-2a4.5 4.5 0 0 0-9 0zm11 0a4.8 4.8 0 0 1 7-4.2V20h-2v-3a2.8 2.8 0 0 0-5 1.8V20z",
-  check: "M9 16.2 4.8 12l1.4-1.4L9 13.4l8.8-8.8 1.4 1.4z",
-  x: "M6.4 5 12 10.6 17.6 5 19 6.4 13.4 12 19 17.6 17.6 19 12 13.4 6.4 19 5 17.6 10.6 12 5 6.4z",
-  copy: "M9 3h9a2 2 0 0 1 2 2v9h-2V5H9zm-4 4h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2zm0 2v10h8V9z",
-  flame:
-    "M12 2c1.8 2.2 3 4.1 3 6.1 0 1.6-.8 2.8-1.7 3.8-.3-1.6-1.1-2.8-2.3-3.8C9 9.8 8 11.8 8 13.8 8 16.2 9.8 18 12 18s4-1.8 4-4.2c0-2.5-1.4-4.7-4-7.8zM12 22a6 6 0 0 1-6-6c0-2.6 1.2-4.9 3.3-7.2.2 2.2 1.2 3.7 3 5 1.6 1.2 2.7 2.7 2.7 4.8a3 3 0 1 1-6 0h2a1 1 0 1 0 2 0c0-1-.5-1.7-1.6-2.5-1-.7-1.8-1.5-2.4-2.5C8.4 14.5 8 15.2 8 16a4 4 0 1 0 8 0h2a6 6 0 0 1-6 6z",
-  chili:
-    "M14.2 3.2c1.6 0 2.8 1.2 2.8 2.8 0 .7-.2 1.3-.6 1.8 2 .6 3.6 2.2 4.1 4.4.7 3.2-1.1 6.8-4.7 8.8-3.5 1.9-7.5 1.6-9.8-.6-2.3-2.1-2.3-5.8-.1-9 1.6-2.3 4.3-3.9 7.1-4.4-.2-.4-.3-.8-.3-1.2 0-1.4 1.1-2.6 2.5-2.6zM9.6 12c-1.3 1.8-1.4 3.8-.3 4.8 1.1 1 3.1 1 5.1-.1 2.1-1.2 3.2-3.1 2.9-4.9-.3-1.4-1.6-2.3-3.3-2.3-1.8 0-3.6.9-4.4 2.5zM14 4.9c-.4 0-.8.3-.8.8s.4.8.8.8.8-.3.8-.8-.4-.8-.8-.8z",
-  news: "M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zm0 2v10h14V7zm2 2h5v2H7zm0 4h10v2H7z",
-  book: "M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5zM6.5 5A.5.5 0 0 0 6 5.5v13a4.4 4.4 0 0 1 .5-.03H18V5z",
-  settings:
-    "M19.4 13a7.9 7.9 0 0 0 .05-2l2-1.5-2-3.5-2.4 1a8.2 8.2 0 0 0-1.7-1L15 3h-4l-.4 3a8.2 8.2 0 0 0-1.7 1l-2.4-1-2 3.5 2 1.5a7.9 7.9 0 0 0 0 2l-2 1.5 2 3.5 2.4-1a8.2 8.2 0 0 0 1.7 1l.4 3h4l.4-3a8.2 8.2 0 0 0 1.7-1l2.4 1 2-3.5zM13 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z",
-  trophy:
-    "M7 4h10v2h3v2a4 4 0 0 1-4 4h-.4A5.5 5.5 0 0 1 13 14.9V18h3v2H8v-2h3v-3.1A5.5 5.5 0 0 1 8.4 12H8a4 4 0 0 1-4-4V6h3zm-1 4a2 2 0 0 0 2 2h.2A5.5 5.5 0 0 1 8 8V6H6zm12-2h-2v2a5.5 5.5 0 0 1-.2 2H16a2 2 0 0 0 2-2z",
-  dice: "M4 4h16v16H4zm2 2v12h12V6zm2 2h2v2H8zm6 0h2v2h-2zm-3 3h2v2h-2zm-3 3h2v2H8zm6 0h2v2h-2",
-  heart:
-    "M12 21s-6.7-4.3-9.2-8.1C.7 9.8 2.2 6 5.8 6c2 0 3.2 1 4.2 2.3C11 7 12.2 6 14.2 6 17.8 6 19.3 9.8 21.2 12.9 18.7 16.7 12 21 12 21z",
-  spark: "M13 2 6 13h5l-1 9 8-12h-5z",
-  spiral:
-    "M12 4a8 8 0 1 0 8 8 1 1 0 1 1-2 0 6 6 0 1 1-6-6 4 4 0 1 1-4 4 2 2 0 1 0 2-2 1 1 0 1 1 0-2z",
-  star:
-    "M12 2l2.9 6.3 6.9.7-5.1 4.6 1.4 6.8L12 17.8 5.9 20.4l1.4-6.8L2.2 9l6.9-.7z",
-  moon: "M13 3a9 9 0 1 0 8 13A7.5 7.5 0 0 1 13 3z",
-  leaf: "M4 20c0-9 7-16 16-16 0 9-7 16-16 16zm3.2-3.2c6-1 10-5 11-11-6 1-10 5-11 11z",
-  diamond: "M5 3h14l3 6-10 12L2 9z",
-  target:
-    "M12 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-7-7V3zm0 4a5 5 0 1 0 5 5h-2a3 3 0 1 1-3-3V7zm8-4v6h-2V6.4l-3.3 3.3-1.4-1.4L16.6 5H14V3z",
-  eye:
-    "M12 5c5.7 0 9.6 4.4 10.8 6.1a1.5 1.5 0 0 1 0 1.8C21.6 14.6 17.7 19 12 19S2.4 14.6 1.2 12.9a1.5 1.5 0 0 1 0-1.8C2.4 9.4 6.3 5 12 5zm0 2C8 7 5 9.6 3.5 12 5 14.4 8 17 12 17s7-2.6 8.5-5C19 9.6 16 7 12 7zm0 2.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z",
-  eyeOff:
-    "M3.3 4.7 2 6l3 3a13.7 13.7 0 0 0-3.8 4.1 1.5 1.5 0 0 0 0 1.8C2.4 16.6 6.3 21 12 21c2 0 3.8-.5 5.4-1.3l2.6 2.6 1.3-1.3zM12 7c4 0 7 2.6 8.5 5-1 1.5-2.6 3.2-4.8 4.2l-1.6-1.6a2.5 2.5 0 0 0-3.7-3.7l-1.6-1.6C9.8 7.5 10.9 7 12 7z",
-  shield:
-    "M12 3 4 6v6c0 5 3.3 8.7 8 10 4.7-1.3 8-5 8-10V6zm0 2.2 6 2v4.8c0 3.9-2.4 6.8-6 8-3.6-1.2-6-4.1-6-8V7.2z",
-  bell:
-    "M12 3a5 5 0 0 0-5 5v2.2c0 .9-.3 1.8-.8 2.6L4.5 15h15l-1.7-2.2a4.8 4.8 0 0 1-.8-2.6V8a5 5 0 0 0-5-5zm-2 14h4a2 2 0 1 1-4 0z",
-  send:
-    "M3 12 21 3l-4.5 18-5.1-6-4.4 2.9 1.8-5.1zm4.7 3 2.6-1.7 3.8 4.4 2.7-10.8-11 5.5 3.7 1.2z",
-  thumbUp:
-    "M10 21H6a2 2 0 0 1-2-2v-7.5a2 2 0 0 1 2-2h4V21zm2 0V10.7l3.1-6.8c.4-.9 1.7-1.2 2.5-.6.5.3.8.9.8 1.5v4.2H21a2 2 0 0 1 2 2v1.3l-2.1 6.3A3 3 0 0 1 18.1 21H12z",
-  thumbDown:
-    "M14 3h4a2 2 0 0 1 2 2v7.5a2 2 0 0 1-2 2h-4V3zm-2 0v10.3l-3.1 6.8c-.4.9-1.7 1.2-2.5.6a1.8 1.8 0 0 1-.8-1.5V15H3a2 2 0 0 1-2-2v-1.3l2.1-6.3A3 3 0 0 1 5.9 3H12z",
-  pencil:
-    "M3 17.2V21h3.8l11-11-3.8-3.8-11 11zM20.6 7.6a1 1 0 0 0 0-1.4l-2.8-2.8a1 1 0 0 0-1.4 0l-1.7 1.7 3.8 3.8 2.1-1.3z"
+export const Icon = ({ name, size = 16, className, style }: IconProps) => {
+  const Glyph = GLYPHS[name];
+  return <Glyph size={size} weight="duotone" className={className} style={style} aria-hidden="true" />;
 };
-
-export const Icon = ({ name, size = 16, className, style }: IconProps) => (
-  <svg
-    className={className}
-    style={style}
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    aria-hidden="true"
-  >
-    <path d={PATHS[name]} />
-  </svg>
-);

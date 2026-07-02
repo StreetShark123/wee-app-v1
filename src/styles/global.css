@@ -17,12 +17,14 @@
   --accent-cyan: #2f6a66;
   --accent-violet: #6e4b7a;
   --accent-amber: #b07a2b;
-  --accent-coral: #b5503f;
   --accent-mint: #3e6b4f;
   --danger: #9a3b2e;
   --success: #3e6b4f;
   --warning: #b07a2b;
-  --stamp: #9a3b2e;
+  /* Dos rojos, dos oficios (antes había un tercero, --accent-coral, muerto):
+     --danger/--stamp = destructivo y tampón de "descartado";
+     --ink-scarlet = EL rojo editorial (capitular, ornamentos, caret, marca). */
+  --stamp: var(--danger);
   --ink-scarlet: #b5382b;
   /* ── Color semántico por estado del libro (ver docs/wee-color-system.md).
      Rompe la planitud: cada estante/estado tiene su acento y su superficie. ── */
@@ -40,9 +42,12 @@
   --shadow-warm-lg: 0 10px 24px rgb(74 54 30 / 14%);
   --font-sans: "Spectral", Georgia, "Times New Roman", serif;
   --font-type: "Special Elite", "Courier New", monospace;
-  --radius-sm: 10px;
-  --radius-md: 13px;
-  --radius-lg: 18px;
+  /* Radios "bibliófilos": esquinas contenidas, de libro/etiqueta impresa
+     (antes 10/13/18, píldora genérica de app). --radius-pill queda SOLO para
+     lo semánticamente circular (avatares, puntos, checks de capítulo). */
+  --radius-sm: 4px;
+  --radius-md: 7px;
+  --radius-lg: 10px;
   --radius-pill: 999px;
   /* Anillo de foco único en toda la app */
   --focus: var(--brand-strong);
@@ -4508,7 +4513,7 @@ textarea:focus-visible {
   flex: 1;
   min-width: 0;
   padding: 0 12px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   border: 1px solid var(--line);
   background: var(--panel-0);
   color: var(--ink-1);
@@ -5213,7 +5218,7 @@ textarea:focus-visible {
      etiquetas), la serif queda para el contenido. */
   font-family: var(--font-type);
   font-size: 0.66rem; color: var(--ink-1);
-  border: 1px solid var(--line); border-radius: var(--radius-pill);
+  border: 1px solid var(--line); border-radius: 3px;
   padding: 3px var(--sp-2);
 }
 

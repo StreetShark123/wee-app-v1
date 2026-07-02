@@ -90,3 +90,18 @@ coral = social). No los metas por decorar.
 `.activity-ticker*` (actividad = `--live`), `.brand-copy::before` (lomo teal del header),
 `.book-card-*`, `.chapter-node.is-done` (verde progreso). Extiende SIEMPRE por token nuevo
 semántico, nunca con un hex suelto en un componente.
+
+## 9. Forma y materia (2026-07 · pase "bibliófilo")
+- **Radios contenidos, de objeto impreso**: `--radius-sm 4 / md 7 / lg 10`. Nada de
+  píldoras genéricas: los botones son *placas* (md), los chips de meta *etiquetas de
+  imprenta* (3px, letra de máquina) y las portadas conservan esquinas de libro (sm).
+  `--radius-pill` (999) queda SOLO para lo semánticamente circular: avatares, puntos
+  de aviso, checks de capítulo y barras de progreso.
+- **Dos rojos, dos oficios**: `--danger`/`--stamp` (#9a3b2e) = destructivo y tampón
+  de "descartado"; `--ink-scarlet` (#b5382b) = EL rojo editorial (capitular,
+  ornamentos, caret, marca). El tercer rojo (`--accent-coral`) se eliminó: estaba
+  muerto y diluía la personalidad.
+- **Iconografía**: Phosphor en peso **duotone** vía `src/components/Icon.tsx`
+  (misma API `name/size`). Dos capas de tinta = ilustración impresa a dos tintas;
+  hereda `currentColor`, así respeta los semánticos. Chunk propio (`icons`) para
+  caché estable entre deploys.
