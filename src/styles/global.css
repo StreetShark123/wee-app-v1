@@ -280,7 +280,9 @@ h4 {
   top: 0.5rem;
   z-index: 20;
   backdrop-filter: blur(8px);
-  box-shadow: none;
+  /* Hilo de separación: al hacer scroll el contenido pasa por debajo y la
+     cabecera necesita un borde que la asiente (antes flotaba sin definición). */
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--line) 70%, transparent);
   isolation: isolate;
 }
 .topbar::after { display: none; }
@@ -5187,9 +5189,20 @@ textarea:focus-visible {
 .book-meta-chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
 .book-chip {
   display: inline-flex; align-items: center; gap: var(--sp-1);
-  font-size: 0.78rem; color: var(--ink-1);
+  /* Familia de imprenta: la meta va en letra de máquina (como sellos y
+     etiquetas), la serif queda para el contenido. */
+  font-family: var(--font-type);
+  font-size: 0.66rem; color: var(--ink-1);
   border: 1px solid var(--line); border-radius: var(--radius-pill);
-  padding: 2px var(--sp-2);
+  padding: 3px var(--sp-2);
+}
+
+/* Filete editorial en la ficha: solo en cabeceras sin acciones a la derecha
+   (p.ej. "Capítulos" lleva botón y el hilo rompería su alineación). */
+.book-detail .section-head:has(> h2:only-child)::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--line);
 }
 .book-chip-link {
   font-family: var(--font-type);
