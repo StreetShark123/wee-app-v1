@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { BookChapter, BookComment, ChapterNote, ClubMemberLite, NoteKind } from "../lib/communityApi";
 import { pick, useI18n } from "../lib/i18n";
 import type { AppLanguage } from "../lib/types";
@@ -303,6 +303,32 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
     setOpenFor(null);
   };
 
+  // Borrador local por capítulo: si la red falla o se cierra la app a mitad de
+  // una nota, el texto no se pierde. Se limpia al publicar.
+  const draftKey = (chapterId: string) => `wee:draft:note:${chapterId}`;
+  const openComposer = (chapterId: string) => {
+    setNoteImage("");
+    setNoteFile("");
+    setNoteKind("note");
+    let draft = "";
+    try {
+      draft = localStorage.getItem(draftKey(chapterId)) ?? "";
+    } catch {
+      // storage bloqueado: composer vacío
+    }
+    setNoteText(draft);
+    setOpenFor(chapterId);
+  };
+  useEffect(() => {
+    if (!openFor) return;
+    try {
+      if (noteText.trim()) localStorage.setItem(draftKey(openFor), noteText);
+      else localStorage.removeItem(draftKey(openFor));
+    } catch {
+      // storage lleno/bloqueado: el borrador simplemente no persiste
+    }
+  }, [noteText, openFor]);
+
   const submitNote = async (chapterId: string) => {
     const cleanText = noteText.trim();
     // La imagen subida (data URL) tiene prioridad sobre el enlace escrito.
@@ -311,6 +337,11 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
     setSaving(true);
     try {
       await onAddNote(chapterId, cleanText, noteKind, cleanImage || undefined);
+      try {
+        localStorage.removeItem(draftKey(chapterId));
+      } catch {
+        // noop
+      }
       resetForm();
     } finally {
       setSaving(false);
@@ -401,7 +432,7 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
                   <button
                     type="button"
                     className="chapter-note-add-btn"
-                    onClick={() => { resetForm(); setOpenFor(chapter.id); }}
+                    onClick={() => openComposer(chapter.id)}
                     aria-label={pick(language, "Añadir nota", "Add note", "Engadir nota")}
                     title={pick(language, "Añadir nota", "Add note", "Engadir nota")}
                   >

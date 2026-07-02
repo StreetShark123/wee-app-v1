@@ -942,6 +942,10 @@ const createCommunitySession = async (
 };
 
 const handlers = {
+  // Warm-up: la app hace ping al arrancar para pagar aquí el arranque en frío
+  // de Deno (no en la primera acción real del usuario). Sin auth, sin DB.
+  "/health": (_req: Request) => Promise.resolve(json(200, { ok: true })),
+
   "/auth/register_global": async (req: Request) => {
     if (await isRateLimited(`reg:${clientIp(req)}`, 10)) return tooManyAttempts();
     const body = await parseBody(req);

@@ -45,7 +45,7 @@ const headers = (): HeadersInit => {
   };
 };
 
-const request = async <T>(path: string, body: Record<string, unknown>): Promise<T> => {
+const attempt = async <T>(path: string, body: Record<string, unknown>): Promise<T> => {
   if (!base) throw new Error("Missing VITE_SUPABASE_URL for community API");
   const response = await fetch(`${base}${path}`, {
     method: "POST",
@@ -55,9 +55,38 @@ const request = async <T>(path: string, body: Record<string, unknown>): Promise<
   const data = (await response.json()) as T | ApiError;
   if (!response.ok) {
     const message = (data as ApiError)?.message ?? "Community API error";
-    throw new Error(message);
+    const error = new Error(message) as Error & { status?: number };
+    error.status = response.status;
+    throw error;
   }
   return data as T;
+};
+
+// retryRead: SOLO para lecturas — un reintento con backoff ante fallo de red
+// (túnel, cambio wifi→datos) o 5xx transitorio. Las escrituras NUNCA reintentan
+// automáticamente (riesgo de duplicar un comentario/voto).
+const request = async <T>(path: string, body: Record<string, unknown>, opts?: { retryRead?: boolean }): Promise<T> => {
+  try {
+    return await attempt<T>(path, body);
+  } catch (error) {
+    const status = (error as Error & { status?: number }).status;
+    const transient = status === undefined || status >= 500; // sin status = fallo de red
+    if (!opts?.retryRead || !transient) throw error;
+    await new Promise((resolve) => setTimeout(resolve, 550 + Math.random() * 350));
+    return attempt<T>(path, body);
+  }
+};
+
+// Despierta la edge function en cuanto arranca la app (fire-and-forget): la
+// primera petición del día paga el arranque en frío de Deno (1-3s); así lo paga
+// este ping durante el splash y no tu primera acción real.
+export const warmUpApi = (): void => {
+  if (!base) return;
+  void fetch(`${base}/health`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}"
+  }).catch(() => undefined);
 };
 
 export interface CommunityUser extends User {
@@ -366,7 +395,7 @@ export interface ActivityEvent {
 }
 
 export const communityActivity = async (): Promise<{ events: ActivityEvent[] }> =>
-  request<{ events: ActivityEvent[] }>("/community/activity", {});
+  request<{ events: ActivityEvent[] }>("/community/activity", {}, { retryRead: true });
 
 export interface HealthMember {
   id: string;
@@ -571,7 +600,7 @@ export interface NewBookPayload {
 }
 
 export const listClubBooks = async (): Promise<{ books: ClubBook[]; memberBooks: MemberBook[] }> =>
-  request<{ books: ClubBook[]; memberBooks: MemberBook[] }>("/books/list", {});
+  request<{ books: ClubBook[]; memberBooks: MemberBook[] }>("/books/list", {}, { retryRead: true });
 
 export const createClubBook = async (book: NewBookPayload): Promise<{ book: ClubBook }> =>
   request<{ book: ClubBook }>("/books/create", { book });
@@ -668,7 +697,7 @@ export const rsvpMeeting = async (bookId: string, status: "yes" | "no" | null): 
   request<{ rsvp: MeetingRsvp }>("/books/meeting/rsvp", { book_id: bookId, ...(status ? { status } : {}) });
 
 export const getClubBook = async (bookId: string): Promise<BookDetail> =>
-  request<BookDetail>("/books/get", { book_id: bookId });
+  request<BookDetail>("/books/get", { book_id: bookId }, { retryRead: true });
 
 export const addBookComment = async (
   bookId: string,
@@ -715,7 +744,7 @@ export const pinComment = async (commentId: string, pinned: boolean): Promise<{ 
   request<{ ok: true; pinned: boolean }>("/comments/pin", { comment_id: commentId, pinned });
 
 export const listNotifications = async (): Promise<{ notifications: AppNotification[]; unreadCount: number }> =>
-  request<{ notifications: AppNotification[]; unreadCount: number }>("/notifications/list", {});
+  request<{ notifications: AppNotification[]; unreadCount: number }>("/notifications/list", {}, { retryRead: true });
 
 export const markNotificationsRead = async (): Promise<void> => {
   await request<{ ok: true }>("/notifications/read", {});

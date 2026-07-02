@@ -81,7 +81,23 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const [numberInput, setNumberInput] = useState(0);
   const [ratingInput, setRatingInput] = useState(0);
   const [reviewInput, setReviewInput] = useState("");
-  const [commentText, setCommentText] = useState("");
+  // Borrador local del comentario (por libro): si la red falla o se cierra la
+  // app a mitad, el texto no se pierde. Se limpia al publicar (texto vacío).
+  const [commentText, setCommentText] = useState(() => {
+    try {
+      return localStorage.getItem(`wee:draft:comment:${bookId}`) ?? "";
+    } catch {
+      return "";
+    }
+  });
+  useEffect(() => {
+    try {
+      if (commentText.trim()) localStorage.setItem(`wee:draft:comment:${bookId}`, commentText);
+      else localStorage.removeItem(`wee:draft:comment:${bookId}`);
+    } catch {
+      // storage lleno/bloqueado: el borrador simplemente no persiste
+    }
+  }, [commentText, bookId]);
   const [editOpen, setEditOpen] = useState(false);
   const [edit, setEdit] = useState({ title: "", author: "", coverUrl: "", description: "" });
   const [targetCh, setTargetCh] = useState("");
