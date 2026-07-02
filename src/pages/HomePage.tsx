@@ -4,11 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { BookCard } from "../components/BookCard";
 import { BookGridSkeleton } from "../components/Skeletons";
 import { Icon } from "../components/Icon";
-import { UserBadge } from "../components/UserBadge";
 import { TopBar } from "../components/TopBar";
 import { pick, useI18n } from "../lib/i18n";
-import { communityActivity, type ActivityEvent, type ClubBook, type MemberBook } from "../lib/communityApi";
-import { timeAgo as timeAgoIntl } from "../lib/timeAgo";
+import type { ClubBook, MemberBook } from "../lib/communityApi";
 import type { User } from "../lib/types";
 
 interface HomePageProps {
@@ -26,28 +24,6 @@ const matchesQuery = (book: ClubBook, query: string): boolean => {
   return haystack.includes(query);
 };
 
-// Caché stale-while-revalidate de la tira "Lo último": la red (más el arranque en
-// frío de la edge function) tarda; con esto la tira pinta al instante al volver a
-// la home y se refresca detrás.
-const ACTIVITY_CACHE_KEY = "wee:activity";
-const readCachedActivity = (userId: string): ActivityEvent[] => {
-  try {
-    const raw = localStorage.getItem(ACTIVITY_CACHE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as { key: string; events: ActivityEvent[] };
-    return parsed && parsed.key === userId && Array.isArray(parsed.events) ? parsed.events : [];
-  } catch {
-    return [];
-  }
-};
-const writeCachedActivity = (userId: string, events: ActivityEvent[]): void => {
-  try {
-    localStorage.setItem(ACTIVITY_CACHE_KEY, JSON.stringify({ key: userId, events }));
-  } catch {
-    // Storage lleno o bloqueado: sin caché, la tira seguirá llegando por red.
-  }
-};
-
 export const HomePage = ({
   activeUser,
   books,
@@ -61,46 +37,6 @@ export const HomePage = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [activity, setActivity] = useState<ActivityEvent[]>(() => readCachedActivity(activeUser.id));
-  const [activityExpanded, setActivityExpanded] = useState(false);
-  const [activityIdx, setActivityIdx] = useState(0);
-
-  useEffect(() => {
-    let alive = true;
-    const hadCached = activity.length > 0;
-    void communityActivity()
-      .then(({ events }) => {
-        if (!alive) return;
-        setActivity(events);
-        setActivityIdx(0);
-        writeCachedActivity(activeUser.id, events);
-        // La tira se inserta arriba de forma asíncrona; sin esto el "scroll
-        // anchoring" del navegador la empuja bajo el header al entrar en la home.
-        // Con caché ya pintada no hace falta (y evitamos un salto de scroll).
-        if (events.length > 0 && !hadCached) window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-      })
-      .catch(() => { /* deja lo cacheado si la red falla */ });
-    return () => { alive = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al cambiar de usuario
-  }, [activeUser.id]);
-
-  // Destino de un evento: los comentarios saltan al comentario concreto (#c-…);
-  // el resto, al libro.
-  const activityHref = (ev: ActivityEvent): string =>
-    ev.kind === "comment" && ev.commentId ? `/book/${ev.bookId}#c-${ev.commentId}` : `/book/${ev.bookId}`;
-
-  // La tira rota entre los eventos cada 4 s (pausada al expandir).
-  useEffect(() => {
-    if (activityExpanded || activity.length <= 1) return;
-    const id = window.setInterval(() => setActivityIdx((i) => (i + 1) % activity.length), 4000);
-    return () => window.clearInterval(id);
-  }, [activityExpanded, activity.length]);
-
-  const activityLine = (ev: ActivityEvent): string =>
-    ev.kind === "comment" ? pick(language, `comentó en «${ev.bookTitle}»`, `commented on “${ev.bookTitle}”`, `comentou en «${ev.bookTitle}»`)
-      : ev.kind === "note" ? pick(language, `anotó en «${ev.bookTitle}»`, `annotated “${ev.bookTitle}”`, `anotou en «${ev.bookTitle}»`)
-        : ev.kind === "read" ? pick(language, `leyó un capítulo de «${ev.bookTitle}»`, `read a chapter of “${ev.bookTitle}”`, `leu un capítulo de «${ev.bookTitle}»`)
-          : pick(language, `propuso «${ev.bookTitle}»`, `proposed “${ev.bookTitle}”`, `propuxo «${ev.bookTitle}»`);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebouncedSearchQuery(searchQuery.trim().toLowerCase()), 180);
@@ -195,37 +131,6 @@ export const HomePage = ({
           </div>
         </div>,
         document.body
-      ) : null}
-
-      {activity.length > 0 ? (
-        <section className="activity-feed">
-          <button type="button" className="activity-ticker" onClick={() => setActivityExpanded((v) => !v)} aria-expanded={activityExpanded}>
-            <span className="activity-ticker-label"><Icon name="spark" size={13} /> {pick(language, "Lo último", "Latest", "O último")}</span>
-            {!activityExpanded && activity[activityIdx] ? (
-              <span className="activity-ticker-now" key={activityIdx}>
-                <UserBadge alias={activity[activityIdx].actorAlias} avatarUrl={activity[activityIdx].actorAvatarUrl ?? undefined} colorIndex={activity[activityIdx].actorColorIndex ?? undefined} withAvatar />
-                <span className="activity-ticker-text">{activityLine(activity[activityIdx])}</span>
-                <span className="activity-chip-time">{timeAgoIntl(activity[activityIdx].at, language)}</span>
-              </span>
-            ) : (
-              <span className="activity-ticker-text">{pick(language, `${activity.length} novedades hoy`, `${activity.length} updates today`, `${activity.length} novidades hoxe`)}</span>
-            )}
-            <span className="activity-ticker-caret" aria-hidden="true">{activityExpanded ? "▴" : "▾"}</span>
-          </button>
-          {activityExpanded ? (
-            <ul className="activity-expanded">
-              {activity.map((ev, i) => (
-                <li key={`${ev.bookId}-${ev.at}-${i}`}>
-                  <button type="button" className="activity-row" onClick={() => navigate(activityHref(ev))}>
-                    <UserBadge alias={ev.actorAlias} avatarUrl={ev.actorAvatarUrl ?? undefined} colorIndex={ev.actorColorIndex ?? undefined} withAvatar />
-                    <span className="activity-ticker-text">{activityLine(ev)}</span>
-                    <span className="activity-chip-time">{timeAgoIntl(ev.at, language)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </section>
       ) : null}
 
       <div className="home-main home-books">

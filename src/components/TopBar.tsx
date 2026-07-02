@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { pick, useI18n } from "../lib/i18n";
 import { getSelectedCommunity } from "../lib/communitySession";
 import type { User } from "../lib/types";
+import { ActivityMenu } from "./ActivityMenu";
 import { Avatar } from "./Avatar";
 import { Icon } from "./Icon";
 import { NotificationsMenu } from "./NotificationsMenu";
@@ -73,6 +74,7 @@ const TopBarInner = ({ user, communityName, onLeaveCommunity, searchValue, onSea
       ) : null}
 
       <div className="topbar-right">
+        <ActivityMenu />
         <NotificationsMenu />
 
         <div className="topbar-user-menu" ref={profileMenuRef}>

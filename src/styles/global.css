@@ -772,34 +772,34 @@ h3 svg,
   margin-top: 4px;
 }
 
-.activity-feed { margin-top: 1rem; }
-/* Ticker: una sola línea que rota las últimas novedades; al pulsar, se expande. */
-.activity-ticker {
-  width: 100%; display: flex; align-items: center; gap: 8px;
-  background: var(--tint-live); border: 1px solid color-mix(in srgb, var(--live) 24%, var(--line));
-  border-left: 3px solid var(--live); border-radius: var(--radius-md);
-  padding: 8px 12px; cursor: pointer; text-align: left; color: var(--ink-0);
-}
-.activity-ticker-label {
-  display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto;
-  font-size: 0.7rem; font-weight: 700; color: var(--live);
-  text-transform: uppercase; letter-spacing: 0.04em;
-}
-.activity-ticker-label .icon { color: var(--live); }
-.activity-ticker-now { display: inline-flex; align-items: center; gap: 6px; min-width: 0; flex: 1 1 auto; animation: activity-fade 0.4s ease; }
-.activity-ticker-now .user-badge, .activity-row .user-badge { flex: 0 0 auto; }
-.activity-ticker-text { font-size: 0.84rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto; }
+/* "El club hoy": la actividad vive en el header como menú (junto a la campana);
+   la tira de la home se retiró — imponía scroll-shift y era irrelevante para
+   parte de los usuarios. Items dentro del dropdown de notificaciones. */
 .activity-chip-time { font-size: 0.7rem; color: var(--ink-1); flex: 0 0 auto; }
-.activity-ticker-caret { color: var(--ink-1); flex: 0 0 auto; font-size: 0.82rem; }
-@keyframes activity-fade { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
-.activity-expanded { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; max-height: 320px; overflow-y: auto; }
-.activity-expanded li { margin: 0; }
-.activity-row {
-  width: 100%; display: flex; align-items: center; gap: 6px;
-  background: transparent; border: 0; border-bottom: 1px dashed var(--line);
-  padding: 8px 4px; text-align: left; cursor: pointer; color: var(--ink-0);
+.activity-item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  font-size: inherit;
+  color: var(--ink-0);
 }
-.activity-row:hover { background: var(--panel-1); }
+.activity-item-line { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.activity-item-line .user-badge { flex: 0 0 auto; }
+.activity-item-text {
+  font-size: 0.84rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
+}
+.activity-item .activity-chip-time { align-self: flex-end; }
 
 .page-section.narrow {
   max-width: 760px;
