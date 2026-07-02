@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ChapterTimeline } from "../components/ChapterTimeline";
+import { GeneratedCover } from "../components/GeneratedCover";
 import { Icon } from "../components/Icon";
 import { TopBar } from "../components/TopBar";
 import { PunctuationLoader } from "../components/PunctuationLoader";
@@ -628,9 +629,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                   <img src={book.coverUrl} alt="" />
                 </button>
               ) : (
-                <span className="book-cover book-cover-lg book-cover-empty" aria-hidden="true">
-                  <Icon name="book" />
-                </span>
+                <GeneratedCover className="book-cover book-cover-lg" size="lg" title={book.title} author={book.author} />
               )}
             </div>
           </div>

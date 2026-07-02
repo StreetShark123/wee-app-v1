@@ -1,6 +1,7 @@
 import { memo, type ReactNode } from "react";
 import type { ClubBook, MemberBook } from "../lib/communityApi";
 import { pick, useI18n } from "../lib/i18n";
+import { GeneratedCover } from "./GeneratedCover";
 import { Icon } from "./Icon";
 
 interface BookCardProps {
@@ -69,9 +70,7 @@ export const BookCard = memo(({ book, member, onOpen }: BookCardProps) => {
       {book.coverUrl ? (
         <img className="book-card-cover" src={book.coverUrl} alt="" loading="lazy" />
       ) : (
-        <span className="book-card-cover book-card-cover-empty" aria-hidden="true">
-          <Icon name="book" />
-        </span>
+        <GeneratedCover className="book-card-cover" title={book.title} author={book.author} />
       )}
       <span className="book-card-body">
         <strong className="book-card-title">{book.title}</strong>

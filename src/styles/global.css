@@ -2724,9 +2724,11 @@ textarea::placeholder {
 }
 
 .app-footer {
-  margin: 1.35rem auto 0.95rem;
-  max-width: 1180px;
-  padding: 0 1rem;
+  margin: 2rem auto 0.95rem;
+  max-width: var(--content-max);
+  padding: 1rem 1rem 0;
+  /* Colofón: el pie se separa del contenido con un hilo, como la última página. */
+  border-top: 1px solid var(--line);
 }
 
 .footer-bar {
@@ -3235,11 +3237,82 @@ textarea:focus-visible {
   padding: 2px 7px;
 }
 
-.book-card-cover-empty {
-  display: grid;
-  place-items: center;
-  color: var(--ink-1);
+/* ── Portada editorial generada (libros sin imagen) ──────────────────────────
+   Composición de clásico de bolsillo: banda de autor, título en serif, marca
+   al pie. --cover-tint la fija la clase gen-cover-tint-N (determinista por
+   título), y todo lo demás se deriva con color-mix → papel entintado + tinta
+   profunda del mismo tono. El lomo (gradiente izquierdo) lo hace "libro". */
+.gen-cover {
+  --cover-tint: var(--brand);
+  display: flex;
+  flex-direction: column;
+  aspect-ratio: 2 / 3;
+  padding: 7%;
+  background:
+    linear-gradient(90deg, rgb(0 0 0 / 10%), rgb(0 0 0 / 3%) 7%, transparent 12%),
+    color-mix(in srgb, var(--cover-tint) 16%, var(--panel-0));
+  color: color-mix(in srgb, var(--cover-tint) 72%, var(--ink-0));
+  overflow: hidden;
+  text-align: center;
 }
+.gen-cover-tint-0 { --cover-tint: var(--brand); }
+.gen-cover-tint-1 { --cover-tint: var(--status-proposed); }
+.gen-cover-tint-2 { --cover-tint: var(--status-finished); }
+.gen-cover-tint-3 { --cover-tint: var(--status-reading); }
+.gen-cover-tint-4 { --cover-tint: var(--stamp); }
+.gen-cover-tint-5 { --cover-tint: var(--ink-1); }
+
+.gen-cover-frame {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6%;
+  padding: 9% 7%;
+  border: 1px solid color-mix(in srgb, var(--cover-tint) 42%, transparent);
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--cover-tint) 10%, transparent);
+}
+.gen-cover-author {
+  font-family: var(--font-type);
+  font-size: 0.52rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.85;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-bottom: 6%;
+  border-bottom: 1px solid color-mix(in srgb, var(--cover-tint) 32%, transparent);
+}
+.gen-cover-author-empty { letter-spacing: 0.3em; }
+.gen-cover-title {
+  flex: 1;
+  min-height: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
+  align-content: center;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.86rem;
+  line-height: 1.25;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+.gen-cover-mark {
+  font-family: var(--font-type);
+  font-size: 0.62rem;
+  opacity: 0.7;
+}
+
+/* Tamaño héroe (ficha de libro). OJO: en móvil la columna de portada de la
+   ficha mide ~116px (MENOS que una card de estantería) → cuerpos contenidos. */
+.gen-cover-lg .gen-cover-author { font-size: 0.48rem; letter-spacing: 0.07em; }
+.gen-cover-lg .gen-cover-title { font-size: 0.78rem; -webkit-line-clamp: 4; }
+.gen-cover-lg .gen-cover-mark { font-size: 0.56rem; }
 
 .book-card-body {
   display: flex;
@@ -3925,6 +3998,18 @@ textarea:focus-visible {
 
 /* ───────────────────────────── Libro destacado (oro/plata) ───────────────────── */
 .book-card { position: relative; }
+/* Tacto: la tarjeta responde al dedo como un objeto físico. */
+.book-card:active {
+  transform: translateY(1px) scale(0.985);
+  box-shadow: 0 1px 4px rgb(74 54 30 / 10%);
+}
+@media (hover: hover) {
+  .book-card:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--brand) 30%, var(--line));
+    box-shadow: var(--shadow-warm-lg);
+  }
+}
 
 .book-card-featured-gold { border-color: color-mix(in srgb, var(--stamp) 45%, var(--line)); }
 .book-card-featured-silver { border-color: var(--ink-1); }
@@ -4412,6 +4497,14 @@ textarea:focus-visible {
   align-items: center;
   gap: 8px;
   margin-bottom: 12px;
+}
+/* Filete editorial: la cabecera de estante remata con un hilo hasta el margen,
+   como los sumarios de una revista impresa. */
+.shelf-head::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--line);
+  margin-left: 2px;
 }
 
 .shelf-head .shelf-title { margin: 0; }
