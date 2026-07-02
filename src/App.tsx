@@ -30,9 +30,10 @@ const InvitePage = lazy(async () => ({ default: (await import("./pages/InvitePag
 const JoinPage = lazy(async () => ({ default: (await import("./pages/JoinPage")).JoinPage }));
 const ClubLandingPage = lazy(async () => ({ default: (await import("./pages/ClubLandingPage")).ClubLandingPage }));
 
-// Splash: tiempo mínimo en pantalla (deja que el "wee." acabe de teclearse) y
-// duración del fade de salida (debe casar con la animación CSS `is-finishing`).
-const MIN_SPLASH_MS = 1300;
+// Splash: tiempo mínimo en pantalla (deja que el "wee." acabe de teclearse,
+// 0.85s + 0.1s de delay en CSS) y duración del fade de salida (casa con el
+// CSS `is-finishing`).
+const MIN_SPLASH_MS = 1000;
 const SPLASH_FADE_MS = 440;
 
 const AppRoutes = () => {

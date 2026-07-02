@@ -183,7 +183,7 @@ h4 {
   vertical-align: bottom;
   width: 4ch;
   border-right: 0.1em solid var(--ink-scarlet);
-  animation: loading-type 1.2s steps(4, end) 0.15s both, loading-caret 0.7s step-end infinite;
+  animation: loading-type 0.85s steps(4, end) 0.1s both, loading-caret 0.7s step-end infinite;
 }
 
 @keyframes loading-type {
@@ -5123,6 +5123,14 @@ textarea:focus-visible {
   display: grid;
   place-items: center;
   background: var(--bg-0);
+  /* Aparición retardada: si la carga es rápida no llega a verse (sin flash), y
+     nunca se solapa animándose con el fundido del splash (440ms), que antes
+     dejaba ver dos loaders superpuestos durante el fade. */
+  opacity: 0;
+  animation: app-loading-in 160ms ease 450ms forwards;
+}
+@keyframes app-loading-in {
+  to { opacity: 1; }
 }
 .app-loading-glyph {
   font-family: var(--font-type);

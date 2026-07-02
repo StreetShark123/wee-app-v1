@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { BookCard } from "../components/BookCard";
-import { PunctuationLoader } from "../components/PunctuationLoader";
+import { BookGridSkeleton } from "../components/Skeletons";
 import { Icon } from "../components/Icon";
 import { UserBadge } from "../components/UserBadge";
 import { TopBar } from "../components/TopBar";
@@ -26,6 +26,28 @@ const matchesQuery = (book: ClubBook, query: string): boolean => {
   return haystack.includes(query);
 };
 
+// Caché stale-while-revalidate de la tira "Lo último": la red (más el arranque en
+// frío de la edge function) tarda; con esto la tira pinta al instante al volver a
+// la home y se refresca detrás.
+const ACTIVITY_CACHE_KEY = "wee:activity";
+const readCachedActivity = (userId: string): ActivityEvent[] => {
+  try {
+    const raw = localStorage.getItem(ACTIVITY_CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as { key: string; events: ActivityEvent[] };
+    return parsed && parsed.key === userId && Array.isArray(parsed.events) ? parsed.events : [];
+  } catch {
+    return [];
+  }
+};
+const writeCachedActivity = (userId: string, events: ActivityEvent[]): void => {
+  try {
+    localStorage.setItem(ACTIVITY_CACHE_KEY, JSON.stringify({ key: userId, events }));
+  } catch {
+    // Storage lleno o bloqueado: sin caché, la tira seguirá llegando por red.
+  }
+};
+
 export const HomePage = ({
   activeUser,
   books,
@@ -39,23 +61,27 @@ export const HomePage = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [activity, setActivity] = useState<ActivityEvent[]>([]);
+  const [activity, setActivity] = useState<ActivityEvent[]>(() => readCachedActivity(activeUser.id));
   const [activityExpanded, setActivityExpanded] = useState(false);
   const [activityIdx, setActivityIdx] = useState(0);
 
   useEffect(() => {
     let alive = true;
+    const hadCached = activity.length > 0;
     void communityActivity()
       .then(({ events }) => {
         if (!alive) return;
         setActivity(events);
         setActivityIdx(0);
+        writeCachedActivity(activeUser.id, events);
         // La tira se inserta arriba de forma asíncrona; sin esto el "scroll
         // anchoring" del navegador la empuja bajo el header al entrar en la home.
-        if (events.length > 0) window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+        // Con caché ya pintada no hace falta (y evitamos un salto de scroll).
+        if (events.length > 0 && !hadCached) window.scrollTo({ top: 0, left: 0, behavior: "auto" });
       })
-      .catch(() => { if (alive) setActivity([]); });
+      .catch(() => { /* deja lo cacheado si la red falla */ });
     return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al cambiar de usuario
   }, [activeUser.id]);
 
   // Destino de un evento: los comentarios saltan al comentario concreto (#c-…);
@@ -224,7 +250,9 @@ export const HomePage = ({
         </div>
 
         {booksLoading && books.length === 0 ? (
-          <PunctuationLoader />
+          // Skeleton en flujo (no overlay): tras el splash el usuario ya ve la
+          // pantalla real (header + estantería), sin repetir otra carga completa.
+          <BookGridSkeleton />
         ) : books.length === 0 ? (
           <article className="page-section empty-state">
             <h3>{pick(language, "La estantería está vacía", "The shelf is empty", "A estantería está baleira")}</h3>
