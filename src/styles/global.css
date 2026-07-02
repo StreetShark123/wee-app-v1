@@ -1463,6 +1463,14 @@ textarea::placeholder {
   font-weight: 600;
   box-shadow: var(--shadow-warm);
 }
+/* Deshabilitado honesto: desaturado hacia el papel (con solo la opacidad
+   global seguía leyéndose como un primario listo para pulsar). */
+.btn-primary:disabled,
+.btn-primary[aria-disabled="true"] {
+  background: color-mix(in srgb, var(--brand) 30%, var(--panel-1));
+  border-color: transparent;
+  box-shadow: none;
+}
 
 .btn-icon-compact {
   min-width: 36px;
@@ -3546,9 +3554,11 @@ textarea:focus-visible {
 }
 
 .book-edit-corner {
+  /* Anclado a la esquina del héroe (.book-detail-head, position:relative) —
+     antes vivía sobre la portada y le recortaba el marco. */
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: 10px;
+  right: 10px;
   z-index: 2;
   display: inline-grid;
   place-items: center;
@@ -4650,6 +4660,16 @@ textarea:focus-visible {
 .comment-text a { color: var(--brand-strong); text-decoration: underline; }
 
 .comment-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+/* Acciones de dueño (editar/borrar) como grupo de iconos empujado a la derecha:
+   la fila de acciones cabe en una sola línea en móvil. */
+.comment-own-acts { margin-left: auto; display: inline-flex; align-items: center; gap: 2px; }
+.comment-act-icon {
+  display: inline-grid;
+  place-items: center;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0;
+}
 .comment-reply-btn { font-size: 0.78rem; color: var(--ink-1); background: transparent; border: 0; cursor: pointer; padding: 2px 4px; }
 .comment-reply-btn:hover { color: var(--ink-0); }
 .comment-reply-form { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
@@ -5199,7 +5219,8 @@ textarea:focus-visible {
 
 /* Filete editorial en la ficha: solo en cabeceras sin acciones a la derecha
    (p.ej. "Capítulos" lleva botón y el hilo rompería su alineación). */
-.book-detail .section-head:has(> h2:only-child)::after {
+.book-detail .section-head:has(> h2:only-child)::after,
+.book-detail .section-head:has(> h3:only-child)::after {
   content: "";
   flex: 1;
   border-top: 1px solid var(--line);

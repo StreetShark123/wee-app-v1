@@ -228,16 +228,19 @@ const NoteCard = ({
                 ? pick(language, "Responder", "Reply", "Responder")
                 : pick(language, "Comentar", "Comment", "Comentar")}
           </button>
-          {mine && onEdit ? (
-            <button type="button" className="note-mini-action" onClick={() => { setEditText(note.text); setEditing(true); }}>
-              <Icon name="pencil" size={11} /> {pick(language, "Editar", "Edit", "Editar")}
-            </button>
-          ) : null}
-          {mine && onDelete ? (
-            <button type="button" className="note-mini-action note-mini-action-del" onClick={onDelete}>
-              <Icon name="trash" size={11} /> {pick(language, "Borrar", "Delete", "Borrar")}
-            </button>
-          ) : null}
+          {/* Editar/Borrar como iconos a la derecha: la fila cabe en móvil. */}
+          <span className="comment-own-acts">
+            {mine && onEdit ? (
+              <button type="button" className="note-mini-action comment-act-icon" onClick={() => { setEditText(note.text); setEditing(true); }} aria-label={pick(language, "Editar", "Edit", "Editar")} title={pick(language, "Editar", "Edit", "Editar")}>
+                <Icon name="pencil" size={13} />
+              </button>
+            ) : null}
+            {mine && onDelete ? (
+              <button type="button" className="note-mini-action note-mini-action-del comment-act-icon" onClick={onDelete} aria-label={pick(language, "Borrar", "Delete", "Borrar")} title={pick(language, "Borrar", "Delete", "Borrar")}>
+                <Icon name="trash" size={13} />
+              </button>
+            ) : null}
+          </span>
         </div>
       ) : null}
 

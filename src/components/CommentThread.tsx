@@ -135,33 +135,45 @@ const CommentItem = ({
           {pick(language, "Responder", "Reply", "Responder")}
         </button>
         {isAdmin && onPin && !isReply ? (
-          <button type="button" className={`comment-reply-btn comment-pin-btn${comment.pinned ? " is-on" : ""}`} onClick={() => onPin(comment.id, !comment.pinned)}>
-            <Icon name="star" size={12} /> {comment.pinned ? pick(language, "Quitar", "Unpin", "Quitar") : pick(language, "Destacar", "Feature", "Destacar")}
-          </button>
-        ) : null}
-        {isMine ? (
-          <button type="button" className="comment-reply-btn" onClick={() => { setEditText(comment.text); setEditOpen(true); }}>
-            {pick(language, "Editar", "Edit", "Editar")}
-          </button>
-        ) : null}
-        {canDelete ? (
           <button
             type="button"
-            className="comment-reply-btn comment-del-btn"
-            onClick={async () => {
-              const ok = await confirm({
-                title: isMine
-                  ? pick(language, "¿Borrar este comentario?", "Delete this comment?", "Borrar este comentario?")
-                  : pick(language, "¿Borrar este comentario (moderación)?", "Delete this comment (moderation)?", "Borrar este comentario (moderación)?"),
-                confirmLabel: pick(language, "Borrar", "Delete", "Borrar"),
-                danger: true
-              });
-              if (ok) onDelete(comment.id);
-            }}
+            className={`comment-reply-btn comment-pin-btn comment-act-icon${comment.pinned ? " is-on" : ""}`}
+            onClick={() => onPin(comment.id, !comment.pinned)}
+            aria-label={comment.pinned ? pick(language, "Quitar destacado", "Unpin", "Quitar destacado") : pick(language, "Destacar", "Feature", "Destacar")}
+            title={comment.pinned ? pick(language, "Quitar destacado", "Unpin", "Quitar destacado") : pick(language, "Destacar", "Feature", "Destacar")}
           >
-            {pick(language, "Borrar", "Delete", "Borrar")}
+            <Icon name="star" size={13} />
           </button>
         ) : null}
+        {/* Acciones de dueño/moderación como iconos a la derecha: caben en una
+            fila en móvil (con texto, el flex-wrap partía en dos filas). */}
+        <span className="comment-own-acts">
+          {isMine ? (
+            <button type="button" className="comment-reply-btn comment-act-icon" onClick={() => { setEditText(comment.text); setEditOpen(true); }} aria-label={pick(language, "Editar", "Edit", "Editar")} title={pick(language, "Editar", "Edit", "Editar")}>
+              <Icon name="pencil" size={13} />
+            </button>
+          ) : null}
+          {canDelete ? (
+            <button
+              type="button"
+              className="comment-reply-btn comment-del-btn comment-act-icon"
+              aria-label={pick(language, "Borrar", "Delete", "Borrar")}
+              title={pick(language, "Borrar", "Delete", "Borrar")}
+              onClick={async () => {
+                const ok = await confirm({
+                  title: isMine
+                    ? pick(language, "¿Borrar este comentario?", "Delete this comment?", "Borrar este comentario?")
+                    : pick(language, "¿Borrar este comentario (moderación)?", "Delete this comment (moderation)?", "Borrar este comentario (moderación)?"),
+                  confirmLabel: pick(language, "Borrar", "Delete", "Borrar"),
+                  danger: true
+                });
+                if (ok) onDelete(comment.id);
+              }}
+            >
+              <Icon name="trash" size={13} />
+            </button>
+          ) : null}
+        </span>
         {!isMine && !comment.deleted ? (
           reported ? (
             <span className="comment-reported">{pick(language, "Denunciado", "Reported", "Denunciado")}</span>

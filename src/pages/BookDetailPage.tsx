@@ -586,6 +586,14 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
           {coverLightbox && book.coverUrl ? <ImageLightbox url={book.coverUrl} onClose={() => setCoverLightbox(false)} showVisit={false} /> : null}
           {readersOpen ? <ReadersModal members={members} total={total} bookStatus={book.status} clubMembers={clubMembers} onClose={() => setReadersOpen(false)} /> : null}
 
+          {/* Editar anclado a la esquina del héroe (no sobre la portada, que lo
+              recortaba visualmente). */}
+          {isAdmin && !editOpen ? (
+            <button type="button" className="book-edit-corner" onClick={openEdit} aria-label={pick(language, "Editar libro", "Edit book", "Editar libro")} title={pick(language, "Editar", "Edit", "Editar")}>
+              <Icon name="pencil" size={14} />
+            </button>
+          ) : null}
+
           <div className="book-head-top">
             <div className="book-head-info">
               <div className="book-status-row">
@@ -619,11 +627,6 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
             </div>
 
             <div className="book-cover-wrap">
-              {isAdmin && !editOpen ? (
-                <button type="button" className="book-edit-corner" onClick={openEdit} aria-label={pick(language, "Editar libro", "Edit book", "Editar libro")} title={pick(language, "Editar", "Edit", "Editar")}>
-                  <Icon name="pencil" size={14} />
-                </button>
-              ) : null}
               {book.coverUrl ? (
                 <button type="button" className="book-cover book-cover-lg book-cover-btn" onClick={() => setCoverLightbox(true)} aria-label={pick(language, "Ver portada", "View cover", "Ver portada")}>
                   <img src={book.coverUrl} alt="" />
