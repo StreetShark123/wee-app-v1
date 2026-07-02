@@ -229,22 +229,32 @@ export const HomePage = ({
       ) : null}
 
       <div className="home-main home-books">
+        {/* Masthead: fila de título (+ ayuda discreta) y fila de acciones con el
+            buscador a todo el ancho disponible (antes quedaba aplastado a "B..."). */}
         <div className="books-hero">
-          <h2 className="books-hero-title"><Icon name="book" /> {pick(language, "La estantería del club", "The club shelf", "A estantería do club")}</h2>
+          <div className="books-hero-masthead">
+            <h2 className="books-hero-title"><Icon name="book" /> {pick(language, "La estantería del club", "The club shelf", "A estantería do club")}</h2>
+            <button
+              type="button"
+              className="btn btn-icon-compact books-hero-help"
+              onClick={() => setShowOnboarding(true)}
+              aria-label={pick(language, "¿Cómo funciona?", "How it works", "Como funciona?")}
+              title={pick(language, "¿Cómo funciona?", "How it works", "Como funciona?")}
+            >
+              <Icon name="spark" size={14} />
+            </button>
+          </div>
           <div className="books-hero-actions">
             <label className="books-hero-search" aria-label={pick(language, "Buscar libro", "Search book", "Buscar libro")}>
               <Icon name="search" size={13} />
               <input
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder={pick(language, "Buscar...", "Search...", "Buscar...")}
+                placeholder={pick(language, "Buscar en la estantería...", "Search the shelf...", "Buscar na estantería...")}
               />
             </label>
-            <button type="button" className="btn btn-primary" onClick={onOpenAddBook}>
+            <button type="button" className="btn btn-primary books-hero-add" onClick={onOpenAddBook}>
               <Icon name="plus" size={14} /> {pick(language, "Añadir libro", "Add book", "Engadir libro")}
-            </button>
-            <button type="button" className="btn" onClick={() => setShowOnboarding(true)}>
-              <Icon name="spark" size={13} /> {pick(language, "¿Cómo funciona?", "How it works", "Como funciona?")}
             </button>
           </div>
         </div>

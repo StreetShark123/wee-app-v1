@@ -1098,10 +1098,22 @@ textarea::placeholder {
   border: 1px dashed var(--line);
   border-radius: 12px;
   background: color-mix(in srgb, var(--panel-1) 60%, transparent);
-  padding: 0.9rem;
+  padding: 1.6rem 1rem 1.3rem;
   display: grid;
   gap: 0.35rem;
+  justify-items: center;
+  text-align: center;
 }
+/* Ornamento tipográfico: el vacío también tiene voz (puntuación de máquina). */
+.empty-state::before {
+  content: "( ... )";
+  font-family: var(--font-type);
+  font-size: 1.3rem;
+  color: var(--ink-scarlet);
+  opacity: 0.75;
+  margin-bottom: 0.2rem;
+}
+.empty-state .btn { margin-top: 0.5rem; }
 
 .empty-state h3 {
   margin: 0;
@@ -4442,14 +4454,25 @@ textarea:focus-visible {
 }
 
 /* ─────────── Home: hero con buscador compacto + estanterías como bloques ─────── */
+/* Masthead: fila de título (con ayuda discreta a la derecha) y debajo la fila
+   de acciones — buscador flexible + botón primario. Antes era una sola fila con
+   wrap y el buscador quedaba aplastado (solo asomaba la "B" de "Buscar..."). */
 .books-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.books-hero-masthead {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 4px;
+  gap: 10px;
 }
+.books-hero-help { flex: 0 0 auto; color: var(--ink-1); }
+.books-hero-add { white-space: nowrap; flex: 0 0 auto; }
 
 .books-hero-title {
   display: flex;
@@ -4469,9 +4492,10 @@ textarea:focus-visible {
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 36px;
-  max-width: 200px;
-  padding: 0 10px;
+  height: 44px;
+  flex: 1;
+  min-width: 0;
+  padding: 0 12px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--line);
   background: var(--panel-0);
@@ -4509,10 +4533,6 @@ textarea:focus-visible {
 
 .shelf-head .shelf-title { margin: 0; }
 
-@media (max-width: 560px) {
-  .books-hero-actions { width: 100%; }
-  .books-hero-search { max-width: none; flex: 1; }
-}
 
 /* A11y: ampliar área táctil (≥44px) de acciones de lectura sin cambiar el tamaño visual */
 .chapter-check { position: absolute; }
