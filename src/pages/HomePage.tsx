@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { BookCard } from "../components/BookCard";
 import { BookGridSkeleton } from "../components/Skeletons";
 import { Icon } from "../components/Icon";
-import { TopBar } from "../components/TopBar";
 import { pick, useI18n } from "../lib/i18n";
 import type { ClubBook, MemberBook } from "../lib/communityApi";
 import type { User } from "../lib/types";
@@ -103,8 +102,6 @@ export const HomePage = ({
 
   return (
     <main>
-      <TopBar user={activeUser} onOpenShare={onOpenAddBook} onLogout={onLogout} />
-
       {showOnboarding ? createPortal(
         <div className="readers-modal-overlay" role="dialog" aria-modal="true" onClick={closeOnboarding}>
           <div className="readers-modal onboarding-modal" onClick={(e) => e.stopPropagation()}>

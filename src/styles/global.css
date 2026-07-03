@@ -5334,3 +5334,130 @@ textarea:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .route-spinner::before { width: 3ch; animation: none; }
 }
+
+/* ═══════════ Shell app-like: masthead del club + dock inferior ═══════════ */
+
+/* Cabecera: el club como identidad, centrado y con presencia editorial. */
+.masthead {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  padding: calc(0.55rem + env(safe-area-inset-top)) 0.8rem 0.55rem;
+  background: color-mix(in srgb, var(--bg-0) 86%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--line) 70%, transparent);
+}
+.masthead-title {
+  grid-column: 2;
+  justify-self: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 1.18rem;
+  letter-spacing: 0.01em;
+  color: var(--ink-0);
+  text-decoration: none;
+}
+.masthead-bell { grid-column: 3; justify-self: end; }
+/* El dropdown de la campana se ancla a la cabecera nueva igual que antes. */
+.masthead-bell .topbar-notifications { position: relative; }
+
+/* Dock: navegación principal al alcance del pulgar (tab bar). */
+.dock-nav {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--panel-0) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid var(--line);
+}
+.dock-tab {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  min-height: 52px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--ink-1);
+  cursor: pointer;
+  transition: color var(--motion-fast) var(--ease-standard), transform var(--motion-fast) var(--ease-standard);
+}
+.dock-tab:active { transform: translateY(1px) scale(0.97); }
+.dock-tab.is-active { color: var(--brand-strong); }
+.dock-tab-icon { position: relative; display: grid; place-items: center; }
+.dock-tab-icon .notification-dot { position: absolute; top: -2px; right: -6px; }
+.dock-tab-label {
+  font-family: var(--font-type);
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+/* El contenido no queda nunca bajo el dock. */
+body:has(.dock-nav) main { padding-bottom: calc(78px + env(safe-area-inset-bottom)); }
+
+/* Feed "Club": señales con contenido, tapeables. */
+.feed-page { max-width: var(--content-max); margin: 0 auto; padding: 0.6rem 0 0; }
+.feed-head h2 { display: inline-flex; align-items: center; gap: 8px; margin: 0; font-size: 1.16rem; }
+.feed-head::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
+.feed-intro { margin: 4px 0 12px; }
+.feed-list { display: grid; gap: 10px; }
+.feed-item {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  color: var(--ink-0);
+  font-size: inherit;
+  font-family: inherit;
+  transition: transform var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard);
+}
+.feed-item:active { transform: translateY(1px) scale(0.99); }
+.feed-item-head { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.feed-item-head .user-badge { flex: 0 0 auto; }
+.feed-item-action { color: var(--ink-1); font-size: 0.84rem; flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.feed-item-book {
+  display: inline-flex; align-items: center; gap: 5px;
+  justify-self: start;
+  font-family: var(--font-type);
+  font-size: 0.66rem;
+  color: var(--ink-1);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 2px 7px;
+}
+.feed-item-quote { font-style: italic; line-height: 1.45; }
+
+/* Página "Tú": one-page compacta. */
+.me-page { max-width: var(--content-max); margin: 0 auto; padding: 0.6rem 0 0; display: grid; gap: 12px; }
+.me-hero-head { display: flex; align-items: center; gap: 12px; }
+.me-hero-id { display: grid; gap: 2px; min-width: 0; }
+.me-hero-alias { font-size: 1.15rem; }
+.me-hero-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.me-alias-row { display: grid; gap: 4px; margin-top: 12px; font-size: 0.82rem; color: var(--ink-1); }
+.me-alias-controls { display: flex; gap: 8px; }
+.me-alias-controls input { flex: 1; min-width: 0; }
+.me-link-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 2px;
+  color: var(--ink-0);
+  text-decoration: none;
+  border-bottom: 1px dashed var(--line);
+  min-height: 44px;
+}
+.me-link-row:last-child { border-bottom: 0; }
+.me-actions-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.me-logout { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); }
+.me-page .app-footer { margin-top: 0.4rem; border-top: 0; padding-top: 0; }

@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ChapterTimeline } from "../components/ChapterTimeline";
 import { GeneratedCover } from "../components/GeneratedCover";
 import { Icon } from "../components/Icon";
-import { TopBar } from "../components/TopBar";
 import { PunctuationLoader } from "../components/PunctuationLoader";
 import { ReadersModal } from "../components/ReadersModal";
 import { UserDot, styleFor } from "../components/UserBadge";
@@ -220,7 +219,6 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   if (error || !detail) {
     return (
       <main>
-        <TopBar user={activeUser} onOpenShare={onOpenAddBook} onLogout={onLogout} />
         <section className="page-section narrow">
           <h2>{pick(language, "Libro no disponible", "Book unavailable", "Libro non dispoñible")}</h2>
           <p className="warning">{error}</p>
@@ -590,8 +588,6 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
 
   return (
     <main>
-      <TopBar user={activeUser} onOpenShare={onOpenAddBook} onLogout={onLogout} />
-
       <div className="book-detail">
         <div className="book-action-bar">
           <button type="button" className="book-back" onClick={() => navigate("/home")}>

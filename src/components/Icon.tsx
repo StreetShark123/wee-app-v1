@@ -4,6 +4,7 @@ import {
   ArrowsClockwise,
   Bell,
   BookOpen,
+  Books,
   Camera,
   CaretDown,
   CaretUp,
@@ -98,7 +99,8 @@ export type IconName =
   | "pencil"
   | "x"
   | "copy"
-  | "refresh";
+  | "refresh"
+  | "books";
 
 const GLYPHS: Record<IconName, PhosphorIcon> = {
   home: House,
@@ -145,7 +147,8 @@ const GLYPHS: Record<IconName, PhosphorIcon> = {
   pencil: PencilSimple,
   x: X,
   copy: Copy,
-  refresh: ArrowsClockwise
+  refresh: ArrowsClockwise,
+  books: Books
 };
 
 interface IconProps {

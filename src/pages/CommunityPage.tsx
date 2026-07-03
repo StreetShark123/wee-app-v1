@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { timeAgo } from "../lib/timeAgo";
-import { TopBar } from "../components/TopBar";
 import { Icon } from "../components/Icon";
 import { WeeMark } from "../components/WeeMark";
 import { pick, useI18n } from "../lib/i18n";
@@ -390,17 +389,6 @@ export const CommunityPage = ({
 
   return (
     <main>
-      <TopBar
-        user={activeUser}
-        communityName={selectedCommunity?.name}
-          onLeaveCommunity={async () => {
-            await onLeaveCommunity();
-          onToast?.(pick(language, "Has salido del club.", "You left the community.", "Saíches da comunidade."));
-        }}
-        onOpenShare={onOpenShareModal}
-        onLogout={onLogout}
-      />
-
       <section className="page-section community-page-section">
         <div className="section-head">
           <h2><Icon name="users" /> {pick(language, "El club", "Community", "Comunidade")}</h2>
@@ -813,6 +801,16 @@ export const CommunityPage = ({
             <Link to="/communities" className="btn btn-nav community-new-club">
               <Icon name="plus" /> {pick(language, "Crear o unirte a otro club", "Create or join another club", "Crear ou unirte a outro club")}
             </Link>
+            <button
+              type="button"
+              className="btn btn-nav community-leave"
+              onClick={async () => {
+                await onLeaveCommunity();
+                onToast?.(pick(language, "Has salido del club.", "You left the community.", "Saíches da comunidade."));
+              }}
+            >
+              <Icon name="logout" /> {pick(language, "Salir de este club", "Leave this club", "Saír deste club")}
+            </button>
           </article>
         </div>
       </section>

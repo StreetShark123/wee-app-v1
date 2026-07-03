@@ -4,7 +4,6 @@ import { Avatar } from "../components/Avatar";
 import { Icon } from "../components/Icon";
 import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
-import { TopBar } from "../components/TopBar";
 import { getUserProfile, type UserProfile } from "../lib/communityApi";
 import type { User } from "../lib/types";
 
@@ -95,7 +94,6 @@ export const ProfilePage = ({
 
   return (
     <main>
-      <TopBar user={activeUser} onOpenShare={onOpenShareModal} onLogout={onLogout} />
       <section className="page-section profile-page">
         <div className="profile-stack">
           <div className="profile-hero">

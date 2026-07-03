@@ -2,9 +2,10 @@ import { AnimatePresence } from "framer-motion";
 import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { HashRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
-import { AppFooter } from "./components/AppFooter";
 import { CommunityLoadingScreen } from "./components/CommunityLoadingScreen";
+import { DockNav } from "./components/DockNav";
 import { Icon } from "./components/Icon";
+import { Masthead } from "./components/Masthead";
 import { PageTransition } from "./components/PageTransition";
 import { AddBookModal } from "./components/AddBookModal";
 import type { BookDraft } from "./lib/bookSearch";
@@ -23,7 +24,8 @@ const AuthPage = lazy(async () => ({ default: (await import("./pages/AuthPage"))
 const HomePage = lazy(async () => ({ default: (await import("./pages/HomePage")).HomePage }));
 const BookDetailPage = lazy(async () => ({ default: (await import("./pages/BookDetailPage")).BookDetailPage }));
 const ProfilePage = lazy(async () => ({ default: (await import("./pages/ProfilePage")).ProfilePage }));
-const SettingsPage = lazy(async () => ({ default: (await import("./pages/SettingsPage")).SettingsPage }));
+const FeedPage = lazy(async () => ({ default: (await import("./pages/FeedPage")).FeedPage }));
+const MePage = lazy(async () => ({ default: (await import("./pages/MePage")).MePage }));
 const CommunityPage = lazy(async () => ({ default: (await import("./pages/CommunityPage")).CommunityPage }));
 const CommunitiesPickerPage = lazy(async () => ({ default: (await import("./pages/CommunitiesPickerPage")).CommunitiesPickerPage }));
 const InvitePage = lazy(async () => ({ default: (await import("./pages/InvitePage")).InvitePage }));
@@ -294,6 +296,14 @@ const AppRoutes = () => {
   }, [activeUser]);
 
   const i18nValue = useMemo(() => ({ language }), [language]);
+
+  // Destino de la pestaña "Lectura" del dock: el libro en curso (el destacado
+  // en oro primero); sin lectura activa, el dock cae a la estantería.
+  const currentReadingBookId = useMemo(() => {
+    const reading = books.filter((b) => b.status === "reading");
+    if (reading.length === 0) return null;
+    return (reading.find((b) => b.featured === "gold") ?? reading[0]).id;
+  }, [books]);
   const notificationsValue = useMemo(
     () => ({ notifications, unreadCount: unreadNotifications, markAllAsRead: markAllNotificationsAsRead }),
     [notifications, unreadNotifications, markAllNotificationsAsRead]
@@ -430,6 +440,7 @@ const AppRoutes = () => {
     <I18nContext.Provider value={i18nValue}>
       <NotificationsContext.Provider value={notificationsValue}>
         <AppErrorBoundary>
+        {activeUser && !showLoadingOverlay ? <Masthead communityName={selectedCommunity?.name} /> : null}
         <Suspense fallback={<div className="route-fallback" aria-busy="true"><span className="route-spinner" /></div>}>
         <AnimatePresence mode="wait" initial={false}>
         <Routes location={location} key={location.pathname}>
@@ -622,16 +633,33 @@ const AppRoutes = () => {
           }
         />
 
+        {/* /settings vive ahora dentro de "Tú" (/me) */}
+        <Route path="/settings" element={<Navigate to="/me" replace />} />
+
         <Route
-          path="/settings"
+          path="/feed"
           element={
             <RequireAuth activeUser={activeUser} redirectPath={globalSession ? "/communities" : "/login"}>
               <PageTransition>
-                <SettingsPage
+                <FeedPage />
+              </PageTransition>
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/me"
+          element={
+            <RequireAuth activeUser={activeUser} redirectPath={globalSession ? "/communities" : "/login"}>
+              <PageTransition>
+                <MePage
                   activeUser={activeUser as NonNullable<typeof activeUser>}
+                  communityName={selectedCommunity?.name}
+                  onUpdateAvatar={updateUserAvatar}
+                  onUpdateAlias={updateUserAlias}
                   onExport={onExport}
-                  onOpenShareModal={() => setShareModalOpen(true)}
                   onLogout={logoutGlobal}
+                  onToast={showToast}
                 />
               </PageTransition>
             </RequireAuth>
@@ -670,9 +698,11 @@ const AppRoutes = () => {
         <Route path="*" element={<Navigate to={resolveRootRoute({ hasGlobalSession: Boolean(globalSession), hasActiveCommunitySession: Boolean(activeUser) })} replace />} />
         </Routes>
         </AnimatePresence>
-        {activeUser && !showLoadingOverlay ? <AppFooter /> : null}
         </Suspense>
         </AppErrorBoundary>
+        {/* Shell de app: cabecera del club arriba, dock de navegación abajo.
+            El colofón (antiguo footer) vive ahora al pie de la página "Tú". */}
+        {activeUser && !showLoadingOverlay ? <DockNav currentBookId={currentReadingBookId} /> : null}
         <Toast message={toast} />
         <AddBookModal
           open={bookModalOpen}
