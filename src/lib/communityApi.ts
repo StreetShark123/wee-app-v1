@@ -79,12 +79,14 @@ const request = async <T>(path: string, body: Record<string, unknown>, opts?: { 
 
 // Despierta la edge function en cuanto arranca la app (fire-and-forget): la
 // primera petición del día paga el arranque en frío de Deno (1-3s); así lo paga
-// este ping durante el splash y no tu primera acción real.
+// este ping durante el splash y no tu primera acción real. OJO: con los headers
+// completos — el gateway de Supabase corta sin apikey/Authorization ANTES de
+// invocar la función, y un ping rechazado en el gateway no calienta nada.
 export const warmUpApi = (): void => {
   if (!base) return;
   void fetch(`${base}/health`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: headers(),
     body: "{}"
   }).catch(() => undefined);
 };
