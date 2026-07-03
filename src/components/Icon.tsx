@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import {
   ArrowLeft,
+  ArrowsClockwise,
   Bell,
   BookOpen,
   Camera,
@@ -96,7 +97,8 @@ export type IconName =
   | "thumbDown"
   | "pencil"
   | "x"
-  | "copy";
+  | "copy"
+  | "refresh";
 
 const GLYPHS: Record<IconName, PhosphorIcon> = {
   home: House,
@@ -142,7 +144,8 @@ const GLYPHS: Record<IconName, PhosphorIcon> = {
   thumbDown: ThumbsDown,
   pencil: PencilSimple,
   x: X,
-  copy: Copy
+  copy: Copy,
+  refresh: ArrowsClockwise
 };
 
 interface IconProps {

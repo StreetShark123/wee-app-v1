@@ -3387,6 +3387,13 @@ textarea:focus-visible {
   background: color-mix(in srgb, var(--status-proposed) 12%, var(--panel-0));
 }
 
+/* Descartado: tampón rojo apagado (antes caía al genérico y decía "Propuesto"). */
+.book-card-status-rejected {
+  color: var(--stamp);
+  border-color: color-mix(in srgb, var(--stamp) 55%, var(--line));
+  background: color-mix(in srgb, var(--stamp) 8%, var(--panel-0));
+}
+
 .book-card-title {
   font-size: 0.92rem;
   line-height: 1.25;

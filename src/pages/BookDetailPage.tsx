@@ -64,6 +64,7 @@ interface BookDetailPageProps {
 const statusLabel = (status: string, language: "es" | "en" | "gl"): string => {
   if (status === "reading") return pick(language, "En lectura", "Reading", "En lectura");
   if (status === "finished") return pick(language, "Leído por el club", "Read by the club", "Lido polo club");
+  if (status === "rejected") return pick(language, "Descartado", "Declined", "Descartado");
   return pick(language, "Propuesto", "Proposed", "Proposto");
 };
 
@@ -989,7 +990,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
             <p className="hint">{pick(language, "Descartada. Un admin puede reabrir la votación.", "The club didn't take it forward. An admin can reopen the vote.", "O club non a sacou adiante. Un admin pode reabrir a votación.")}</p>
             {isAdmin ? (
               <button type="button" className="btn btn-primary" disabled={busy} onClick={() => handleStatus("proposed")}>
-                <Icon name="dice" /> {pick(language, "Reabrir votación", "Reopen voting", "Reabrir votación")}
+                <Icon name="refresh" /> {pick(language, "Reabrir votación", "Reopen voting", "Reabrir votación")}
               </button>
             ) : null}
           </section>
@@ -1017,7 +1018,9 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
           />
         ) : null}
 
-        {/* Seguimiento de lectura por capítulos */}
+        {/* Seguimiento de lectura por capítulos (oculto si la propuesta fue
+            descartada: no hay nada que preparar ni marcar). */}
+        {book.status !== "rejected" ? (
         <section id="chapters" className="page-section">
           <div className="section-head">
             <h2><Icon name="timeline" /> {pick(language, "Capítulos", "Chapters", "Capítulos")}</h2>
@@ -1148,6 +1151,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
             <p className="hint chapter-rating-hint">{pick(language, "La valoración se abre al marcar todos los capítulos.", "Rating appears once you've checked every chapter.", "A valoración aparece cando marcas todos os capítulos.")}</p>
           ) : null}
         </section>
+        ) : null}
 
         {/* Recursos: enlaces que el club ha aportado, juntos (antes se perdían en el scroll). */}
         {!isProposalPhase && resources.length > 0 ? (

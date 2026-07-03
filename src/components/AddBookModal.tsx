@@ -29,6 +29,13 @@ export const AddBookModal = ({ open, onClose, onAddBook, onToast }: AddBookModal
   const [draft, setDraft] = useState<BookDraft | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const dialogRef = useRef<HTMLElement | null>(null);
+  // onToast vía ref: NO puede ser dep reactiva del efecto de búsqueda. Si la
+  // prop cambiara de identidad por render, un fallo de búsqueda (toast →
+  // re-render) relanzaría el efecto en bucle contra el backend.
+  const onToastRef = useRef(onToast);
+  useEffect(() => {
+    onToastRef.current = onToast;
+  }, [onToast]);
 
   useEffect(() => {
     if (!open) {
@@ -69,7 +76,7 @@ export const AddBookModal = ({ open, onClose, onAddBook, onToast }: AddBookModal
       } catch {
         if (!cancelled) {
           setResults([]);
-          onToast(
+          onToastRef.current(
             pick(
               language,
               "No se pudo buscar ahora. Prueba otra vez.",
@@ -86,7 +93,7 @@ export const AddBookModal = ({ open, onClose, onAddBook, onToast }: AddBookModal
       cancelled = true;
       clearTimeout(handle);
     };
-  }, [query, open, phase, language, onToast]);
+  }, [query, open, phase, language]);
 
   const selectResult = (result: BookSearchResult) => {
     setDraft(resultToDraft(result));

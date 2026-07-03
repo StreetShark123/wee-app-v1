@@ -349,10 +349,14 @@ const AppRoutes = () => {
     }
   };
 
-  const showToast = (message: string): void => {
+  // Identidad ESTABLE (useCallback []): showToast baja como prop a efectos con
+  // deps (p.ej. la búsqueda del AddBookModal). Sin esto, cada render creaba una
+  // función nueva → el efecto se relanzaba → si la búsqueda fallaba, el toast
+  // re-renderizaba → bucle de peticiones al backend.
+  const showToast = useCallback((message: string): void => {
     setToast(message);
     window.setTimeout(() => setToast(null), 1800);
-  };
+  }, []);
 
   // Alta de libro en el club activo. Va por la edge function community-api
   // (/books/create, service_role), que inserta en `books` con community_id.
