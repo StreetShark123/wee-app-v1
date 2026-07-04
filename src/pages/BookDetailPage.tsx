@@ -10,6 +10,7 @@ import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { parseChapterList } from "../lib/parseChapters";
 import { getCachedBook, setCachedBook } from "../lib/booksCache";
+import { isFresh, markFetched } from "../lib/freshness";
 import { NoteThread } from "../components/CommentThread";
 import { ImageLightbox } from "../components/ImageLightbox";
 import { MeetingCard } from "../components/MeetingCard";
@@ -145,10 +146,16 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   useEffect(() => { busyRef.current = busy; }, [busy]);
   useEffect(() => {
     if (!bookId) return;
-    const refresh = async () => {
+    const freshKey = `book:${bookId}`;
+    const refresh = async (force = false) => {
       if (document.hidden || busyRef.current) return;
+      // Ventana de frescura: el detalle pesa (capítulos+notas+comentarios+
+      // miembros) y los eventos de foco se disparan a pares en iOS — si el
+      // dato tiene <30s, no gastamos red (dieta de egress).
+      if (!force && isFresh(freshKey, 30000)) return;
       try {
         const data = await getClubBook(bookId);
+        markFetched(freshKey);
         setDetail(data);
         setCachedBook(bookId, data);
       } catch { /* silencioso */ }
@@ -156,7 +163,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     const onFocus = () => { void refresh(); };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onFocus);
-    const id = window.setInterval(() => { void refresh(); }, 20000);
+    const id = window.setInterval(() => { void refresh(true); }, 60000);
     return () => {
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onFocus);

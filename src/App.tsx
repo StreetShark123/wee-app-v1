@@ -1,4 +1,3 @@
-import { AnimatePresence } from "framer-motion";
 import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { HashRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
@@ -11,6 +10,7 @@ import { AddBookModal } from "./components/AddBookModal";
 import type { BookDraft } from "./lib/bookSearch";
 import { createClubBook, demoteMember, exportMyData, joinPublicCommunity, listClubBooks, listNotifications, markNotificationsRead, previewCommunityBySlug, promoteMember, removeMember, requestJoinCommunity, type ClubBook, type MemberBook } from "./lib/communityApi";
 import { clearBooksCache, getCachedList, setCachedList } from "./lib/booksCache";
+import { isFresh, markFetched } from "./lib/freshness";
 import { Toast } from "./components/Toast";
 import { useAppData } from "./lib/appData";
 import { I18nContext, pick } from "./lib/i18n";
@@ -258,14 +258,18 @@ const AppRoutes = () => {
     setCommunityAsActive
   ]);
 
-  const reloadNotifications = useCallback(async () => {
+  const reloadNotifications = useCallback(async (force = false) => {
     if (!activeUser) {
       setNotifications([]);
       setUnreadNotifications(0);
       return;
     }
+    // Ventana de frescura (30s): los eventos de foco llegan a pares en iOS y
+    // cada uno disparaba una llamada; si el dato es reciente, no gastamos red.
+    if (!force && isFresh("notifications", 30000)) return;
     try {
       const data = await listNotifications();
+      markFetched("notifications");
       setNotifications(data.notifications);
       setUnreadNotifications(data.unreadCount);
     } catch {
@@ -280,8 +284,8 @@ const AppRoutes = () => {
     // Sondeo periódico para que lleguen sin tener que refocalizar la pestaña.
     // Solo cuando la pestaña está visible (no gastar en background).
     const poll = window.setInterval(() => {
-      if (!document.hidden) void reloadNotifications();
-    }, 45000);
+      if (!document.hidden) void reloadNotifications(true);
+    }, 90000);
     return () => {
       window.removeEventListener("focus", onFocus);
       window.clearInterval(poll);
@@ -442,7 +446,10 @@ const AppRoutes = () => {
         <AppErrorBoundary>
         {activeUser && !showLoadingOverlay ? <Masthead communityName={selectedCommunity?.name} /> : null}
         <Suspense fallback={<div className="route-fallback" aria-busy="true"><span className="route-spinner" /></div>}>
-        <AnimatePresence mode="wait" initial={false}>
+        {/* Sin AnimatePresence: el modo "wait" + startTransition + chunks lazy
+            perdía la entrada de la página nueva si un re-render caía durante la
+            salida (quedaba la página vieja con el hash nuevo). Las tabs deben
+            ser instantáneas; PageTransition conserva la entrada suave. */}
         <Routes location={location} key={location.pathname}>
         <Route
           path="/login"
@@ -697,7 +704,6 @@ const AppRoutes = () => {
         <Route path="/" element={<Navigate to={resolveRootRoute({ hasGlobalSession: Boolean(globalSession), hasActiveCommunitySession: Boolean(activeUser) })} replace />} />
         <Route path="*" element={<Navigate to={resolveRootRoute({ hasGlobalSession: Boolean(globalSession), hasActiveCommunitySession: Boolean(activeUser) })} replace />} />
         </Routes>
-        </AnimatePresence>
         </Suspense>
         </AppErrorBoundary>
         {/* Shell de app: cabecera del club arriba, dock de navegación abajo.
