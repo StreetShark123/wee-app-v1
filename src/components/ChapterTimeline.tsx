@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { BookChapter, BookComment, ChapterNote, ClubMemberLite, NoteKind } from "../lib/communityApi";
 import { pick, useI18n } from "../lib/i18n";
+import { CONTENT_IMG_MAX_PX, imageFileToDataUrl } from "../lib/imageCompress";
 import type { AppLanguage } from "../lib/types";
 import { timeAgo } from "../lib/timeAgo";
 import { Icon } from "./Icon";
@@ -37,34 +38,6 @@ const YT_RE = /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/)|youtu\.be
 const IMG_RE = /\.(jpe?g|png|gif|webp|svg|avif)(\?.*)?$/i;
 const URL_RE = /https?:\/\/[^\s)]+/gi;
 const isImageUrl = (url: string): boolean => IMG_RE.test(url) || url.startsWith("data:image/");
-
-// Sube una imagen del dispositivo: la reescala (máx 1200px, JPEG) para no guardar
-// varios MB en base64, y devuelve un data URL. Mismo patrón que el avatar.
-const NOTE_IMG_MAX_PX = 1200;
-const imageFileToDataUrl = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("Could not read image"));
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      const img = new Image();
-      img.onerror = () => resolve(dataUrl);
-      img.onload = () => {
-        const scale = Math.min(1, NOTE_IMG_MAX_PX / Math.max(img.width, img.height));
-        const w = Math.max(1, Math.round(img.width * scale));
-        const h = Math.max(1, Math.round(img.height * scale));
-        const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return resolve(dataUrl);
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", 0.82));
-      };
-      img.src = dataUrl;
-    };
-    reader.readAsDataURL(file);
-  });
 
 const hostOf = (url: string): string => {
   try {
@@ -513,7 +486,7 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
                           onChange={(event) => {
                             const file = event.target.files?.[0];
                             if (!file) return;
-                            void imageFileToDataUrl(file).then(setNoteFile).catch(() => undefined);
+                            void imageFileToDataUrl(file, CONTENT_IMG_MAX_PX).then(setNoteFile).catch(() => undefined);
                           }}
                         />
                       </label>

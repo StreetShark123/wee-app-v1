@@ -128,8 +128,11 @@ const safeHttpUrl = (raw: unknown): string | null => {
   const s = String(raw ?? "").trim();
   if (!s) return null;
   // Imagen subida del dispositivo: solo data URL de imagen, sin truncar (es larga).
+  // Tope 500KB: el cliente comprime a 1200px JPEG (~200-400KB); lo que pase de
+  // ahí es un cliente sin comprimir y NO puede entrar en la BD (cada byte
+  // guardado viaja luego en cada respuesta → egress).
   if (/^data:image\/(png|jpe?g|gif|webp|avif);base64,[a-z0-9+/=]+$/i.test(s)) {
-    return s.length <= 1_500_000 ? s : null;
+    return s.length <= 500_000 ? s : null;
   }
   const url = s.slice(0, 1000);
   return /^https?:\/\//i.test(url) ? url : null;
@@ -2224,6 +2227,15 @@ const handlers = {
     const body = await parseBody(req);
     const alias = body.alias ? String(body.alias).trim().slice(0, 40) : null;
     const avatarUrl = body.avatar_url === undefined ? undefined : String(body.avatar_url ?? "").trim() || null;
+    // Tope de avatar (200KB): el cliente comprime a 192px JPEG (~15KB); un
+    // avatar sin comprimir viaja en CADA respuesta de la API y fue lo que
+    // agotó la cuota de egress en 2026-07. Última barrera server-side.
+    if (typeof avatarUrl === "string" && avatarUrl.startsWith("data:")) {
+      const validImage = /^data:image\/(png|jpe?g|gif|webp|avif);base64,[a-z0-9+/=]+$/i.test(avatarUrl);
+      if (!validImage || avatarUrl.length > 200_000) {
+        return json(400, { message: "Avatar demasiado grande o formato no válido. Vuelve a subir la foto (la app la comprime sola)." });
+      }
+    }
     const language = body.language && ["es", "en", "gl"].includes(String(body.language)) ? String(body.language) : undefined;
 
     if (alias) {

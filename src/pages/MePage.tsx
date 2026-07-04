@@ -4,6 +4,7 @@ import { AppFooter } from "../components/AppFooter";
 import { Avatar } from "../components/Avatar";
 import { Icon } from "../components/Icon";
 import { pick, useI18n } from "../lib/i18n";
+import { AVATAR_MAX_PX, imageFileToDataUrl } from "../lib/imageCompress";
 import { isAnalyticsOptedOut, setAnalyticsOptOut } from "../lib/usageAnalytics";
 import type { User } from "../lib/types";
 
@@ -19,14 +20,6 @@ interface MePageProps {
   onLogout: () => void;
   onToast: (message: string) => void;
 }
-
-const fileToDataUrl = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
-    reader.readAsDataURL(file);
-  });
 
 export const MePage = ({ activeUser, communityName, onUpdateAvatar, onUpdateAlias, onExport, onLogout, onToast }: MePageProps) => {
   const { language } = useI18n();
@@ -70,7 +63,7 @@ export const MePage = ({ activeUser, communityName, onUpdateAvatar, onUpdateAlia
                 onChange={(event) => {
                   const file = event.target.files?.[0];
                   if (!file) return;
-                  void fileToDataUrl(file).then((dataUrl) => {
+                  void imageFileToDataUrl(file, AVATAR_MAX_PX).then((dataUrl) => {
                     void onUpdateAvatar(activeUser.id, dataUrl);
                     onToast(pick(language, "Foto de perfil actualizada.", "Profile photo updated.", "Foto de perfil actualizada."));
                   });
