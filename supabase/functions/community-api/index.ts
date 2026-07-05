@@ -2287,8 +2287,8 @@ const handlers = {
     // dependientes). Los títulos del club son pocos → se traen enteros de golpe.
     const [commentsRes, notesRes, readsRes, proposalsRes, booksRes, metaMap] = await Promise.all([
       db.from("book_comments").select("id,user_id,book_id,text,created_at").eq("community_id", auth.community.id).is("deleted_at", null).gte("created_at", since).order("created_at", { ascending: false }).limit(20),
-      db.from("chapter_notes").select("user_id,book_id,created_at").eq("community_id", auth.community.id).gte("created_at", since).order("created_at", { ascending: false }).limit(20),
-      db.from("chapter_completions").select("user_id,book_id,completed_at").eq("community_id", auth.community.id).gte("completed_at", since).order("completed_at", { ascending: false }).limit(20),
+      db.from("chapter_notes").select("id,user_id,book_id,chapter_id,created_at").eq("community_id", auth.community.id).gte("created_at", since).order("created_at", { ascending: false }).limit(20),
+      db.from("chapter_completions").select("user_id,book_id,chapter_id,completed_at").eq("community_id", auth.community.id).gte("completed_at", since).order("completed_at", { ascending: false }).limit(20),
       db.from("books").select("id,added_by,title,created_at").eq("community_id", auth.community.id).gte("created_at", since).order("created_at", { ascending: false }).limit(15),
       db.from("books").select("id,title").eq("community_id", auth.community.id).limit(500),
       clubUserMetaMap(auth.community.id)
@@ -2300,8 +2300,8 @@ const handlers = {
     };
     const events: Array<Record<string, any>> = [];
     (commentsRes.data ?? []).forEach((c: Record<string, any>) => events.push({ kind: "comment", ...actor(c.user_id), bookId: c.book_id, bookTitle: titleById.get(c.book_id) ?? "", commentId: c.id, text: String(c.text ?? "").slice(0, 120), at: toMillis(c.created_at) }));
-    (notesRes.data ?? []).forEach((n: Record<string, any>) => events.push({ kind: "note", ...actor(n.user_id), bookId: n.book_id, bookTitle: titleById.get(n.book_id) ?? "", at: toMillis(n.created_at) }));
-    (readsRes.data ?? []).forEach((r: Record<string, any>) => events.push({ kind: "read", ...actor(r.user_id), bookId: r.book_id, bookTitle: titleById.get(r.book_id) ?? "", at: toMillis(r.completed_at) }));
+    (notesRes.data ?? []).forEach((n: Record<string, any>) => events.push({ kind: "note", ...actor(n.user_id), bookId: n.book_id, bookTitle: titleById.get(n.book_id) ?? "", noteId: n.id, chapterId: n.chapter_id, at: toMillis(n.created_at) }));
+    (readsRes.data ?? []).forEach((r: Record<string, any>) => events.push({ kind: "read", ...actor(r.user_id), bookId: r.book_id, bookTitle: titleById.get(r.book_id) ?? "", chapterId: r.chapter_id, at: toMillis(r.completed_at) }));
     (proposalsRes.data ?? []).forEach((b: Record<string, any>) => events.push({ kind: "proposal", ...actor(b.added_by), bookId: b.id, bookTitle: b.title ?? "", at: toMillis(b.created_at) }));
     // Solo actores activos (los expulsados quedan como "—") y reciente primero.
     const clean = events.filter((e) => e.actorAlias !== "—").sort((a, b) => (b.at ?? 0) - (a.at ?? 0));

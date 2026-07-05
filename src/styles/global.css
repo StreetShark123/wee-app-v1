@@ -5364,9 +5364,8 @@ textarea:focus-visible {
   color: var(--ink-0);
   text-decoration: none;
 }
-.masthead-bell { grid-column: 3; justify-self: end; }
-/* El dropdown de la campana se ancla a la cabecera nueva igual que antes. */
-.masthead-bell .topbar-notifications { position: relative; }
+/* La 3ª columna del grid queda vacía a propósito: mantiene el título centrado
+   con simetría ahora que los avisos personales viven en la pantalla social. */
 
 /* Dock: navegación principal al alcance del pulgar (tab bar). */
 .dock-nav {
@@ -5420,6 +5419,7 @@ body:has(.dock-nav) main { padding-bottom: calc(78px + env(safe-area-inset-botto
   border: 1px solid var(--line);
   cursor: pointer;
   color: var(--ink-0);
+  text-decoration: none;
   font-size: inherit;
   font-family: inherit;
   transition: transform var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard);
@@ -5439,6 +5439,15 @@ body:has(.dock-nav) main { padding-bottom: calc(78px + env(safe-area-inset-botto
   padding: 2px 7px;
 }
 .feed-item-quote { font-style: italic; line-height: 1.45; }
+/* Dos capas de la pantalla social: "para ti" (avisos personales) y "el club hoy". */
+.feed-section + .feed-section { margin-top: 20px; }
+/* En "para ti" la etiqueta es una frase completa: que respire, no se recorte. */
+.feed-foryou .feed-item-action { white-space: normal; overflow: visible; text-overflow: clip; }
+/* Aviso personal sin leer: acento de marca discreto (no un badge chillón). */
+.feed-item.is-unread {
+  border-color: color-mix(in srgb, var(--brand) 55%, var(--line));
+  background: color-mix(in srgb, var(--brand) 6%, transparent);
+}
 
 /* Página "Tú": one-page compacta. */
 .me-page { max-width: var(--content-max); margin: 0 auto; padding: 0.6rem 0 0; display: grid; gap: 12px; }

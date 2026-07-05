@@ -21,6 +21,7 @@ interface ChapterTimelineProps {
   lastReadChapterId?: string | null;
   numberChapters?: boolean;
   focusCommentId?: string | null;
+  focusNoteId?: string | null;
   spoilersOk?: boolean;
   onToggle: (chapterId: string, done: boolean) => void;
   onAddNote: (chapterId: string, text: string, kind: NoteKind, imageUrl?: string) => Promise<void>;
@@ -167,7 +168,7 @@ const NoteCard = ({
   };
 
   return (
-    <li className={`chapter-note chapter-note-${note.kind}`}>
+    <li id={`note-${note.id}`} className={`chapter-note chapter-note-${note.kind}`}>
       <div className="chapter-note-head">
         <span className="chapter-note-by">
           <UserBadge alias={note.alias} {...styleFor(members, note.userId)} withAvatar />
@@ -253,7 +254,7 @@ const NoteCard = ({
   );
 };
 
-export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThreads, lastReadChapterId, numberChapters, focusCommentId, spoilersOk = false, onToggle, onAddNote, onReactNote, onEditNote, onDeleteNote, onReplyComment, onReactComment, onEditComment, onDeleteComment, onCommentOnNote }: ChapterTimelineProps) => {
+export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThreads, lastReadChapterId, numberChapters, focusCommentId, focusNoteId: focusNoteIdProp, spoilersOk = false, onToggle, onAddNote, onReactNote, onEditNote, onDeleteNote, onReplyComment, onReactComment, onEditComment, onDeleteComment, onCommentOnNote }: ChapterTimelineProps) => {
   const { language } = useI18n();
   const [openFor, setOpenFor] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
@@ -321,10 +322,11 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
     }
   };
 
-  // Si venimos de una notificación (#c-<id>): localiza la nota cuyo hilo contiene ese
-  // comentario, para auto-abrir su capítulo + hilo y poder hacer scroll hasta él.
-  let focusNoteId: string | null = null;
-  if (focusCommentId) {
+  // Nota objetivo: llega directa por deep-link del feed (#note-<id>) o se deduce del
+  // comentario (#c-<id>) localizando la nota cuyo hilo lo contiene. En ambos casos
+  // sirve para auto-abrir su capítulo + hilo y poder hacer scroll hasta ella.
+  let focusNoteId: string | null = focusNoteIdProp ?? null;
+  if (!focusNoteId && focusCommentId) {
     for (const [noteId, thread] of noteThreads) {
       if (thread.some((c) => c.id === focusCommentId)) {
         focusNoteId = noteId;

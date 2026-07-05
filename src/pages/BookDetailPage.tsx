@@ -171,13 +171,15 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     };
   }, [bookId]);
 
-  // Si venimos de una notificación (#c-<id>), salta y resalta ese comentario UNA sola vez.
-  // El hilo puede tardar en montarse (auto-expansión del capítulo/nota), así que reintentamos.
+  // Si venimos de una notificación o del feed (#c-<id> comentario, #note-<id> nota,
+  // #ch-<id> capítulo), salta y resalta ese elemento UNA sola vez. El objetivo puede
+  // tardar en montarse (auto-expansión del capítulo/nota), así que reintentamos.
   // Guard por hash: si no, cada cambio de `detail` (p.ej. añadir una nota) re-dispararía
-  // el salto y te reenviaría al comentario.
+  // el salto y te reenviaría al elemento.
   const handledHashRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!detail || !location.hash.startsWith("#c-")) return;
+    const h = location.hash;
+    if (!detail || !(h.startsWith("#c-") || h.startsWith("#note-") || h.startsWith("#ch-"))) return;
     if (handledHashRef.current === location.hash) return;
     handledHashRef.current = location.hash;
     const elId = location.hash.slice(1);
@@ -187,6 +189,9 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     const tick = () => {
       const el = document.getElementById(elId);
       if (el) {
+        // Si el objetivo (nota/capítulo) cuelga de un <details> colapsado
+        // (caso "libro entero leído"), ábrelo para que sea visible el scroll.
+        el.closest("details")?.setAttribute("open", "");
         el.scrollIntoView({ behavior: "smooth", block: "center" });
         el.classList.add("comment-flash");
         flashTimer = window.setTimeout(() => el.classList.remove("comment-flash"), 2200);
@@ -410,6 +415,8 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const lastReadChapterId = [...chapters].reverse().find((c) => c.doneByMe)?.id ?? null;
   // Comentario objetivo si venimos de una notificación (#c-<id>): para auto-abrir su hilo.
   const focusCommentId = location.hash.startsWith("#c-") ? location.hash.slice(3) : null;
+  // Nota objetivo si venimos del feed (#note-<id>): para auto-abrir su capítulo + revelarla.
+  const focusNoteId = location.hash.startsWith("#note-") ? location.hash.slice(6) : null;
   const handleCommentOnNote = (noteId: string, text: string) =>
     run(async () => {
       const { comment } = await addBookComment(book.id, text, { noteId });
@@ -1045,12 +1052,12 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                   <p className="chapter-alldone"><Icon name="check" /> {pick(language, "Has leído todos los capítulos.", "You've read every chapter.", "Liches todos os capítulos.")}</p>
                   <details className="chapter-collapsed">
                     <summary>{pick(language, `Ver los ${total} capítulos`, `Show the ${total} chapters`, `Ver os ${total} capítulos`)}</summary>
-                    <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} members={clubMembers} noteThreads={noteThreads} lastReadChapterId={lastReadChapterId} numberChapters={book.numberChapters !== false} focusCommentId={focusCommentId} spoilersOk={spoilersOk} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} onReplyComment={handleReply} onReactComment={handleReact} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onCommentOnNote={handleCommentOnNote} />
+                    <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} members={clubMembers} noteThreads={noteThreads} lastReadChapterId={lastReadChapterId} numberChapters={book.numberChapters !== false} focusCommentId={focusCommentId} focusNoteId={focusNoteId} spoilersOk={spoilersOk} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} onReplyComment={handleReply} onReactComment={handleReact} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onCommentOnNote={handleCommentOnNote} />
                   </details>
                 </>
               ) : (
                 <>
-                  <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} members={clubMembers} noteThreads={noteThreads} lastReadChapterId={lastReadChapterId} numberChapters={book.numberChapters !== false} focusCommentId={focusCommentId} spoilersOk={spoilersOk} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} onReplyComment={handleReply} onReactComment={handleReact} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onCommentOnNote={handleCommentOnNote} />
+                  <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} members={clubMembers} noteThreads={noteThreads} lastReadChapterId={lastReadChapterId} numberChapters={book.numberChapters !== false} focusCommentId={focusCommentId} focusNoteId={focusNoteId} spoilersOk={spoilersOk} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} onReplyComment={handleReply} onReactComment={handleReact} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onCommentOnNote={handleCommentOnNote} />
                   <button
                     type="button"
                     className="btn chapter-mark-all"

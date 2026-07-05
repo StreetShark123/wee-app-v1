@@ -392,6 +392,8 @@ export interface ActivityEvent {
   bookId: string;
   bookTitle: string;
   commentId?: string;
+  noteId?: string;
+  chapterId?: string;
   text?: string;
   at: number;
 }
