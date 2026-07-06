@@ -5470,3 +5470,74 @@ body:has(.dock-nav) main { padding-bottom: calc(78px + env(safe-area-inset-botto
 .me-actions-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .me-logout { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); }
 .me-page .app-footer { margin-top: 0.4rem; border-top: 0; padding-top: 0; }
+
+/* ── Accesibilidad de lectura ──────────────────────────────────────────────
+   Preferencias de vista por-dispositivo (ver src/lib/readingA11y.ts). Se
+   aplican como custom prop / data-attrs en <html>. */
+
+/* Tamaño de texto: escala la fuente raíz. Casi todo el CSS está en rem, así que
+   esto agranda la app entera de forma proporcional. Respeta el tamaño base del
+   navegador (100% = preferencia del usuario) y lo multiplica. */
+html { font-size: calc(100% * var(--read-scale, 1)); }
+
+/* Interlineado amplio: más respiro en el texto de lectura. */
+html[data-line="relaxed"] body,
+html[data-line="relaxed"] p,
+html[data-line="relaxed"] .chapter-note-text,
+html[data-line="relaxed"] .comment-text { line-height: 1.9; }
+
+/* Tipografía de alta legibilidad: cambia el serif del cuerpo por una sans clara
+   del sistema (los acentos de máquina de escribir --font-type se mantienen). */
+html[data-legible="on"] {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+html[data-legible="on"] body { letter-spacing: 0.01em; }
+
+/* Reducir movimiento: neutraliza animaciones/transiciones CSS (framer-motion se
+   controla aparte vía MotionConfig en main.tsx). */
+html[data-reduce-motion="on"] *,
+html[data-reduce-motion="on"] *::before,
+html[data-reduce-motion="on"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Panel en MePage */
+.a11y-row { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; margin-top: 10px; }
+.a11y-row-label { font-size: 0.9rem; }
+.a11y-stepper { display: inline-flex; align-items: center; gap: 8px; }
+.a11y-step { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0 12px; }
+.a11y-step-a { font-family: var(--font-sans); font-weight: 700; line-height: 1; }
+.a11y-step-a-sm { font-size: 0.85rem; }
+.a11y-step-a-lg { font-size: 1.35rem; }
+.a11y-step-value { min-width: 3.2em; text-align: center; font-family: var(--font-type); font-size: 0.9rem; color: var(--ink-1); }
+.a11y-preview {
+  margin: 8px 0 4px; padding: 10px 12px;
+  border: 1px dashed var(--line); border-radius: var(--radius-md);
+  color: var(--ink-1);
+}
+.a11y-segment { display: inline-flex; gap: 6px; }
+.a11y-seg.is-on { border-color: var(--brand); color: var(--brand-strong); background: color-mix(in srgb, var(--brand) 8%, transparent); }
+.a11y-toggle {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+  width: 100%; margin-top: 10px; padding: 12px 14px; text-align: left;
+  border: 1px solid var(--line); border-radius: var(--radius-md);
+  background: transparent; color: var(--ink-0); cursor: pointer; min-height: 44px;
+}
+.a11y-toggle.is-on { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 7%, transparent); }
+.a11y-toggle-text { display: grid; gap: 2px; }
+.a11y-toggle-text .hint { margin: 0; }
+.a11y-switch {
+  flex: 0 0 auto; position: relative; width: 42px; height: 24px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--bg-1);
+  transition: background var(--motion-fast) var(--ease-standard), border-color var(--motion-fast) var(--ease-standard);
+}
+.a11y-switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
+  border-radius: 50%; background: var(--ink-1);
+  transition: transform var(--motion-fast) var(--ease-standard), background var(--motion-fast) var(--ease-standard);
+}
+.a11y-toggle.is-on .a11y-switch { background: color-mix(in srgb, var(--brand) 30%, var(--bg-1)); border-color: var(--brand); }
+.a11y-toggle.is-on .a11y-switch::after { transform: translateX(18px); background: var(--brand-strong); }

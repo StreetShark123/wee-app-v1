@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { AppFooter } from "../components/AppFooter";
 import { Avatar } from "../components/Avatar";
 import { Icon } from "../components/Icon";
+import { ReadingSettings } from "../components/ReadingSettings";
 import { pick, useI18n } from "../lib/i18n";
 import { AVATAR_MAX_PX, imageFileToDataUrl } from "../lib/imageCompress";
 import { isAnalyticsOptedOut, setAnalyticsOptOut } from "../lib/usageAnalytics";
@@ -124,6 +125,9 @@ export const MePage = ({ activeUser, communityName, onUpdateAvatar, onUpdateAlia
             </button>
           </div>
         </section>
+
+        {/* Accesibilidad de lectura */}
+        <ReadingSettings />
 
         {/* El club */}
         <section className="page-section">

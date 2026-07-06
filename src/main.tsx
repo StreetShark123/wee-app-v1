@@ -5,8 +5,13 @@ import App from "./App";
 import { warmUpApi } from "./lib/communityApi";
 import { ConfirmProvider } from "./lib/confirm";
 import { isAnalyticsOptedOut } from "./lib/usageAnalytics";
+import { applyReadingA11y, getReadingA11y, useReadingA11y } from "./lib/readingA11y";
 import { tryChunkReload } from "./lib/chunkReload";
 import "./styles/global.css";
+
+// Preferencias de accesibilidad de lectura: aplicarlas ANTES del primer render
+// (tamaño de texto, tipografía…) para que no haya salto visual al arrancar.
+applyReadingA11y(getReadingA11y());
 
 // Despierta la edge function ya (fire-and-forget): el arranque en frío de Deno
 // lo paga este ping durante el splash, no la primera acción del usuario.
@@ -34,17 +39,24 @@ document.addEventListener("visibilitychange", () => {
 // Las features de animación se cargan en un chunk aparte tras el primer render.
 const loadMotionFeatures = () => import("framer-motion").then((mod) => mod.domAnimation);
 
+// Puente entre la preferencia "reducir movimiento" y framer-motion: si el usuario
+// la activa, fuerza reduce; si no, respeta el ajuste del sistema operativo.
+const MotionA11y = ({ children }: { children: React.ReactNode }) => {
+  const { reduceMotion } = useReadingA11y();
+  return <MotionConfig reducedMotion={reduceMotion ? "always" : "user"}>{children}</MotionConfig>;
+};
+
 // Analytics fuera del camino crítico: chunk aparte, cargado tras el primer render.
 const Analytics = lazy(async () => ({ default: (await import("@vercel/analytics/react")).Analytics }));
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <LazyMotion features={loadMotionFeatures}>
-      <MotionConfig reducedMotion="user">
+      <MotionA11y>
         <ConfirmProvider>
           <App />
         </ConfirmProvider>
-      </MotionConfig>
+      </MotionA11y>
     </LazyMotion>
     {!isAnalyticsOptedOut() ? (
       <Suspense fallback={null}>
