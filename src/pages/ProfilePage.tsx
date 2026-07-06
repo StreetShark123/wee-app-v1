@@ -5,8 +5,13 @@ import { Icon } from "../components/Icon";
 import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { getUserProfile, type UserProfile } from "../lib/communityApi";
+import { isFresh, markFetched } from "../lib/freshness";
 import { AVATAR_MAX_PX, imageFileToDataUrl } from "../lib/imageCompress";
 import type { User } from "../lib/types";
+
+// Caché de perfiles en memoria: saltar entre miembros (o perfil→home→perfil) no
+// debe re-descargar el perfil entero (libros + actividad + avatar) cada vez.
+const profileCache = new Map<string, UserProfile>();
 
 interface ProfilePageProps {
   activeUser: User;
@@ -47,9 +52,15 @@ export const ProfilePage = ({
 
   useEffect(() => {
     let active = true;
-    setProfile(null);
+    // Pinta al instante desde caché (stale-while-revalidate) y solo va a red si
+    // el perfil no se trajo hace <60s.
+    const cached = profileCache.get(userId);
+    setProfile(cached ?? null);
+    if (isFresh(`profile:${userId}`, 60000)) return;
     void getUserProfile(userId)
       .then((data) => {
+        profileCache.set(userId, data);
+        markFetched(`profile:${userId}`);
         if (active) setProfile(data);
       })
       .catch(() => undefined);

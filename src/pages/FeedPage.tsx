@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Icon } from "../components/Icon";
 import { UserBadge } from "../components/UserBadge";
 import { markFeedSeen, readCachedFeed, refreshFeed } from "../lib/activityFeed";
+import { isFresh, markFetched } from "../lib/freshness";
 import type { ActivityEvent } from "../lib/communityApi";
 import { pick, useI18n } from "../lib/i18n";
 import { notificationHref, notificationLabel, useNotifications } from "../lib/notifications";
@@ -21,10 +22,17 @@ export const FeedPage = () => {
 
   useEffect(() => {
     markFeedSeen();
+    // El feed de 24h incluye avatares embebidos: no lo re-pidas si DockNav u otra
+    // entrada a la pestaña lo trajo hace <45s. La caché en localStorage ya pinta.
+    if (isFresh("activity", 45000)) {
+      setLoading(false);
+      return;
+    }
     let alive = true;
     void refreshFeed()
       .then((fresh) => {
         if (!alive) return;
+        markFetched("activity");
         setEvents(fresh);
         markFeedSeen();
       })
@@ -40,7 +48,7 @@ export const FeedPage = () => {
   // Tirar-para-refrescar (App emite `wee:refresh`): recarga el feed del club.
   useEffect(() => {
     const onRefresh = () => {
-      void refreshFeed().then(setEvents).catch(() => undefined);
+      void refreshFeed().then((fresh) => { markFetched("activity"); setEvents(fresh); }).catch(() => undefined);
     };
     window.addEventListener("wee:refresh", onRefresh);
     return () => window.removeEventListener("wee:refresh", onRefresh);

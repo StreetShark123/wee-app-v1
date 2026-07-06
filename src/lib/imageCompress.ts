@@ -3,8 +3,10 @@
 // viajando en cada respuesta de la API agotaron la cuota de egress del proyecto.
 // TODA subida de imagen pasa por aquí — única fuente de verdad.
 
-/** Avatares: thumbnail pequeño (se pinta a 24-74px). */
-export const AVATAR_MAX_PX = 192;
+/** Avatares: thumbnail pequeño (se pinta a 24-74px). Viaja EMBEBIDO (base64) en
+ *  cada payload de lista/feed/notificación, así que se guarda contenido: 96px
+ *  cubre el uso real con retina razonable y pesa ~4× menos que 192. */
+export const AVATAR_MAX_PX = 96;
 /** Imágenes de contenido (notas de capítulo): legibles pero contenidas. */
 export const CONTENT_IMG_MAX_PX = 1200;
 

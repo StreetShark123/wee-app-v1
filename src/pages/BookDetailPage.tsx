@@ -166,7 +166,10 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onFocus);
     window.addEventListener("wee:refresh", onPull);
-    const id = window.setInterval(() => { void refresh(true); }, 60000);
+    // Respeta la ventana de frescura (no forzar) y espacia el sondeo: el detalle
+    // es el payload más pesado; 60s forzados eran egress constante con la ficha
+    // abierta. 180s + gate de 30s recorta ~3× sin que se note en la práctica.
+    const id = window.setInterval(() => { void refresh(); }, 180000);
     return () => {
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onFocus);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { hasUnseenFeed, readCachedFeed, refreshFeed } from "../lib/activityFeed";
+import { markFetched } from "../lib/freshness";
 import { pick, useI18n } from "../lib/i18n";
 import { Icon, type IconName } from "./Icon";
 
@@ -26,7 +27,7 @@ export const DockNav = ({ currentBookId }: DockNavProps) => {
     refreshedThisSession = true;
     const w = window as typeof window & { requestIdleCallback?: (cb: () => void) => number };
     const run = () => {
-      void refreshFeed().then(setFeedEvents).catch(() => undefined);
+      void refreshFeed().then((fresh) => { markFetched("activity"); setFeedEvents(fresh); }).catch(() => undefined);
     };
     if (w.requestIdleCallback) w.requestIdleCallback(run);
     else window.setTimeout(run, 1500);

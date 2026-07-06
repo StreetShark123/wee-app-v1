@@ -298,7 +298,7 @@ const AppRoutes = () => {
     // Solo cuando la pestaña está visible (no gastar en background).
     const poll = window.setInterval(() => {
       if (!document.hidden) void reloadNotifications(true);
-    }, 90000);
+    }, 180000);
     return () => {
       window.removeEventListener("focus", onFocus);
       window.clearInterval(poll);
