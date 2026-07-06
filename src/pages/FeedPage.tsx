@@ -37,6 +37,15 @@ export const FeedPage = () => {
     };
   }, []);
 
+  // Tirar-para-refrescar (App emite `wee:refresh`): recarga el feed del club.
+  useEffect(() => {
+    const onRefresh = () => {
+      void refreshFeed().then(setEvents).catch(() => undefined);
+    };
+    window.addEventListener("wee:refresh", onRefresh);
+    return () => window.removeEventListener("wee:refresh", onRefresh);
+  }, []);
+
   const line = (ev: ActivityEvent): string =>
     ev.kind === "comment" ? pick(language, "comentó en", "commented on", "comentou en")
       : ev.kind === "note" ? pick(language, "dejó una nota en", "left a note on", "deixou unha nota en")

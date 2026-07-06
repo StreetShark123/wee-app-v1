@@ -6,6 +6,7 @@ import { DockNav } from "./components/DockNav";
 import { Icon } from "./components/Icon";
 import { Masthead } from "./components/Masthead";
 import { PageTransition } from "./components/PageTransition";
+import { PullToRefresh } from "./components/PullToRefresh";
 import { AddBookModal } from "./components/AddBookModal";
 import type { BookDraft } from "./lib/bookSearch";
 import { createClubBook, demoteMember, exportMyData, joinPublicCommunity, listClubBooks, listNotifications, markNotificationsRead, previewCommunityBySlug, promoteMember, removeMember, requestJoinCommunity, type ClubBook, type MemberBook } from "./lib/communityApi";
@@ -70,6 +71,7 @@ const AppRoutes = () => {
     updateUserAlias,
     updatePreferences,
     exportJson,
+    reload,
   } = useAppData();
 
   const [toast, setToast] = useState<string | null>(null);
@@ -176,6 +178,17 @@ const AppRoutes = () => {
   useEffect(() => {
     void reloadMyCommunities();
   }, [reloadMyCommunities]);
+
+  // Tirar-para-refrescar: refresca los datos base del club (reload) y avisa a la
+  // pantalla activa (evento `wee:refresh`) para que Feed/ficha recarguen lo suyo.
+  const handlePullRefresh = useCallback(async () => {
+    window.dispatchEvent(new Event("wee:refresh"));
+    try {
+      await Promise.all([reload(), reloadBooks()]);
+    } catch {
+      /* sin red: el gesto termina igual, sin romper nada */
+    }
+  }, [reload, reloadBooks]);
 
   useLayoutEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -445,6 +458,7 @@ const AppRoutes = () => {
       <NotificationsContext.Provider value={notificationsValue}>
         <AppErrorBoundary>
         {activeUser && !showLoadingOverlay ? <Masthead communityName={selectedCommunity?.name} /> : null}
+        {activeUser && !showLoadingOverlay ? <PullToRefresh onRefresh={handlePullRefresh} /> : null}
         <Suspense fallback={<div className="route-fallback" aria-busy="true"><span className="route-spinner" /></div>}>
         {/* Sin AnimatePresence: el modo "wait" + startTransition + chunks lazy
             perdía la entrada de la página nueva si un re-render caía durante la

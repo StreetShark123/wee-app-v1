@@ -11,6 +11,7 @@ const ALLOWED_INLINE_STYLE_FILES = new Set([
   "src/components/UserBadge.tsx",
   "src/components/TopicBlock.tsx",
   "src/components/PageTransition.tsx",
+  "src/components/PullToRefresh.tsx",
   "src/components/PostCard.tsx",
   "src/pages/PostDetailPage.tsx",
   "src/pages/HomePage.tsx",

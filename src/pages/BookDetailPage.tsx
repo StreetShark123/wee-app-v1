@@ -161,12 +161,16 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
       } catch { /* silencioso */ }
     };
     const onFocus = () => { void refresh(); };
+    // Tirar-para-refrescar (App emite `wee:refresh`): fuerza recarga del detalle.
+    const onPull = () => { void refresh(true); };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onFocus);
+    window.addEventListener("wee:refresh", onPull);
     const id = window.setInterval(() => { void refresh(true); }, 60000);
     return () => {
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onFocus);
+      window.removeEventListener("wee:refresh", onPull);
       window.clearInterval(id);
     };
   }, [bookId]);
