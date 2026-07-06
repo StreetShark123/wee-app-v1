@@ -138,6 +138,34 @@ const safeHttpUrl = (raw: unknown): string | null => {
   return /^https?:\/\//i.test(url) ? url : null;
 };
 
+// ── Storage: subir imágenes en vez de guardarlas base64 en la BD ───────────
+// Un data-URL base64 en una columna viaja EMBEBIDO en cada respuesta JSON y no
+// lo puede cachear el navegador/SW. Subiéndolo a Storage, el JSON lleva una URL
+// corta y la imagen se sirve/cachea una vez. Degradación segura: si algo falla
+// (bucket ausente, permiso), devuelve null y el caller guarda el data-URL como
+// antes — nada se rompe.
+const STORAGE_BUCKET = "wee-media";
+const uploadDataUrlToStorage = async (dataUrl: string, folder: string, id: string): Promise<string | null> => {
+  try {
+    const m = /^data:image\/(png|jpe?g|gif|webp|avif);base64,([a-z0-9+/=]+)$/i.exec(dataUrl.trim());
+    if (!m) return null;
+    const subtype = m[1].toLowerCase();
+    const ext = subtype === "jpeg" || subtype === "jpg" ? "jpg" : subtype;
+    const contentType = `image/${subtype === "jpg" ? "jpeg" : subtype}`;
+    const bytes = Uint8Array.from(atob(m[2]), (c) => c.charCodeAt(0));
+    const path = `${folder}/${id}.${ext}`;
+    const up = await db.storage.from(STORAGE_BUCKET).upload(path, bytes, { contentType, upsert: true });
+    if (up.error) return null;
+    const publicUrl = db.storage.from(STORAGE_BUCKET).getPublicUrl(path).data?.publicUrl;
+    if (!publicUrl) return null;
+    // Cache-buster: el path es estable (mismo usuario/nota → mismo archivo), así
+    // que sin esto el SW (CacheFirst) serviría la imagen vieja tras un cambio.
+    return `${publicUrl}?v=${Date.now()}`;
+  } catch {
+    return null;
+  }
+};
+
 // ── Rate limiting server-side (tabla auth_throttle) ────────────────────────
 const clientIp = (req: Request): string =>
   req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
@@ -2255,7 +2283,16 @@ const handlers = {
       updatePayload.alias = alias;
       updatePayload.normalized_alias = normalizeAlias(alias);
     }
-    if (avatarUrl !== undefined) updatePayload.avatar_url = avatarUrl;
+    if (avatarUrl !== undefined) {
+      // Sube el avatar a Storage y guarda la URL (no el base64, que viajaría en
+      // cada payload). null = quitar foto. Si la subida falla, cae al data-URL.
+      let storedAvatar = avatarUrl;
+      if (typeof avatarUrl === "string" && avatarUrl.startsWith("data:")) {
+        const uploaded = await uploadDataUrlToStorage(avatarUrl, "avatars", auth.user.id);
+        if (uploaded) storedAvatar = uploaded;
+      }
+      updatePayload.avatar_url = storedAvatar;
+    }
     if (language) updatePayload.language = language;
     if (Object.keys(updatePayload).length > 0) {
       const { error } = await db
