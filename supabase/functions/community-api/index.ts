@@ -2043,6 +2043,21 @@ const handlers = {
     if (usersRes.error) return dbFail(500, usersRes.error);
     if (postsRes.error) return dbFail(500, postsRes.error);
 
+    // Migración perezosa (Fase 3): sube a Storage cualquier avatar que aún sea
+    // data-URL (legado) y actualiza la fila. Se auto-desactiva cuando ya no
+    // quedan base64 (el filtro no encuentra ninguno → sin trabajo extra). Cap
+    // por seguridad. Refleja la URL nueva en esta misma respuesta.
+    const legacyAvatars = ((usersRes.data ?? []) as Record<string, any>[])
+      .filter((u) => typeof u.avatar_url === "string" && u.avatar_url.startsWith("data:"))
+      .slice(0, 8);
+    for (const u of legacyAvatars) {
+      const migrated = await uploadDataUrlToStorage(u.avatar_url as string, "avatars", u.id as string);
+      if (migrated) {
+        await db.from("community_users").update({ avatar_url: migrated }).eq("community_id", auth.community.id).eq("id", u.id);
+        u.avatar_url = migrated;
+      }
+    }
+
     const rawPosts = (postsRes.data ?? []) as Record<string, any>[];
     const hasMore = rawPosts.length > pageLimit;
     const pageRows = hasMore ? rawPosts.slice(0, pageLimit) : rawPosts;
