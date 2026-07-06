@@ -2447,8 +2447,12 @@ const handlers = {
       books: (booksRes.data ?? []).map((row) => {
         const id = (row as Record<string, any>).id;
         const s = statsByBook[id];
+        // La lista NO usa `description` (el card no lo pinta; el detalle lo trae
+        // por /books/get). Quitarlo evita mandar hasta 4000 chars × cada libro
+        // en un endpoint de home. Egress: la lección de la cuota agotada.
+        const { description: _omitDescription, ...book } = rowToBook(row as Record<string, any>);
         return {
-          ...rowToBook(row as Record<string, any>),
+          ...book,
           votes: voteByBook[id] ?? { yes: 0, no: 0, later: 0, myVote: null },
           stats: {
             avgRating: s && s.ratings.length > 0 ? Math.round((s.ratings.reduce((a, b) => a + b, 0) / s.ratings.length) * 10) / 10 : null,
