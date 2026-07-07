@@ -5,7 +5,7 @@ import { GeneratedCover } from "../components/GeneratedCover";
 import { Icon } from "../components/Icon";
 import { PunctuationLoader } from "../components/PunctuationLoader";
 import { ReadersModal } from "../components/ReadersModal";
-import { UserDot, styleFor } from "../components/UserBadge";
+import { UserBadge, UserDot, styleFor } from "../components/UserBadge";
 import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { parseChapterList } from "../lib/parseChapters";
@@ -82,6 +82,11 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const [numberInput, setNumberInput] = useState(0);
   const [ratingInput, setRatingInput] = useState(0);
   const [reviewInput, setReviewInput] = useState("");
+  // Reseña de cierre: `editingReview` reabre el formulario sobre una reseña ya
+  // guardada; `reviewSavedFlash` da feedback visible al guardar (antes el botón
+  // no reaccionaba y no quedaba claro que se hubiera guardado).
+  const [editingReview, setEditingReview] = useState(false);
+  const [reviewSavedFlash, setReviewSavedFlash] = useState(false);
   // Borrador local del comentario (por libro): si la red falla o se cierra la
   // app a mitad, el texto no se pierde. Se limpia al publicar (texto vacío).
   const [commentText, setCommentText] = useState(() => {
@@ -393,6 +398,18 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   // anti-spoiler y sale un banner que empuja a la conversación.
   const meetingArrived = book.meetingAt != null && book.meetingAt <= Date.now();
   const spoilersOk = book.status === "finished" || meetingArrived;
+
+  // Reseñas de cierre del club: las de los demás se ven cuando TÚ ya terminaste
+  // (allDone) — misma filosofía anti-spoiler que las notas de capítulo.
+  const clubReviews = members.filter((m) => m.userId !== activeUser.id && m.shelf === "finished" && (m.review || m.rating));
+  const renderStars = (rating?: number) =>
+    rating ? (
+      <span className="book-review-stars" aria-label={pick(language, `${rating} de 5 estrellas`, `${rating} of 5 stars`, `${rating} de 5 estrelas`)}>
+        {[1, 2, 3, 4, 5].map((v) => (
+          <span key={v} className={`book-review-star${v <= rating ? " is-on" : ""}`} aria-hidden="true"><Icon name="star" size={12} /></span>
+        ))}
+      </span>
+    ) : null;
   // Hilos inline por nota: noteId → comentarios del hilo (raíces con ese noteId + sus
   // respuestas). El resto va a la "discusión general" de abajo.
   const noteThreads = (() => {
@@ -551,7 +568,29 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     run(async () => {
       const r = await finishBook(book.id, ratingInput || undefined, reviewInput.trim() || undefined);
       patch((d) => ({ ...d, myMember: mergeMyMember(d, r.myMember), book: { ...d.book, status: r.bookStatus } }));
+      // Feedback de guardado: cierra el formulario (la reseña pasa a verse como
+      // tarjeta) y destella la tarjeta para que quede claro que se guardó.
+      setEditingReview(false);
+      setReviewSavedFlash(true);
+      window.setTimeout(() => setReviewSavedFlash(false), 2200);
     });
+  // Borrar la reseña de cierre: el upsert de /books/finish sin `review` la deja
+  // a null en la BD (conserva las estrellas si las hay).
+  const handleDeleteReview = async () => {
+    const ok = await confirm({
+      title: pick(language, "¿Borrar tu reseña?", "Delete your review?", "Borrar a túa reseña?"),
+      message: pick(language, "Se quitará el texto; tus estrellas se conservan.", "The text will be removed; your stars stay.", "Quitarase o texto; as túas estrelas consérvanse."),
+      confirmLabel: pick(language, "Borrar", "Delete", "Borrar"),
+      danger: true
+    });
+    if (!ok) return;
+    await run(async () => {
+      const r = await finishBook(book.id, ratingInput || undefined, undefined);
+      patch((d) => ({ ...d, myMember: mergeMyMember(d, r.myMember), book: { ...d.book, status: r.bookStatus } }));
+      setReviewInput("");
+      setEditingReview(false);
+    });
+  };
   // Reacción optimista: actualiza solo ese comentario al instante (sin recargar la ficha).
   const handleReact = (commentId: string, emoji: string) => {
     setDetail((prev) =>
@@ -1136,33 +1175,81 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               <p className="book-finish-cheer">
                 🎉 {pick(language, `Terminaste «${book.title}» con el club. Gracias por llegar hasta el final.`, `You finished "${book.title}" with the club. Thanks for reaching the end.`, `Remataches «${book.title}» co club. Grazas por chegar ata o final.`)}
               </p>
-              <p className="chapter-finish-title">{pick(language, "Si te apetece, déjale una valoración", "If you feel like it, leave a rating", "Se che apetece, déixalle unha valoración")}</p>
-              <div className="book-rating" role="radiogroup" aria-label={pick(language, "Tu valoración, de 1 a 5 estrellas", "Your rating, 1 to 5 stars", "A túa valoración, de 1 a 5 estrelas")}>
-                {[1, 2, 3, 4, 5].map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    role="radio"
-                    aria-checked={ratingInput === value}
-                    className={`book-star${ratingInput >= value ? " is-on" : ""}`}
-                    aria-label={pick(language, `${value} de 5 estrellas`, `${value} of 5 stars`, `${value} de 5 estrelas`)}
-                    disabled={busy}
-                    onClick={() => saveRating(value)}
-                  >
-                    <Icon name="star" size={18} />
-                  </button>
-                ))}
-              </div>
-              <textarea
-                className="book-review-input"
-                rows={2}
-                value={reviewInput}
-                onChange={(event) => setReviewInput(event.target.value)}
-                placeholder={pick(language, "Reseña (opcional). Se ve cuando todos terminen.", "Review (optional). Shown when everyone finishes.", "Reseña (opcional).")}
-              />
-              <button type="button" className="btn" disabled={busy} onClick={handleFinish}>
-                {pick(language, "Guardar reseña", "Save review", "Gardar reseña")}
-              </button>
+              {myMember?.review && !editingReview ? (
+                /* Tu reseña guardada: tarjeta "reseña oficial" (cita + firma con
+                   avatar y estrellas), con editar/borrar. El destello al guardar
+                   es el feedback de que quedó registrada. */
+                <figure className={`book-review-card is-mine${reviewSavedFlash ? " comment-flash" : ""}`}>
+                  <blockquote className="book-review-quote">«{myMember.review}»</blockquote>
+                  <figcaption className="book-review-sig">
+                    <UserBadge alias={activeUser.alias} {...styleFor(clubMembers, activeUser.id)} withAvatar />
+                    {renderStars(myMember.rating)}
+                  </figcaption>
+                  <div className="book-review-actions">
+                    <button type="button" className="btn" disabled={busy} onClick={() => { setReviewInput(myMember.review ?? ""); setEditingReview(true); }}>
+                      {pick(language, "Editar", "Edit", "Editar")}
+                    </button>
+                    <button type="button" className="btn btn-danger" disabled={busy} onClick={() => void handleDeleteReview()}>
+                      {pick(language, "Borrar", "Delete", "Borrar")}
+                    </button>
+                  </div>
+                </figure>
+              ) : (
+                <>
+                  <p className="chapter-finish-title">{pick(language, "Si te apetece, déjale una valoración", "If you feel like it, leave a rating", "Se che apetece, déixalle unha valoración")}</p>
+                  <div className="book-rating" role="radiogroup" aria-label={pick(language, "Tu valoración, de 1 a 5 estrellas", "Your rating, 1 to 5 stars", "A túa valoración, de 1 a 5 estrelas")}>
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        aria-checked={ratingInput === value}
+                        className={`book-star${ratingInput >= value ? " is-on" : ""}`}
+                        aria-label={pick(language, `${value} de 5 estrellas`, `${value} of 5 stars`, `${value} de 5 estrelas`)}
+                        disabled={busy}
+                        onClick={() => saveRating(value)}
+                      >
+                        <Icon name="star" size={18} />
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    className="book-review-input"
+                    rows={2}
+                    value={reviewInput}
+                    onChange={(event) => setReviewInput(event.target.value)}
+                    placeholder={pick(language, "Reseña (opcional). La verán los demás al terminar el libro.", "Review (optional). Others see it when they finish the book.", "Reseña (opcional). Verana os demais ao rematar o libro.")}
+                  />
+                  <div className="book-review-form-actions">
+                    <button type="button" className={`btn btn-primary${reviewSavedFlash ? " is-saved" : ""}`} disabled={busy || !reviewInput.trim()} onClick={handleFinish}>
+                      {reviewSavedFlash
+                        ? <><Icon name="check" size={13} /> {pick(language, "Reseña guardada", "Review saved", "Reseña gardada")}</>
+                        : pick(language, "Guardar reseña", "Save review", "Gardar reseña")}
+                    </button>
+                    {editingReview ? (
+                      <button type="button" className="btn" disabled={busy} onClick={() => { setEditingReview(false); setReviewInput(myMember?.review ?? ""); }}>
+                        {pick(language, "Cancelar", "Cancel", "Cancelar")}
+                      </button>
+                    ) : null}
+                  </div>
+                </>
+              )}
+
+              {/* Reseñas del resto del club (visibles porque tú ya terminaste). */}
+              {clubReviews.length > 0 ? (
+                <div className="book-reviews-club">
+                  <p className="chapter-finish-title">{pick(language, "Reseñas del club", "Club reviews", "Reseñas do club")}</p>
+                  {clubReviews.map((m) => (
+                    <figure key={m.userId} className="book-review-card">
+                      {m.review ? <blockquote className="book-review-quote">«{m.review}»</blockquote> : null}
+                      <figcaption className="book-review-sig">
+                        <UserBadge alias={m.alias} {...styleFor(clubMembers, m.userId)} withAvatar />
+                        {renderStars(m.rating)}
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ) : named ? (
             <p className="hint chapter-rating-hint">{pick(language, "La valoración se abre al marcar todos los capítulos.", "Rating appears once you've checked every chapter.", "A valoración aparece cando marcas todos os capítulos.")}</p>

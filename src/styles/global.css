@@ -4409,6 +4409,45 @@ textarea:focus-visible {
 }
 .chapter-finish-title { font-weight: 700; margin: 0; }
 .book-review-input { width: 100%; }
+.book-review-form-actions { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+/* Feedback de guardado: el botón vira a verde "✓ Reseña guardada" un instante. */
+.btn.is-saved {
+  border-color: color-mix(in srgb, var(--success) 45%, var(--line));
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 12%, var(--panel-0));
+}
+/* Reseña de cierre como "reseña oficial": cita en cursiva entre comillas y
+   debajo la firma (avatar + nombre + estrellas), estilo colofón de libro. */
+.book-review-card {
+  margin: 10px 0 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--panel-0);
+  display: grid;
+  gap: 10px;
+}
+.book-review-card.is-mine { border-color: color-mix(in srgb, var(--brand) 45%, var(--line)); }
+.book-review-quote {
+  margin: 0;
+  font-style: italic;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.book-review-sig {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.book-review-stars { display: inline-flex; gap: 2px; }
+.book-review-star { color: var(--line); display: inline-grid; place-items: center; }
+.book-review-star.is-on { color: var(--accent-amber); }
+.book-review-actions { display: flex; gap: 8px; }
+.book-reviews-club { display: grid; gap: 10px; margin-top: 16px; }
+.book-reviews-club .chapter-finish-title { margin-bottom: 0; }
 .chapter-rating-hint { margin-top: 12px; }
 
 /* Lectores con reseña */
