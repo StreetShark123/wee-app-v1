@@ -12,7 +12,9 @@ const VAPID_PUBLIC_KEY =
 export type PushCategory = "replies" | "comments" | "milestones" | "chapters";
 export interface PushPrefs {
   enabled: boolean;
-  categories: Record<PushCategory, boolean>;
+  // Record<string,...> (no Record<PushCategory,...>) para que sea asignable al
+  // payload de la API sin fricción de index-signature; se indexa con PushCategory.
+  categories: Record<string, boolean>;
 }
 export const DEFAULT_PUSH_PREFS: PushPrefs = {
   enabled: false,
@@ -44,7 +46,9 @@ const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const raw = atob(base64);
-  const out = new Uint8Array(raw.length);
+  // ArrayBuffer explícito → Uint8Array<ArrayBuffer> (asignable a BufferSource;
+  // el genérico ArrayBufferLike de TS 5.7 no lo es).
+  const out = new Uint8Array(new ArrayBuffer(raw.length));
   for (let i = 0; i < raw.length; i += 1) out[i] = raw.charCodeAt(i);
   return out;
 };

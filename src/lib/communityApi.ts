@@ -408,7 +408,7 @@ export interface PushPrefsPayload {
 }
 
 export const registerPushSubscription = async (sub: { endpoint: string; p256dh: string; auth: string }): Promise<void> => {
-  await request<{ ok: true }>("/push/subscribe", sub);
+  await request<{ ok: true }>("/push/subscribe", { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth });
 };
 
 export const removePushSubscription = async (endpoint: string): Promise<void> => {
@@ -419,7 +419,7 @@ export const getPushPrefs = async (): Promise<PushPrefsPayload> =>
   request<PushPrefsPayload>("/push/prefs/get", {}, { retryRead: true });
 
 export const setPushPrefs = async (prefs: PushPrefsPayload): Promise<PushPrefsPayload> =>
-  request<PushPrefsPayload>("/push/prefs/set", prefs);
+  request<PushPrefsPayload>("/push/prefs/set", { enabled: prefs.enabled, categories: prefs.categories });
 
 export interface HealthMember {
   id: string;
