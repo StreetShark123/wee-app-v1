@@ -31,6 +31,7 @@ const CommunityPage = lazy(async () => ({ default: (await import("./pages/Commun
 const CommunitiesPickerPage = lazy(async () => ({ default: (await import("./pages/CommunitiesPickerPage")).CommunitiesPickerPage }));
 const InvitePage = lazy(async () => ({ default: (await import("./pages/InvitePage")).InvitePage }));
 const JoinPage = lazy(async () => ({ default: (await import("./pages/JoinPage")).JoinPage }));
+const ResetPasswordPage = lazy(async () => ({ default: (await import("./pages/ResetPasswordPage")).ResetPasswordPage }));
 const ClubLandingPage = lazy(async () => ({ default: (await import("./pages/ClubLandingPage")).ClubLandingPage }));
 
 // Splash: tiempo mínimo en pantalla (deja que el "wee." acabe de teclearse,
@@ -465,6 +466,8 @@ const AppRoutes = () => {
             salida (quedaba la página vieja con el hash nuevo). Las tabs deben
             ser instantáneas; PageTransition conserva la entrada suave. */}
         <Routes location={location} key={location.pathname}>
+        {/* Restablecer contraseña (pública, desde el enlace que genera un admin). */}
+        <Route path="/reset" element={<PageTransition><ResetPasswordPage /></PageTransition>} />
         <Route
           path="/login"
           element={

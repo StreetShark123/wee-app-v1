@@ -1652,6 +1652,21 @@ textarea::placeholder {
   width: min(620px, 100%);
 }
 
+/* Enlace de restablecimiento de contraseña (modal en la ficha del club). */
+.reset-link-field {
+  width: 100%;
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg-0);
+  font-family: var(--font-type);
+  font-size: 0.82rem;
+  color: var(--ink-1);
+}
+.reset-link-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.reset-link-copied { margin-top: 8px; color: var(--success); }
+
 .modal-head {
   display: flex;
   justify-content: space-between;

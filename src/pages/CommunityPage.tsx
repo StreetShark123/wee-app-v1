@@ -5,7 +5,7 @@ import { Icon } from "../components/Icon";
 import { WeeMark } from "../components/WeeMark";
 import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
-import { listJoinRequests, decideJoinRequest, listInvites, revokeInvite, banMember, unbanMember, listBans, muteMember, listReports, resolveReport, communityHealth, type JoinRequestItem, type CommunityInvite, type CommunityBan, type CommentReport, type HealthMember } from "../lib/communityApi";
+import { listJoinRequests, decideJoinRequest, listInvites, revokeInvite, banMember, unbanMember, listBans, muteMember, listReports, resolveReport, communityHealth, createMemberResetLink, type JoinRequestItem, type CommunityInvite, type CommunityBan, type CommentReport, type HealthMember } from "../lib/communityApi";
 import type { User } from "../lib/types";
 
 interface CommunityPageProps {
@@ -58,6 +58,7 @@ export const CommunityPage = ({
   const [busyMemberId, setBusyMemberId] = useState<string | null>(null);
   const [switchingCommunityId, setSwitchingCommunityId] = useState<string | null>(null);
   const [copyNotice, setCopyNotice] = useState<string | null>(null);
+  const [resetLink, setResetLink] = useState<{ alias: string; url: string } | null>(null);
   const [isEditingSettings, setIsEditingSettings] = useState(false);
   const [visibilityInput, setVisibilityInput] = useState<"public" | "private" | "invite">(selectedCommunity?.visibility ?? "public");
   const [slugInput, setSlugInput] = useState(selectedCommunity?.slug ?? "");
@@ -387,8 +388,45 @@ export const CommunityPage = ({
     }
   };
 
+  // Restablecer contraseña de un miembro: el admin genera un enlace de un solo
+  // uso y se lo pasa a la persona (el email no funciona). No lo hacemos por él.
+  const generateResetLink = async (id: string, alias: string) => {
+    if (busyMemberId) return;
+    const ok = await confirm({
+      title: pick(language, `¿Generar enlace de contraseña para ${alias}?`, `Generate a password link for ${alias}?`, `Xerar ligazón de contrasinal para ${alias}?`),
+      message: pick(language, "Crea un enlace de un solo uso (válido 24h). Pásaselo por un canal privado; con él podrá poner una contraseña nueva.", "Creates a single-use link (valid 24h). Share it privately; they'll set a new password with it.", "Crea unha ligazón dun só uso (válida 24h). Pásalla en privado; con ela poderá poñer un contrasinal novo."),
+      confirmLabel: pick(language, "Generar enlace", "Generate link", "Xerar ligazón")
+    });
+    if (!ok) return;
+    setBusyMemberId(id);
+    try {
+      const { token } = await createMemberResetLink(id);
+      setResetLink({ alias, url: `${window.location.origin}/#/reset?token=${token}` });
+    } catch {
+      onToast?.(pick(language, "No se pudo generar el enlace.", "Couldn't generate the link.", "Non se puido xerar a ligazón."));
+    } finally {
+      setBusyMemberId(null);
+    }
+  };
+
   return (
     <main>
+      {resetLink ? (
+        <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => setResetLink(null)}>
+          <div className="modal-card modal-card-compact" onClick={(event) => event.stopPropagation()}>
+            <h3>{pick(language, `Enlace de contraseña para ${resetLink.alias}`, `Password link for ${resetLink.alias}`, `Ligazón de contrasinal para ${resetLink.alias}`)}</h3>
+            <p className="hint">{pick(language, "Copia este enlace y pásaselo por un canal privado (no por aquí). Es de un solo uso y caduca en 24 horas; con él podrá poner una contraseña nueva.", "Copy this link and share it privately. It's single-use and expires in 24 hours; they'll set a new password with it.", "Copia esta ligazón e pásalla en privado. É dun só uso e caduca en 24 horas; con ela poderá poñer un contrasinal novo.")}</p>
+            <input className="reset-link-field" readOnly value={resetLink.url} onFocus={(event) => event.currentTarget.select()} aria-label={pick(language, "Enlace de restablecimiento", "Reset link", "Ligazón de restablecemento")} />
+            <div className="reset-link-actions">
+              <button type="button" className="btn btn-primary" onClick={() => void copy(resetLink.url, pick(language, "Enlace copiado", "Link copied", "Ligazón copiada"))}>
+                <Icon name="copy" size={14} /> {pick(language, "Copiar enlace", "Copy link", "Copiar ligazón")}
+              </button>
+              <button type="button" className="btn" onClick={() => setResetLink(null)}>{pick(language, "Cerrar", "Close", "Pechar")}</button>
+            </div>
+            {copyNotice ? <p className="hint reset-link-copied"><Icon name="check" size={13} /> {copyNotice}</p> : null}
+          </div>
+        </div>
+      ) : null}
       <section className="page-section community-page-section">
         <div className="section-head">
           <h2><Icon name="users" /> {pick(language, "El club", "Community", "Comunidade")}</h2>
@@ -609,6 +647,9 @@ export const CommunityPage = ({
               const canPromote = isAdmin && onSetUserRole && !isMe && !isOwnerMember && member.role === "member";
               const canDemote = iAmOwner && onSetUserRole && !isMe && !isOwnerMember && member.role === "admin";
               const canRemove = onDeleteUser && !isMe && !isOwnerMember && (member.role === "member" ? isAdmin : iAmOwner);
+              // Restablecer contraseña: misma autoridad que expulsar (admin sobre
+              // miembros; fundador sobre admins), pero sin depender de onDeleteUser.
+              const canReset = !isMe && !isOwnerMember && (member.role === "member" ? isAdmin : iAmOwner);
               return (
                 <li key={member.id} className="user-option member-row">
                   <Link to={`/profile/${member.id}`} className="member-name member-name-link">
@@ -636,6 +677,11 @@ export const CommunityPage = ({
                     {canRemove ? (
                       <button type="button" className="btn btn-tiny btn-tiny-danger" disabled={busyThis} onClick={() => void removeMember(member.id, member.alias)}>
                         {pick(language, "Eliminar", "Remove", "Eliminar")}
+                      </button>
+                    ) : null}
+                    {canReset ? (
+                      <button type="button" className="btn btn-tiny" disabled={busyThis} onClick={() => void generateResetLink(member.id, member.alias)}>
+                        {pick(language, "Enlace contraseña", "Password link", "Ligazón contrasinal")}
                       </button>
                     ) : null}
                     {isAdmin && !isMe && !isOwnerMember && member.role === "member" ? (

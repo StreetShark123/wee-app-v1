@@ -415,6 +415,15 @@ export const removePushSubscription = async (endpoint: string): Promise<void> =>
   await request<{ ok: true }>("/push/unsubscribe", { endpoint });
 };
 
+// Restablecer contraseña de un miembro por enlace (el admin lo genera; el email
+// no funciona). El backend devuelve el token; la URL la arma el cliente.
+export const createMemberResetLink = async (userId: string): Promise<{ token: string; alias: string; expiresAt: string }> =>
+  request<{ token: string; alias: string; expiresAt: string }>("/community/member/reset_link", { user_id: userId });
+
+export const resetPasswordWithToken = async (token: string, password: string): Promise<void> => {
+  await request<{ ok: true }>("/auth/reset_password", { token, password });
+};
+
 export const getPushPrefs = async (): Promise<PushPrefsPayload> =>
   request<PushPrefsPayload>("/push/prefs/get", {}, { retryRead: true });
 

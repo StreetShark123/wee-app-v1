@@ -1242,6 +1242,79 @@ const handlers = {
     );
   },
 
+  // Un admin genera un enlace de restablecimiento para un miembro (el email no
+  // funciona). Devuelve el token; el cliente arma la URL /#/reset?token=… y el
+  // admin se la pasa al miembro. Un solo uso, caduca a 24h. Autoridad: admin
+  // sobre miembros; solo el fundador sobre otros admins.
+  "/community/member/reset_link": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const denied = ensureAdmin(auth.role);
+    if (denied) return denied;
+    const body = await parseBody(req);
+    const targetId = String(body.user_id ?? "").trim();
+    if (!targetId) return bad("user_id required");
+    if (targetId === auth.user.id) return bad("Para tu propia cuenta cámbiala desde Ajustes");
+    const targetRoleRes = await db
+      .from("community_user_roles")
+      .select("role")
+      .eq("community_id", auth.community.id)
+      .eq("user_id", targetId)
+      .maybeSingle();
+    const targetRole = (targetRoleRes.data?.role as string | undefined) ?? "member";
+    if (targetRole === "admin" && (await ownerOf(auth.community.id)) !== auth.user.id) {
+      return json(403, { message: "Solo el fundador puede restablecer la contraseña de otro admin" });
+    }
+    const tRes = await db
+      .from("community_users")
+      .select("id,alias,global_user_id,status")
+      .eq("community_id", auth.community.id)
+      .eq("id", targetId)
+      .maybeSingle();
+    if (!tRes.data || tRes.data.status !== "active" || !tRes.data.global_user_id) {
+      return json(404, { message: "Miembro no encontrado" });
+    }
+    const token = randomToken();
+    const tokenHash = await sha256Hex(token);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    // Invalida enlaces anteriores sin usar de ese usuario (solo vale el último).
+    await db.from("password_reset_tokens").delete().eq("global_user_id", tRes.data.global_user_id).is("used_at", null);
+    const ins = await db.from("password_reset_tokens").insert({
+      token_hash: tokenHash,
+      global_user_id: tRes.data.global_user_id,
+      created_by: auth.user.id,
+      community_id: auth.community.id,
+      expires_at: expiresAt
+    });
+    if (ins.error) return dbFail(400, ins.error);
+    return json(200, { token, alias: tRes.data.alias, expiresAt });
+  },
+
+  // El miembro abre el enlace y fija su nueva contraseña (sin sesión).
+  "/auth/reset_password": async (req: Request) => {
+    const body = await parseBody(req);
+    const token = String(body.token ?? "").trim();
+    const password = String(body.password ?? "");
+    if (!token) return bad("token required");
+    if (password.length < 8) return json(400, { message: "La contraseña debe tener al menos 8 caracteres" });
+    const tokenHash = await sha256Hex(token);
+    const row = await db
+      .from("password_reset_tokens")
+      .select("global_user_id,expires_at,used_at")
+      .eq("token_hash", tokenHash)
+      .maybeSingle();
+    if (!row.data) return json(400, { message: "Enlace no válido" });
+    if (row.data.used_at) return json(400, { message: "Este enlace ya se usó" });
+    if (Date.parse(row.data.expires_at as string) <= Date.now()) return json(400, { message: "El enlace ha caducado" });
+    const passwordHash = await hashPassword(password);
+    const upd = await db.from("global_users").update({ password_hash: passwordHash }).eq("id", row.data.global_user_id);
+    if (upd.error) return dbFail(400, upd.error);
+    await db.from("password_reset_tokens").update({ used_at: nowIso() }).eq("token_hash", tokenHash);
+    // Cierra sesiones globales activas de ese usuario (fuerza re-login con la nueva).
+    await db.from("global_sessions").update({ revoked_at: nowIso() }).eq("user_id", row.data.global_user_id).is("revoked_at", null);
+    return json(200, { ok: true });
+  },
+
   "/auth/logout_global": async (req: Request) => {
     const token = extractGlobalSessionToken(req);
     if (token) {
