@@ -565,6 +565,7 @@ export interface ClubBook {
   author?: string;
   coverUrl?: string;
   description?: string;
+  genre?: string;
   publishedYear?: number;
   pageCount?: number;
   authorUrl?: string;
@@ -613,8 +614,25 @@ export interface MemberBook {
   chaptersDone: number;
   rating?: number;
   review?: string;
+  axes?: Record<string, number>;
   finishedAt?: number;
   updatedAt: number;
+}
+
+export interface AxisExtreme {
+  userId: string;
+  alias: string;
+  avatarUrl?: string | null;
+  colorIndex?: number | null;
+}
+export interface AxisStat {
+  key: string;
+  avg: number;
+  count: number;
+  min: number;
+  max: number;
+  low: AxisExtreme | null;
+  high: AxisExtreme | null;
 }
 
 export interface NewBookPayload {
@@ -707,6 +725,7 @@ export interface BookDetail {
   activeMemberCount: number;
   clubMembers: ClubMemberLite[];
   meetingRsvp?: MeetingRsvp;
+  axisStats?: AxisStat[];
 }
 
 export interface MeetingRsvp {
@@ -833,12 +852,14 @@ export const setBookProgress = async (
 export const finishBook = async (
   bookId: string,
   rating?: number,
-  review?: string
+  review?: string,
+  axes?: Record<string, number>
 ): Promise<{ myMember: MemberBook; bookStatus: BookStatus }> =>
   request<{ myMember: MemberBook; bookStatus: BookStatus }>("/books/finish", {
     book_id: bookId,
     ...(rating ? { rating } : {}),
-    ...(review ? { review } : {})
+    ...(review ? { review } : {}),
+    ...(axes !== undefined ? { axes } : {})
   });
 
 export const setBookChapters = async (bookId: string, totalChapters: number): Promise<{ book: ClubBook }> =>
@@ -894,6 +915,7 @@ export interface BookEditPatch {
   publishedYear?: number | null;
   pageCount?: number | null;
   numberChapters?: boolean;
+  genre?: string | null;
 }
 
 export const updateBook = async (bookId: string, patch: BookEditPatch): Promise<{ book: ClubBook }> =>

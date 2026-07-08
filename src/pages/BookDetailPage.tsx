@@ -6,6 +6,8 @@ import { Icon } from "../components/Icon";
 import { PunctuationLoader } from "../components/PunctuationLoader";
 import { ReadersModal } from "../components/ReadersModal";
 import { UserBadge, UserDot, styleFor } from "../components/UserBadge";
+import { RatingRadar } from "../components/RatingRadar";
+import { axesForGenre, GENRES } from "../lib/ratingAxes";
 import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { parseChapterList } from "../lib/parseChapters";
@@ -81,6 +83,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const [chaptersRaw, setChaptersRaw] = useState("");
   const [numberInput, setNumberInput] = useState(0);
   const [ratingInput, setRatingInput] = useState(0);
+  const [axesInput, setAxesInput] = useState<Record<string, number>>({});
   const [hoverStar, setHoverStar] = useState(0);
   // Leyenda semántica de la nota global: cada estrella significa algo, no es una
   // nota de producto. Se muestra la del nivel que se toca/pasa (o el elegido).
@@ -114,7 +117,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     }
   }, [commentText, bookId]);
   const [editOpen, setEditOpen] = useState(false);
-  const [edit, setEdit] = useState({ title: "", author: "", coverUrl: "", description: "" });
+  const [edit, setEdit] = useState({ title: "", author: "", coverUrl: "", description: "", genre: "" });
   const [targetCh, setTargetCh] = useState("");
   const [targetDate, setTargetDate] = useState("");
   const [minutesPerDay, setMinutesPerDay] = useState(30);
@@ -131,6 +134,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
       setDetail(cached);
       setRatingInput(cached.myMember?.rating ?? 0);
       setReviewInput(cached.myMember?.review ?? "");
+      setAxesInput(cached.myMember?.axes ?? {});
       setLoading(false);
     } else {
       setLoading(true);
@@ -141,6 +145,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
       setCachedBook(bookId, data);
       setRatingInput(data.myMember?.rating ?? 0);
       setReviewInput(data.myMember?.review ?? "");
+      setAxesInput(data.myMember?.axes ?? {});
       setError(null);
     } catch (err) {
       if (!cached) setError(err instanceof Error ? err.message : pick(language, "No se pudo cargar el libro.", "Couldn't load the book.", "Non se puido cargar o libro."));
@@ -264,6 +269,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   }
 
   const { book, comments, members, myMember, chapters, votes, activeMemberCount, clubMembers, meetingRsvp } = detail;
+  const genreAxes = axesForGenre(book.genre);
   // Decisión por quórum de VOTANTES: gana la mayoría simple una vez que vota al
   // menos un tercio del club. Lo que falta son votos (de cualquier signo), no síes.
   const quorum = proposalQuorum(activeMemberCount);
@@ -368,7 +374,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
       patch((d) => ({ ...d, book: r.book }));
     });
   const openEdit = () => {
-    setEdit({ title: book.title, author: book.author ?? "", coverUrl: book.coverUrl ?? "", description: book.description ?? "" });
+    setEdit({ title: book.title, author: book.author ?? "", coverUrl: book.coverUrl ?? "", description: book.description ?? "", genre: book.genre ?? "" });
     setTargetCh(book.targetChapter ? String(book.targetChapter) : "");
     setTargetDate(book.targetDate ?? "");
     setEditOpen(true);
@@ -388,7 +394,8 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
         title: edit.title.trim() || book.title,
         author: edit.author.trim() || null,
         coverUrl: edit.coverUrl.trim() || null,
-        description: edit.description.trim() || null
+        description: edit.description.trim() || null,
+        genre: edit.genre || null
       });
       patch((d) => ({ ...d, book: r.book }));
       setEditOpen(false);
@@ -575,7 +582,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   };
   const handleFinish = () =>
     run(async () => {
-      const r = await finishBook(book.id, ratingInput || undefined, reviewInput.trim() || undefined);
+      const r = await finishBook(book.id, ratingInput || undefined, reviewInput.trim() || undefined, axesInput);
       patch((d) => ({ ...d, myMember: mergeMyMember(d, r.myMember), book: { ...d.book, status: r.bookStatus } }));
       // Feedback de guardado: cierra el formulario (la reseña pasa a verse como
       // tarjeta) y destella la tarjeta para que quede claro que se guardó.
@@ -817,6 +824,13 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
             <label className="form-field">
               {pick(language, "Sinopsis", "Description", "Sinopse")}
               <textarea rows={3} value={edit.description} onChange={(event) => setEdit((prev) => ({ ...prev, description: event.target.value }))} />
+            </label>
+            <label className="form-field">
+              {pick(language, "Género (define los ejes de valoración)", "Genre (sets the rating axes)", "Xénero (define os eixes de valoración)")}
+              <select value={edit.genre} onChange={(event) => setEdit((prev) => ({ ...prev, genre: event.target.value }))}>
+                <option value="">{pick(language, "Sin género (solo estrellas)", "No genre (stars only)", "Sen xénero (só estrelas)")}</option>
+                {GENRES.map((g) => <option key={g.key} value={g.key}>{g.label(language)}</option>)}
+              </select>
             </label>
             <div className="auth-entry-actions">
               <button type="button" className="btn" onClick={() => setEditOpen(false)} disabled={busy}>
@@ -1205,6 +1219,36 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                 </figure>
               ) : (
                 <>
+                  {genreAxes.length > 0 ? (
+                    <div className="axis-rate">
+                      <p className="chapter-finish-title">{pick(language, "¿Cómo lo viviste?", "How did you experience it?", "Como o viviches?")}</p>
+                      <p className="hint">{pick(language, "Opcional. Ayuda al debate del club — no es una nota.", "Optional. It fuels the club's debate — it's not a score.", "Opcional. Axuda ao debate do club — non é unha nota.")}</p>
+                      {genreAxes.map((ax) => (
+                        <div key={ax.key} className="axis-row">
+                          <div className="axis-row-head">
+                            <span className="axis-row-label">{ax.label(language)}</span>
+                          </div>
+                          <div className="axis-scale" role="radiogroup" aria-label={ax.label(language)}>
+                            {[1, 2, 3, 4, 5].map((v) => (
+                              <button
+                                key={v}
+                                type="button"
+                                role="radio"
+                                aria-checked={axesInput[ax.key] === v}
+                                className={`axis-dot${axesInput[ax.key] === v ? " is-on" : ""}`}
+                                disabled={busy}
+                                aria-label={`${ax.label(language)}: ${v}`}
+                                onClick={() => setAxesInput((prev) => ({ ...prev, [ax.key]: v }))}
+                              >
+                                {v}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="axis-poles"><span>{ax.low(language)}</span><span>{ax.high(language)}</span></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                   <p className="chapter-finish-title">{pick(language, "Si te apetece, déjale una valoración", "If you feel like it, leave a rating", "Se che apetece, déixalle unha valoración")}</p>
                   <div
                     className="book-rating"
@@ -1256,6 +1300,42 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                   </div>
                 </>
               )}
+
+              {/* El mapa del club: radar + disparadores de debate. Solo si TÚ ya
+                  valoraste (aportas antes de comparar → opinión sin contaminar). */}
+              {myMember?.rating && genreAxes.length > 0 && (detail.axisStats?.length ?? 0) > 0 ? (
+                <div className="book-radar-block">
+                  <p className="chapter-finish-title">{pick(language, "El mapa del club sobre este libro", "The club's map of this book", "O mapa do club sobre este libro")}</p>
+                  <RatingRadar axes={genreAxes} stats={detail.axisStats ?? []} myAxes={myMember?.axes ?? axesInput} language={language} />
+                  <p className="radar-legend-row">
+                    <span className="radar-key radar-key-club" /> {pick(language, "el club", "the club", "o club")}
+                    <span className="radar-key radar-key-you" /> {pick(language, "tú", "you", "ti")}
+                  </p>
+                  <div className="debate-list">
+                    <p className="hint">{pick(language, "Para el debate — dónde coincidís y dónde chocáis:", "For the debate — where you agree and clash:", "Para o debate — onde coincidides e onde chocades:")}</p>
+                    {(detail.axisStats ?? []).map((s) => {
+                      const ax = genreAxes.find((a) => a.key === s.key);
+                      if (!ax) return null;
+                      const spread = s.max - s.min;
+                      return (
+                        <div key={s.key} className="debate-row">
+                          <span className="debate-axis">{ax.label(language)}</span>
+                          <span className={`debate-spread${spread >= 3 ? " is-clash" : spread === 0 ? " is-agree" : ""}`}>
+                            {spread === 0 ? pick(language, "coincidís", "you agree", "coincidides") : spread >= 3 ? pick(language, "os divide", "divides you", "divídevos") : pick(language, "matices", "nuances", "matices")}
+                          </span>
+                          {spread > 0 && s.low && s.high ? (
+                            <span className="debate-extremes">
+                              <span className="debate-extreme" title={ax.low(language)}><UserBadge alias={s.low.alias} avatarUrl={s.low.avatarUrl ?? undefined} colorIndex={s.low.colorIndex ?? undefined} withAvatar /> <span className="hint">{ax.low(language)}</span></span>
+                              <Icon name="arrowRight" size={12} />
+                              <span className="debate-extreme" title={ax.high(language)}><UserBadge alias={s.high.alias} avatarUrl={s.high.avatarUrl ?? undefined} colorIndex={s.high.colorIndex ?? undefined} withAvatar /> <span className="hint">{ax.high(language)}</span></span>
+                            </span>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
 
               {/* Reseñas del resto del club (visibles porque tú ya terminaste). */}
               {clubReviews.length > 0 ? (

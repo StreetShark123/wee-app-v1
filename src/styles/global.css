@@ -4431,6 +4431,36 @@ textarea:focus-visible {
 /* Leyenda semántica bajo las estrellas de la nota global. */
 .book-rating-legend { margin: 2px 0 10px; min-height: 1.3em; color: var(--ink-1); font-size: 0.86rem; }
 .book-rating-legend strong { color: var(--star-gold); }
+
+/* Asistente de ejes (valoración por dimensiones, en clave "cómo lo viviste"). */
+.axis-rate { display: grid; gap: 12px; margin: 6px 0 14px; }
+.axis-row { display: grid; gap: 5px; }
+.axis-row-label { font-size: 0.9rem; }
+.axis-scale { display: flex; gap: 6px; }
+.axis-dot {
+  flex: 1; min-height: 40px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--panel-0); color: var(--ink-1); font-family: var(--font-type); font-size: 0.9rem; cursor: pointer;
+}
+.axis-dot.is-on { border-color: var(--brand); color: var(--brand-strong); background: color-mix(in srgb, var(--brand) 12%, var(--panel-0)); }
+.axis-poles { display: flex; justify-content: space-between; gap: 8px; font-size: 0.72rem; color: var(--ink-1); }
+.axis-poles span:last-child { text-align: right; }
+
+/* Radar + debate (el mapa del club). */
+.book-radar-block { margin-top: 16px; display: grid; gap: 8px; }
+.rating-radar { width: 100%; max-width: 300px; margin: 0 auto; height: auto; }
+.rating-radar-label { fill: var(--ink-1); font-size: 11px; font-family: var(--font-sans); }
+.radar-legend-row { display: flex; align-items: center; gap: 6px; justify-content: center; font-size: 0.8rem; color: var(--ink-1); }
+.radar-key { width: 14px; height: 3px; border-radius: 2px; display: inline-block; margin-left: 8px; }
+.radar-key-club { background: var(--brand); }
+.radar-key-you { background: var(--star-gold); }
+.debate-list { display: grid; gap: 8px; margin-top: 6px; }
+.debate-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border-top: 1px dashed var(--line); padding-top: 8px; }
+.debate-axis { font-weight: 600; font-size: 0.86rem; min-width: 7em; }
+.debate-spread { font-size: 0.72rem; color: var(--ink-1); border: 1px solid var(--line); border-radius: 3px; padding: 1px 6px; }
+.debate-spread.is-clash { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); }
+.debate-spread.is-agree { color: var(--success); border-color: color-mix(in srgb, var(--success) 40%, var(--line)); }
+.debate-extremes { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.debate-extreme { display: inline-flex; align-items: center; gap: 4px; }
 .book-review-form-actions { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
 /* Feedback de guardado: el botón vira a verde "✓ Reseña guardada" un instante. */
 .btn.is-saved {

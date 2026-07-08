@@ -400,6 +400,7 @@ const rowToBook = (row: Record<string, any>): Record<string, any> => ({
   author: row.author ?? undefined,
   coverUrl: row.cover_url ?? undefined,
   description: row.description ?? undefined,
+  genre: row.genre ?? undefined,
   publishedYear: row.published_year ?? undefined,
   pageCount: row.page_count ?? undefined,
   totalChapters: row.total_chapters ?? undefined,
@@ -427,9 +428,25 @@ const rowToMemberBook = (row: Record<string, any>): Record<string, any> => ({
   chaptersDone: Number(row.chapters_done ?? 0),
   rating: row.rating ?? undefined,
   review: row.review ?? undefined,
+  axes: (row.axes && typeof row.axes === "object") ? row.axes : {},
   finishedAt: row.finished_at ? toMillis(row.finished_at) : undefined,
   updatedAt: toMillis(row.updated_at)
 });
+
+// Saneo de ejes de valoración: {key: 1..5}. No valida keys contra género (el
+// front controla qué ejes se envían); solo limita nº, longitud de key y rango.
+const sanitizeAxes = (raw: unknown): Record<string, number> => {
+  const out: Record<string, number> = {};
+  if (!raw || typeof raw !== "object") return out;
+  let n = 0;
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (n >= 12) break;
+    const key = String(k).slice(0, 32).replace(/[^a-z0-9_]/gi, "");
+    const val = Math.floor(Number(v));
+    if (key && val >= 1 && val <= 5) { out[key] = val; n += 1; }
+  }
+  return out;
+};
 
 // Mapa id→alias de los miembros activos del club (para resolver autores de
 // comentarios y progreso sin múltiples joins).
@@ -2764,9 +2781,11 @@ const handlers = {
     const title = String(b.title ?? "").trim().slice(0, 300);
     if (!title) return bad("title required");
     const source = ["google_books", "open_library", "manual"].includes(b.source) ? b.source : "manual";
+    const genre = ["fiction", "nonfiction", "other"].includes(b.genre) ? b.genre : null;
     const row = {
       community_id: auth.community.id,
       added_by: auth.user.id,
+      genre,
       isbn: b.isbn ? String(b.isbn).trim().slice(0, 32) : null,
       title,
       author: b.author ? String(b.author).trim().slice(0, 200) : null,
@@ -2865,6 +2884,38 @@ const handlers = {
       alias: metaMap.get(row.user_id)?.alias ?? "—"
     }));
 
+    // Estadística por eje del club (solo miembros activos): media + dispersión
+    // (min/max) + quién está en cada extremo (para pintar su avatar). Alimenta
+    // el radar-debate, no una nota de producto.
+    const axisAgg: Record<string, { sum: number; count: number; min: number; max: number; minU: string; maxU: string }> = {};
+    members.forEach((m: Record<string, any>) => {
+      if (!metaMap.has(m.userId)) return;
+      const axes = m.axes as Record<string, number> | undefined;
+      if (!axes || typeof axes !== "object") return;
+      for (const [k, vRaw] of Object.entries(axes)) {
+        const v = Number(vRaw);
+        if (!(v >= 1 && v <= 5)) continue;
+        const a = axisAgg[k] ?? (axisAgg[k] = { sum: 0, count: 0, min: 6, max: 0, minU: "", maxU: "" });
+        a.sum += v; a.count += 1;
+        if (v < a.min) { a.min = v; a.minU = m.userId; }
+        if (v > a.max) { a.max = v; a.maxU = m.userId; }
+      }
+    });
+    const extremeOf = (uid: string) => {
+      if (!uid) return null;
+      const meta = metaMap.get(uid);
+      return { userId: uid, alias: meta?.alias ?? "—", avatarUrl: meta?.avatarUrl ?? null, colorIndex: meta?.colorIndex ?? null };
+    };
+    const axisStats = Object.entries(axisAgg).map(([key, a]) => ({
+      key,
+      avg: Math.round((a.sum / a.count) * 10) / 10,
+      count: a.count,
+      min: a.min,
+      max: a.max,
+      low: extremeOf(a.minU),
+      high: extremeOf(a.maxU)
+    }));
+
     const completions = completionsRes.data ?? [];
     const countByChapter: Record<string, number> = {};
     const readersByChapter: Record<string, { id: string; alias: string }[]> = {};
@@ -2943,6 +2994,7 @@ const handlers = {
     return json(200, {
       activeMemberCount,
       meetingRsvp,
+      axisStats,
       clubMembers: Array.from(metaMap, ([id, m]) => ({ id, alias: m.alias, avatarUrl: m.avatarUrl, colorIndex: m.colorIndex })),
       book: rowToBook(bookRes.data as Record<string, any>),
       comments: (commentsRes.data ?? []).map((row: Record<string, any>) => {
@@ -3495,6 +3547,8 @@ const handlers = {
     if (!bookId) return bad("book_id required");
     const rating = body.rating === undefined || body.rating === null ? null : Math.max(1, Math.min(5, Math.floor(Number(body.rating))));
     const review = body.review ? String(body.review).trim().slice(0, 4000) : null;
+    // Ejes: solo se tocan si vienen en el body (borrar reseña no debe borrarlos).
+    const axes = body.axes !== undefined ? sanitizeAxes(body.axes) : undefined;
 
     const bookRes = await db
       .from("books")
@@ -3516,6 +3570,7 @@ const handlers = {
           chapters_done: total ?? 0,
           rating,
           review,
+          ...(axes !== undefined ? { axes } : {}),
           finished_at: nowIso(),
           updated_at: nowIso()
         },
@@ -3796,6 +3851,7 @@ const handlers = {
     if (body.publishedYear !== undefined) patch.published_year = Number.isFinite(Number(body.publishedYear)) ? Number(body.publishedYear) : null;
     if (body.pageCount !== undefined) patch.page_count = Number.isFinite(Number(body.pageCount)) ? Number(body.pageCount) : null;
     if (body.numberChapters !== undefined) patch.number_chapters = body.numberChapters !== false;
+    if (body.genre !== undefined) patch.genre = ["fiction", "nonfiction", "other"].includes(body.genre) ? body.genre : null;
 
     const upd = await db
       .from("books")
