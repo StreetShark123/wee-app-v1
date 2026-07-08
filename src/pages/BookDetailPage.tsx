@@ -1103,7 +1103,9 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
         <section id="chapters" className="page-section">
           <div className="section-head">
             <h2><Icon name="timeline" /> {pick(language, "Capítulos", "Chapters", "Capítulos")}</h2>
-            {named && lastReadChapterId && !allDone ? (
+            {allDone ? (
+              <span className="chapter-done-chip"><Icon name="check" size={12} /> {pick(language, "leídos", "read", "lidos")}</span>
+            ) : named && lastReadChapterId ? (
               <button
                 type="button"
                 className="book-chip book-chip-link"
@@ -1117,13 +1119,13 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
           {named ? (
             <div className="stack">
               {allDone ? (
-                <>
-                  <p className="chapter-alldone"><Icon name="check" /> {pick(language, "Has leído todos los capítulos.", "You've read every chapter.", "Liches todos os capítulos.")}</p>
-                  <details className="chapter-collapsed">
-                    <summary>{pick(language, `Ver los ${total} capítulos`, `Show the ${total} chapters`, `Ver os ${total} capítulos`)}</summary>
-                    <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} members={clubMembers} noteThreads={noteThreads} lastReadChapterId={lastReadChapterId} numberChapters={book.numberChapters !== false} focusCommentId={focusCommentId} focusNoteId={focusNoteId} spoilersOk={spoilersOk} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} onReplyComment={handleReply} onReactComment={handleReact} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onCommentOnNote={handleCommentOnNote} />
-                  </details>
-                </>
+                <details className="chapter-collapsed">
+                  <summary className="chapter-collapsed-summary">
+                    <Icon name="timeline" size={14} /> {pick(language, `Ver los ${total} capítulos`, `Show the ${total} chapters`, `Ver os ${total} capítulos`)}
+                    <span className="chapter-collapsed-caret" aria-hidden="true">▾</span>
+                  </summary>
+                  <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} members={clubMembers} noteThreads={noteThreads} lastReadChapterId={lastReadChapterId} numberChapters={book.numberChapters !== false} focusCommentId={focusCommentId} focusNoteId={focusNoteId} spoilersOk={spoilersOk} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} onReplyComment={handleReply} onReactComment={handleReact} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onCommentOnNote={handleCommentOnNote} />
+                </details>
               ) : (
                 <>
                   <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} members={clubMembers} noteThreads={noteThreads} lastReadChapterId={lastReadChapterId} numberChapters={book.numberChapters !== false} focusCommentId={focusCommentId} focusNoteId={focusNoteId} spoilersOk={spoilersOk} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} onReplyComment={handleReply} onReactComment={handleReact} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onCommentOnNote={handleCommentOnNote} />
@@ -1326,7 +1328,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                           {spread > 0 && s.low && s.high ? (
                             <span className="debate-extremes">
                               <span className="debate-extreme" title={ax.low(language)}><UserBadge alias={s.low.alias} avatarUrl={s.low.avatarUrl ?? undefined} colorIndex={s.low.colorIndex ?? undefined} withAvatar /> <span className="hint">{ax.low(language)}</span></span>
-                              <Icon name="arrowRight" size={12} />
+                              <span className="debate-vs" aria-hidden="true">↔</span>
                               <span className="debate-extreme" title={ax.high(language)}><UserBadge alias={s.high.alias} avatarUrl={s.high.avatarUrl ?? undefined} colorIndex={s.high.colorIndex ?? undefined} withAvatar /> <span className="hint">{ax.high(language)}</span></span>
                             </span>
                           ) : null}

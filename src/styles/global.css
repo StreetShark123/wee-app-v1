@@ -4415,6 +4415,28 @@ textarea:focus-visible {
 .chapter-collapsed summary { cursor: pointer; color: var(--ink-1); font-size: 0.88rem; padding: 4px 0; }
 .chapter-mark-all { align-self: flex-start; }
 
+/* Estado "leídos" en la cabecera de Capítulos (sustituye la línea redundante). */
+.chapter-done-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.76rem; color: var(--success);
+  border: 1px solid color-mix(in srgb, var(--success) 40%, var(--line));
+  background: color-mix(in srgb, var(--success) 8%, transparent);
+  border-radius: 999px; padding: 3px 10px;
+}
+/* "Ver los N capítulos" como botón claro (sin el ▸/marcador doble faint). */
+.chapter-collapsed-summary {
+  list-style: none;
+  display: inline-flex; align-items: center; gap: 8px; width: 100%;
+  min-height: 44px; padding: 8px 14px;
+  border: 1px solid var(--line); border-radius: var(--radius-md);
+  background: var(--panel-0); color: var(--ink-0);
+  font-size: 0.92rem; font-weight: 600; cursor: pointer;
+}
+.chapter-collapsed-summary::-webkit-details-marker { display: none; }
+.chapter-collapsed-summary::before { content: none; }
+.chapter-collapsed-caret { margin-left: auto; transition: transform var(--motion-fast) var(--ease-standard); }
+.chapter-collapsed[open] > .chapter-collapsed-summary .chapter-collapsed-caret { transform: rotate(180deg); }
+
 /* Valoración al terminar */
 .book-rating-block {
   margin-top: 14px;
