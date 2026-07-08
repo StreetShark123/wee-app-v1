@@ -312,9 +312,27 @@ const ensureAdmin = (role: Role): Response | null => (role === "admin" ? null : 
 
 // Owner del club = communities.created_by_user_id. Solo el propio owner puede
 // degradarse/salir; ningún otro admin puede degradar ni expulsar al owner.
+// FALLBACK (clubs antiguos con created_by_user_id NULL, que nunca se rellenó):
+// el admin ACTIVO más antiguo actúa como owner. Sin esto, ownerOf devolvía null
+// y NADIE podía nombrar admins ni gestionar roles, ni siquiera el fundador real.
+// Coincide con el ownerId que ya se muestra en la ficha del club.
 const ownerOf = async (communityId: string): Promise<string | null> => {
   const { data } = await db.from("communities").select("created_by_user_id").eq("id", communityId).maybeSingle();
-  return (data?.created_by_user_id as string | undefined) ?? null;
+  const explicit = (data?.created_by_user_id as string | undefined) ?? null;
+  if (explicit) return explicit;
+  const admins = await db.from("community_user_roles").select("user_id").eq("community_id", communityId).eq("role", "admin");
+  const adminIds = (admins.data ?? []).map((r: Record<string, any>) => r.user_id as string);
+  if (!adminIds.length) return null;
+  const oldest = await db
+    .from("community_users")
+    .select("id")
+    .eq("community_id", communityId)
+    .in("id", adminIds)
+    .eq("status", "active")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return (oldest.data?.id as string | undefined) ?? null;
 };
 
 // 403 si el miembro está silenciado (muted_until en el futuro); null si puede escribir.
