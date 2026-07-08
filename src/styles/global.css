@@ -4428,6 +4428,9 @@ textarea:focus-visible {
 }
 .chapter-finish-title { font-weight: 700; margin: 0; }
 .book-review-input { width: 100%; }
+/* Leyenda semántica bajo las estrellas de la nota global. */
+.book-rating-legend { margin: 2px 0 10px; min-height: 1.3em; color: var(--ink-1); font-size: 0.86rem; }
+.book-rating-legend strong { color: var(--star-gold); }
 .book-review-form-actions { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
 /* Feedback de guardado: el botón vira a verde "✓ Reseña guardada" un instante. */
 .btn.is-saved {

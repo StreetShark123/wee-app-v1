@@ -81,6 +81,15 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const [chaptersRaw, setChaptersRaw] = useState("");
   const [numberInput, setNumberInput] = useState(0);
   const [ratingInput, setRatingInput] = useState(0);
+  const [hoverStar, setHoverStar] = useState(0);
+  // Leyenda semántica de la nota global: cada estrella significa algo, no es una
+  // nota de producto. Se muestra la del nivel que se toca/pasa (o el elegido).
+  const starLegend = (n: number): string =>
+    n === 1 ? pick(language, "No lo recomendaría", "Wouldn't recommend it", "Non o recomendaría")
+      : n === 2 ? pick(language, "Está bien, pero no me llenó", "It's okay, but it didn't grab me", "Está ben, pero non me encheu")
+        : n === 3 ? pick(language, "Buen libro", "Good book", "Bo libro")
+          : n === 4 ? pick(language, "Gran libro, lo recomendaría", "Great book, I'd recommend it", "Gran libro, recomendaríao")
+            : pick(language, "Excelente, una obra maestra", "Excellent, a masterpiece", "Excelente, unha obra mestra");
   const [reviewInput, setReviewInput] = useState("");
   // Reseña de cierre: `editingReview` reabre el formulario sobre una reseña ya
   // guardada; `reviewSavedFlash` da feedback visible al guardar (antes el botón
@@ -1197,22 +1206,35 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               ) : (
                 <>
                   <p className="chapter-finish-title">{pick(language, "Si te apetece, déjale una valoración", "If you feel like it, leave a rating", "Se che apetece, déixalle unha valoración")}</p>
-                  <div className="book-rating" role="radiogroup" aria-label={pick(language, "Tu valoración, de 1 a 5 estrellas", "Your rating, 1 to 5 stars", "A túa valoración, de 1 a 5 estrelas")}>
+                  <div
+                    className="book-rating"
+                    role="radiogroup"
+                    aria-label={pick(language, "Tu valoración, de 1 a 5 estrellas", "Your rating, 1 to 5 stars", "A túa valoración, de 1 a 5 estrelas")}
+                    onMouseLeave={() => setHoverStar(0)}
+                  >
                     {[1, 2, 3, 4, 5].map((value) => (
                       <button
                         key={value}
                         type="button"
                         role="radio"
                         aria-checked={ratingInput === value}
-                        className={`book-star${ratingInput >= value ? " is-on" : ""}`}
-                        aria-label={pick(language, `${value} de 5 estrellas`, `${value} of 5 stars`, `${value} de 5 estrelas`)}
+                        className={`book-star${(hoverStar || ratingInput) >= value ? " is-on" : ""}`}
+                        aria-label={`${value} — ${starLegend(value)}`}
                         disabled={busy}
+                        onMouseEnter={() => setHoverStar(value)}
+                        onFocus={() => setHoverStar(value)}
+                        onBlur={() => setHoverStar(0)}
                         onClick={() => saveRating(value)}
                       >
                         <Icon name="star" size={18} />
                       </button>
                     ))}
                   </div>
+                  <p className="book-rating-legend" aria-live="polite">
+                    {(hoverStar || ratingInput)
+                      ? <><strong>{hoverStar || ratingInput}★</strong> · {starLegend(hoverStar || ratingInput)}</>
+                      : pick(language, "Pasa por las estrellas para ver qué significa cada una.", "Hover the stars to see what each one means.", "Pasa polas estrelas para ver que significa cada unha.")}
+                  </p>
                   <textarea
                     className="book-review-input"
                     rows={2}
