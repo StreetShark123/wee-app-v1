@@ -1,5 +1,6 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import webpush from "npm:web-push@3.6.7";
 
 type InvitePolicy = "admins_only" | "members_allowed";
 type Role = "admin" | "member";
@@ -8,6 +9,20 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const APP_ORIGIN = (Deno.env.get("APP_ORIGIN") ?? "").replace(/\/+$/, "");
 const db = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+
+// Web Push (VAPID). Clave pública también en el front (es pública); la privada
+// es secreto de la función. Si faltan, el envío se salta sin romper nada.
+const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
+const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
+const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") ?? "mailto:hello@wee.app";
+const pushReady = Boolean(VAPID_PUBLIC && VAPID_PRIVATE);
+if (pushReady) {
+  try {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
+  } catch {
+    /* claves inválidas: el envío quedará no-op */
+  }
+}
 
 const json = (status: number, body: Record<string, unknown>, extraHeaders?: HeadersInit): Response =>
   new Response(JSON.stringify(body), {
@@ -458,6 +473,104 @@ const bannedResponse = async (communityId: string, globalUserId: string): Promis
 };
 
 // Inserta notificaciones (best-effort: nunca rompe la acción que las dispara).
+// ── Web Push: qué categoría cae cada kind + texto del aviso ────────────────
+const KIND_CATEGORY: Record<string, string> = {
+  mention: "replies", reply: "replies", reaction: "replies", note_comment: "replies",
+  book_finished: "milestones", book_approved: "milestones", book_proposed: "milestones",
+  meeting_set: "milestones", join_approved: "milestones", promoted: "milestones", reminder: "milestones",
+  book_comment: "comments", chapter_progress: "chapters"
+};
+
+const pushTextForKind = (kind: string, actor: string, bookTitle: string): { title: string; body: string } => {
+  const at = bookTitle ? ` en «${bookTitle}»` : "";
+  switch (kind) {
+    case "mention": return { title: "Te han mencionado", body: `${actor} te mencionó${at}` };
+    case "reply": return { title: "Nueva respuesta", body: `${actor} respondió a tu comentario` };
+    case "reaction": return { title: "Nueva reacción", body: `A ${actor} le gustó tu comentario` };
+    case "note_comment": return { title: "Comentario en tu nota", body: `${actor} comentó tu nota` };
+    case "book_finished": return { title: "¡Libro terminado!", body: bookTitle ? `El club terminó «${bookTitle}»` : "El club terminó un libro" };
+    case "book_approved": return { title: "Lectura nueva", body: bookTitle ? `El club va a leer «${bookTitle}»` : "El club va a leer un libro nuevo" };
+    case "book_proposed": return { title: "Propuesta para votar", body: `${actor} propuso ${bookTitle ? `«${bookTitle}»` : "un libro"}: ¡vota!` };
+    case "meeting_set": return { title: "Cita para comentar", body: bookTitle ? `Hay cita para «${bookTitle}»` : "Hay cita para comentar un libro" };
+    case "reminder": return { title: "Recordatorio", body: "Una propuesta espera tu voto" };
+    case "join_approved": return { title: "Bienvenido al club", body: "Te han aceptado en el club" };
+    case "promoted": return { title: "Ahora eres admin", body: "Eres admin del club" };
+    case "book_comment": return { title: bookTitle ? `Nuevo comentario en «${bookTitle}»` : "Nuevo comentario", body: `${actor} comentó${at}` };
+    case "chapter_progress": return { title: "Avance de lectura", body: `${actor} avanzó${at}` };
+    default: return { title: "wee.", body: "Novedades en el club" };
+  }
+};
+
+// Corre en segundo plano tras responder (no ralentiza la acción del usuario).
+const runBackground = (p: Promise<unknown>): void => {
+  try {
+    const rt = (globalThis as any).EdgeRuntime;
+    if (rt && typeof rt.waitUntil === "function") rt.waitUntil(p);
+    else void p.catch(() => undefined);
+  } catch {
+    void p.catch(() => undefined);
+  }
+};
+
+const sendPushForNotifications = async (
+  communityId: string,
+  rows: Array<{ user_id: string; kind: string; actor_id?: string | null; book_id?: string | null }>
+): Promise<void> => {
+  if (!pushReady || !rows.length) return;
+  try {
+    const recipientIds = [...new Set(rows.map((r) => r.user_id))];
+    const actorIds = [...new Set(rows.map((r) => r.actor_id).filter(Boolean))] as string[];
+    const bookIds = [...new Set(rows.map((r) => r.book_id).filter(Boolean))] as string[];
+    const [subsRes, prefsRes, actorsRes, booksRes] = await Promise.all([
+      db.from("push_subscriptions").select("user_id,endpoint,p256dh,auth").eq("community_id", communityId).in("user_id", recipientIds),
+      db.from("push_prefs").select("user_id,enabled,categories").eq("community_id", communityId).in("user_id", recipientIds),
+      actorIds.length ? db.from("community_users").select("id,alias").in("id", actorIds) : Promise.resolve({ data: [] as any[] } as any),
+      bookIds.length ? db.from("books").select("id,title").in("id", bookIds) : Promise.resolve({ data: [] as any[] } as any)
+    ]);
+    const subsByUser = new Map<string, Array<{ endpoint: string; p256dh: string; auth: string }>>();
+    (subsRes.data ?? []).forEach((s: any) => {
+      const arr = subsByUser.get(s.user_id) ?? [];
+      arr.push({ endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth });
+      subsByUser.set(s.user_id, arr);
+    });
+    const prefsByUser = new Map<string, { enabled: boolean; categories: Record<string, boolean> }>();
+    (prefsRes.data ?? []).forEach((p: any) => prefsByUser.set(p.user_id, { enabled: p.enabled !== false, categories: p.categories ?? {} }));
+    const aliasById = new Map<string, string>((actorsRes.data ?? []).map((u: any) => [u.id, u.alias ?? "Alguien"]));
+    const titleById = new Map<string, string>((booksRes.data ?? []).map((b: any) => [b.id, b.title ?? ""]));
+
+    const tasks: Promise<unknown>[] = [];
+    const deadEndpoints: string[] = [];
+    for (const r of rows) {
+      const subs = subsByUser.get(r.user_id);
+      if (!subs?.length) continue;
+      const prefs = prefsByUser.get(r.user_id);
+      if (!prefs || !prefs.enabled) continue;
+      const category = KIND_CATEGORY[r.kind];
+      if (!category || prefs.categories[category] === false) continue;
+      const actor = r.actor_id ? (aliasById.get(r.actor_id) ?? "Alguien") : "";
+      const bookTitle = r.book_id ? (titleById.get(r.book_id) ?? "") : "";
+      const { title, body } = pushTextForKind(r.kind, actor, bookTitle);
+      const url = r.book_id ? `/#/book/${r.book_id}` : "/#/feed";
+      const payload = JSON.stringify({ title, body, url, tag: `${r.kind}:${r.book_id ?? ""}` });
+      for (const sub of subs) {
+        tasks.push(
+          webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload)
+            .catch((err: any) => {
+              const code = err?.statusCode;
+              if (code === 404 || code === 410) deadEndpoints.push(sub.endpoint);
+            })
+        );
+      }
+    }
+    await Promise.allSettled(tasks);
+    if (deadEndpoints.length) {
+      await db.from("push_subscriptions").delete().in("endpoint", [...new Set(deadEndpoints)]);
+    }
+  } catch {
+    /* best-effort: el push nunca debe tumbar la acción principal */
+  }
+};
+
 const notify = async (
   communityId: string,
   rows: Array<{ user_id: string; kind: string; actor_id?: string | null; book_id?: string | null; text?: string | null }>
@@ -477,6 +590,8 @@ const notify = async (
   } catch {
     // best-effort
   }
+  // Entrega push en segundo plano (filtrada por suscripción + preferencias).
+  runBackground(sendPushForNotifications(communityId, rows));
 };
 
 const recomputeBookStatus = async (communityId: string, bookId: string): Promise<string> => {
@@ -3895,6 +4010,64 @@ const handlers = {
       .eq("user_id", auth.user.id)
       .is("read_at", null);
     return json(200, { ok: true });
+  },
+
+  // ── Web Push ──────────────────────────────────────────────────────────
+  "/push/subscribe": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const endpoint = String(body.endpoint ?? "").trim();
+    const p256dh = String(body.p256dh ?? "").trim();
+    const authKey = String(body.auth ?? "").trim();
+    if (!endpoint || !p256dh || !authKey) return bad("subscription incompleta");
+    const { error } = await db.from("push_subscriptions").upsert(
+      { community_id: auth.community.id, user_id: auth.user.id, endpoint, p256dh, auth: authKey },
+      { onConflict: "user_id,endpoint" }
+    );
+    if (error) return dbFail(400, error);
+    return json(200, { ok: true });
+  },
+
+  "/push/unsubscribe": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const endpoint = String(body.endpoint ?? "").trim();
+    if (endpoint) {
+      await db.from("push_subscriptions").delete().eq("community_id", auth.community.id).eq("user_id", auth.user.id).eq("endpoint", endpoint);
+    }
+    return json(200, { ok: true });
+  },
+
+  "/push/prefs/get": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const { data } = await db.from("push_prefs").select("enabled,categories").eq("community_id", auth.community.id).eq("user_id", auth.user.id).maybeSingle();
+    return json(200, {
+      enabled: data?.enabled ?? false,
+      categories: data?.categories ?? { replies: true, comments: false, milestones: true, chapters: false }
+    });
+  },
+
+  "/push/prefs/set": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const enabled = body.enabled === true;
+    const rawCats = (body.categories && typeof body.categories === "object") ? body.categories as Record<string, unknown> : {};
+    const categories = {
+      replies: rawCats.replies !== false,
+      comments: rawCats.comments === true,
+      milestones: rawCats.milestones !== false,
+      chapters: rawCats.chapters === true
+    };
+    const { error } = await db.from("push_prefs").upsert(
+      { community_id: auth.community.id, user_id: auth.user.id, enabled, categories, updated_at: nowIso() },
+      { onConflict: "community_id,user_id" }
+    );
+    if (error) return dbFail(400, error);
+    return json(200, { enabled, categories });
   },
 
   // Exportación de datos PROPIOS (RGPD-friendly): solo lo del usuario que pide,

@@ -13,5 +13,6 @@
     "noFallthroughCasesInSwitch": true,
     "types": ["vitest/globals"]
   },
-  "include": ["src", "config"]
+  "include": ["src", "config"],
+  "exclude": ["src/sw.ts"]
 }

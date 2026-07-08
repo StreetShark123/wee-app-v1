@@ -401,6 +401,26 @@ export interface ActivityEvent {
 export const communityActivity = async (): Promise<{ events: ActivityEvent[] }> =>
   request<{ events: ActivityEvent[] }>("/community/activity", {}, { retryRead: true });
 
+// ───────────────────────────── Web Push ─────────────────────────────
+export interface PushPrefsPayload {
+  enabled: boolean;
+  categories: Record<string, boolean>;
+}
+
+export const registerPushSubscription = async (sub: { endpoint: string; p256dh: string; auth: string }): Promise<void> => {
+  await request<{ ok: true }>("/push/subscribe", sub);
+};
+
+export const removePushSubscription = async (endpoint: string): Promise<void> => {
+  await request<{ ok: true }>("/push/unsubscribe", { endpoint });
+};
+
+export const getPushPrefs = async (): Promise<PushPrefsPayload> =>
+  request<PushPrefsPayload>("/push/prefs/get", {}, { retryRead: true });
+
+export const setPushPrefs = async (prefs: PushPrefsPayload): Promise<PushPrefsPayload> =>
+  request<PushPrefsPayload>("/push/prefs/set", prefs);
+
 export interface HealthMember {
   id: string;
   alias: string;

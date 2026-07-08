@@ -8,6 +8,14 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      // SW propio (injectManifest) para poder manejar `push`/`notificationclick`
+      // (Web Push). El precache + runtimeCaching de imágenes se recrea en src/sw.ts.
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
+      injectManifest: {
+        globPatterns: ["**/*.{js,css,html,svg,png,jpg,jpeg,webp,woff2}"]
+      },
       includeAssets: ["favicon-temp.svg", "apple-touch-icon.png"],
       manifest: {
         name: "Wee — club de lectura",
@@ -29,25 +37,6 @@ export default defineConfig({
           { src: "icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" }
         ]
       },
-      workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,png,jpg,jpeg,webp,woff2}"],
-        navigateFallback: "/index.html",
-        cleanupOutdatedCaches: true,
-        runtimeCaching: [
-          {
-            // Portadas de libros (Google Books / OpenLibrary / URLs pegadas): se
-            // descargan UNA vez y se sirven de caché en adelante. Antes solo
-            // dependían de la caché HTTP del navegador (se re-descargaban).
-            urlPattern: ({ request }) => request.destination === "image",
-            handler: "CacheFirst",
-            options: {
-              cacheName: "wee-images",
-              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
-              cacheableResponse: { statuses: [0, 200] }
-            }
-          }
-        ]
-      }
     })
   ],
   base: process.env.VITE_BASE_PATH ?? "/",

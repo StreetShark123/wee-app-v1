@@ -17,6 +17,9 @@
   --accent-cyan: #2f6a66;
   --accent-violet: #6e4b7a;
   --accent-amber: #b07a2b;
+  /* Dorado de estrella: más vivo/saturado que el ámbar de estado (que queda
+     lavado sobre el papel crema) — para que las valoraciones tengan pegada. */
+  --star-gold: #cc7a12;
   --accent-mint: #3e6b4f;
   --danger: #9a3b2e;
   --success: #3e6b4f;
@@ -3712,8 +3715,9 @@ textarea:focus-visible {
 }
 
 .book-star.is-on {
-  color: var(--accent-amber);
-  border-color: var(--accent-amber);
+  color: var(--star-gold);
+  border-color: var(--star-gold);
+  background: color-mix(in srgb, var(--star-gold) 10%, var(--panel-0));
 }
 
 .book-members {
@@ -4443,8 +4447,8 @@ textarea:focus-visible {
   flex-wrap: wrap;
 }
 .book-review-stars { display: inline-flex; gap: 2px; }
-.book-review-star { color: var(--line); display: inline-grid; place-items: center; }
-.book-review-star.is-on { color: var(--accent-amber); }
+.book-review-star { color: color-mix(in srgb, var(--ink-1) 32%, var(--line)); display: inline-grid; place-items: center; }
+.book-review-star.is-on { color: var(--star-gold); }
 .book-review-actions { display: flex; gap: 8px; }
 .book-reviews-club { display: grid; gap: 10px; margin-top: 16px; }
 .book-reviews-club .chapter-finish-title { margin-bottom: 0; }
@@ -5583,6 +5587,11 @@ html[data-reduce-motion="on"] *::after {
 }
 .a11y-toggle.is-on .a11y-switch { background: color-mix(in srgb, var(--brand) 30%, var(--bg-1)); border-color: var(--brand); }
 .a11y-toggle.is-on .a11y-switch::after { transform: translateX(18px); background: var(--brand-strong); }
+
+/* Notificaciones (Web Push): reutiliza los toggles de accesibilidad. Las
+   categorías se sangran un poco bajo el toggle maestro. */
+.push-categories { margin-top: 6px; padding-left: 10px; border-left: 2px solid var(--line); display: grid; gap: 0; }
+.push-error { color: var(--danger); margin-top: 8px; }
 
 /* ── Tirar para refrescar ───────────────────────────────────────────────────
    Indicador que baja con el gesto (ver src/components/PullToRefresh.tsx).
