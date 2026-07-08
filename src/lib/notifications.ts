@@ -4,7 +4,7 @@ import type { AppLanguage } from "./types";
 
 export interface AppNotification {
   id: string;
-  kind: "mention" | "reply" | "reaction" | "note_comment" | "book_proposed" | "book_approved" | "book_finished" | "join_approved" | "promoted" | "reminder" | "meeting_set";
+  kind: "mention" | "reply" | "reaction" | "note_comment" | "book_proposed" | "book_approved" | "book_finished" | "join_approved" | "promoted" | "reminder" | "meeting_set" | "member_joined";
   bookId?: string;
   commentId?: string;
   bookTitle?: string;
@@ -60,6 +60,8 @@ export const notificationLabel = (n: AppNotification, language: AppLanguage): st
       return pick(language, "¡El club terminó un libro!", "The club finished a book!", "O club rematou un libro!");
     case "join_approved":
       return pick(language, "Te han aceptado en el club", "You've been accepted into the club", "Aceptáronte no club");
+    case "member_joined":
+      return pick(language, `${who} se unió al club`, `${who} joined the club`, `${who} uniuse ao club`);
     default:
       return pick(language, "Ahora eres admin del club", "You're now a club admin", "Agora es admin do club");
   }

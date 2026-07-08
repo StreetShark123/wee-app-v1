@@ -13,6 +13,8 @@ interface HomePageProps {
   books: ClubBook[];
   memberBooks: MemberBook[];
   booksLoading: boolean;
+  /** false si el club es "solo admins añaden libros" y no eres admin */
+  canAddBook: boolean;
   onOpenAddBook: () => void;
   onLogout: () => void;
 }
@@ -28,6 +30,7 @@ export const HomePage = ({
   books,
   memberBooks,
   booksLoading,
+  canAddBook,
   onOpenAddBook,
   onLogout
 }: HomePageProps) => {
@@ -155,9 +158,11 @@ export const HomePage = ({
                 placeholder={pick(language, "Buscar en la estantería...", "Search the shelf...", "Buscar na estantería...")}
               />
             </label>
-            <button type="button" className="btn btn-primary books-hero-add" onClick={onOpenAddBook}>
-              <Icon name="plus" size={14} /> {pick(language, "Añadir libro", "Add book", "Engadir libro")}
-            </button>
+            {canAddBook ? (
+              <button type="button" className="btn btn-primary books-hero-add" onClick={onOpenAddBook}>
+                <Icon name="plus" size={14} /> {pick(language, "Añadir libro", "Add book", "Engadir libro")}
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -168,10 +173,16 @@ export const HomePage = ({
         ) : books.length === 0 ? (
           <article className="page-section empty-state">
             <h3>{pick(language, "La estantería está vacía", "The shelf is empty", "A estantería está baleira")}</h3>
-            <p>{pick(language, "Propón el primer libro y vota si lo lees.", "Propose the first book and vote to read it together.", "Propón o primeiro libro e vota se o les.")}</p>
-            <button type="button" className="btn btn-primary" onClick={onOpenAddBook}>
-              <Icon name="plus" /> {pick(language, "Proponer un libro", "Propose a book", "Propoñer un libro")}
-            </button>
+            {canAddBook ? (
+              <>
+                <p>{pick(language, "Propón el primer libro y vota si lo lees.", "Propose the first book and vote to read it together.", "Propón o primeiro libro e vota se o les.")}</p>
+                <button type="button" className="btn btn-primary" onClick={onOpenAddBook}>
+                  <Icon name="plus" /> {pick(language, "Proponer un libro", "Propose a book", "Propoñer un libro")}
+                </button>
+              </>
+            ) : (
+              <p>{pick(language, "En este club solo los administradores proponen libros. Espera a que aparezca el primero.", "In this club only admins propose books. Hang tight for the first one.", "Neste club só os administradores propoñen libros. Agarda ao primeiro.")}</p>
+            )}
           </article>
         ) : visibleBooks.length === 0 ? (
           <p className="hint">{pick(language, "Ningún libro coincide con la búsqueda.", "No book matches your search.", "Ningún libro coincide coa busca.")}</p>

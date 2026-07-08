@@ -478,6 +478,7 @@ const KIND_CATEGORY: Record<string, string> = {
   mention: "replies", reply: "replies", reaction: "replies", note_comment: "replies",
   book_finished: "milestones", book_approved: "milestones", book_proposed: "milestones",
   meeting_set: "milestones", join_approved: "milestones", promoted: "milestones", reminder: "milestones",
+  member_joined: "milestones",
   book_comment: "comments", chapter_progress: "chapters"
 };
 
@@ -494,6 +495,7 @@ const pushTextForKind = (kind: string, actor: string, bookTitle: string): { titl
     case "meeting_set": return { title: "Cita para comentar", body: bookTitle ? `Hay cita para «${bookTitle}»` : "Hay cita para comentar un libro" };
     case "reminder": return { title: "Recordatorio", body: "Una propuesta espera tu voto" };
     case "join_approved": return { title: "Bienvenido al club", body: "Te han aceptado en el club" };
+    case "member_joined": return { title: "Nuevo miembro", body: `${actor} se unió al club` };
     case "promoted": return { title: "Ahora eres admin", body: "Eres admin del club" };
     case "book_comment": return { title: bookTitle ? `Nuevo comentario en «${bookTitle}»` : "Nuevo comentario", body: `${actor} comentó${at}` };
     case "chapter_progress": return { title: "Avance de lectura", body: `${actor} avanzó${at}` };
@@ -592,6 +594,22 @@ const notify = async (
   }
   // Entrega push en segundo plano (filtrada por suscripción + preferencias).
   runBackground(sendPushForNotifications(communityId, rows));
+};
+
+// Avisa al resto del club de que alguien nuevo se ha unido (kind member_joined).
+const announceMemberJoined = async (communityId: string, joinerId: string): Promise<void> => {
+  try {
+    const others = await db
+      .from("community_users")
+      .select("id")
+      .eq("community_id", communityId)
+      .eq("status", "active")
+      .neq("id", joinerId);
+    const rows = (others.data ?? []).map((u: Record<string, any>) => ({ user_id: u.id as string, kind: "member_joined", actor_id: joinerId }));
+    if (rows.length) await notify(communityId, rows);
+  } catch {
+    /* best-effort */
+  }
 };
 
 const recomputeBookStatus = async (communityId: string, bookId: string): Promise<string> => {
@@ -1008,8 +1026,10 @@ const ensureCommunityProfileForGlobalUser = async (
 
   let communityUserId = profileRes.data?.community_user_id as string | undefined;
   let alias = (profileRes.data?.display_name as string | undefined) ?? globalUser.username;
+  let isNew = false;
 
   if (!communityUserId) {
+    isNew = true;
     const normalizedAlias = normalizeAlias(alias);
     const insertedUser = await db
       .from("community_users")
@@ -1065,6 +1085,9 @@ const ensureCommunityProfileForGlobalUser = async (
       .insert({ community_id: communityId, user_id: communityUserId, role: "member" });
     if (insertRole.error) throw new Error(insertRole.error.message);
   }
+
+  // Alta NUEVA en el club → avisa al resto de miembros (en segundo plano).
+  if (isNew) runBackground(announceMemberJoined(communityId, communityUserId));
 
   return { communityUserId, alias, role };
 };
