@@ -4439,11 +4439,9 @@ textarea:focus-visible {
 
 /* Valoración al terminar */
 .book-rating-block {
-  margin-top: 14px;
-  padding: 14px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--accent-amber);
-  background: color-mix(in srgb, var(--accent-amber) 8%, transparent);
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -4942,14 +4940,14 @@ textarea:focus-visible {
 /* Cadencia inteligente */
 .cadence-pace {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 8px 10px;
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--accent-cyan) 7%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-cyan) 30%, var(--line));
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
 }
-.cadence-pace input { width: 70px; }
+.cadence-min { display: grid; gap: 4px; flex: 1 1 200px; }
+.cadence-min-label { font-size: 0.86rem; color: var(--ink-1); }
+.cadence-min-label strong { color: var(--brand-strong); font-family: var(--font-type); }
+.cadence-slider { width: 100%; accent-color: var(--brand); cursor: pointer; }
 .cadence-pages { color: var(--ink-1); margin: 0; }
 .cadence-estimate { margin: 0; color: var(--accent-cyan); }
 .cadence-check { margin: 0; }

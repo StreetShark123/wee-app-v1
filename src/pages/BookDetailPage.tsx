@@ -378,6 +378,8 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     setTargetCh(book.targetChapter ? String(book.targetChapter) : "");
     setTargetDate(book.targetDate ?? "");
     setEditOpen(true);
+    // Baja hasta el formulario ya desplegado (si no, queda fuera de vista).
+    window.setTimeout(() => document.getElementById("book-edit-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
   };
   const handleSetTarget = () =>
     run(async () => {
@@ -800,7 +802,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
         </section>
 
         {editOpen ? (
-          <section className="page-section book-edit-form">
+          <section id="book-edit-form" className="page-section book-edit-form">
             <div className="section-head">
               <h2><Icon name="pencil" /> {pick(language, "Editar libro", "Edit book", "Editar libro")}</h2>
             </div>
@@ -870,17 +872,19 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               <span className="hint"><Icon name="target" size={13} /> {pick(language, "Meta de lectura del club", "Club reading goal", "Meta de lectura do club")}</span>
 
               <div className="cadence-pace">
-                <label className="book-chapter-set">
-                  {pick(language, "Quiero leer", "I want to read", "Quero ler")}
+                <div className="cadence-min">
+                  <span className="cadence-min-label">{pick(language, "Minutos al día", "Minutes a day", "Minutos ao día")}: <strong>{minutesPerDay}</strong></span>
                   <input
-                    type="number"
-                    min={5}
+                    type="range"
+                    min={15}
+                    max={60}
                     step={5}
                     value={minutesPerDay}
-                    onChange={(event) => { setMinutesPerDay(Math.max(5, Number(event.target.value) || 0)); setCalcPreview(null); }}
+                    className="cadence-slider"
+                    aria-label={pick(language, "Minutos al día", "Minutes a day", "Minutos ao día")}
+                    onChange={(event) => { setMinutesPerDay(Number(event.target.value)); setCalcPreview(null); }}
                   />
-                  {pick(language, "min/día", "min/day", "min/día")}
-                </label>
+                </div>
                 <button
                   type="button"
                   className="btn"
@@ -1121,7 +1125,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
               {allDone ? (
                 <details className="chapter-collapsed">
                   <summary className="chapter-collapsed-summary">
-                    <Icon name="timeline" size={14} /> {pick(language, `Ver los ${total} capítulos`, `Show the ${total} chapters`, `Ver os ${total} capítulos`)}
+                    {pick(language, `Ver los ${total} capítulos`, `Show the ${total} chapters`, `Ver os ${total} capítulos`)}
                     <span className="chapter-collapsed-caret" aria-hidden="true">▾</span>
                   </summary>
                   <ChapterTimeline chapters={chapters} busy={busy} activeUserId={activeUser.id} onToggle={handleToggle} onAddNote={handleAddNote} members={clubMembers} noteThreads={noteThreads} lastReadChapterId={lastReadChapterId} numberChapters={book.numberChapters !== false} focusCommentId={focusCommentId} focusNoteId={focusNoteId} spoilersOk={spoilersOk} onReactNote={handleReactNote} onEditNote={handleEditNote} onDeleteNote={handleDeleteNote} onReplyComment={handleReply} onReactComment={handleReact} onEditComment={handleEditComment} onDeleteComment={handleDeleteComment} onCommentOnNote={handleCommentOnNote} />

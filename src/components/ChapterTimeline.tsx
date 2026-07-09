@@ -348,7 +348,10 @@ export const ChapterTimeline = ({ chapters, busy, activeUserId, members, noteThr
       <ol className="chapter-timeline">
       {chapters.map((chapter, chapterIdx) => {
         const isNamed = !/^cap[íi]tulo\s*\d+\s*$/i.test(chapter.title.trim());
-        const displayTitle = numberChapters && isNamed ? `${chapterIdx + 1}. ${chapter.title}` : chapter.title;
+        // Si el título YA empieza por un número (p.ej. "1 La ley antojada"), no
+        // anteponer otro → evita el "1. 1 La ley…" que confunde al marcar.
+        const startsWithNumber = /^\s*\d+[.)\s]/.test(chapter.title);
+        const displayTitle = numberChapters && isNamed && !startsWithNumber ? `${chapterIdx + 1}. ${chapter.title}` : chapter.title;
         const myNotes = chapter.notes.filter((n) => n.userId === activeUserId);
         const otherNotes = chapter.notes.filter((n) => n.userId !== activeUserId);
         const chapterHasFocus = !!focusNoteId && chapter.notes.some((n) => n.id === focusNoteId);

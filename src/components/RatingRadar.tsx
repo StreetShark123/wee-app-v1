@@ -32,7 +32,7 @@ export const RatingRadar = ({ axes, stats, myAxes, language }: RatingRadarProps)
   const hasMine = myVals.some((v) => v > 0);
 
   return (
-    <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="rating-radar" role="img" aria-label={language === "en" ? "Club rating radar" : "Radar de valoración del club"}>
+    <svg viewBox={`-58 -30 ${SIZE + 116} ${SIZE + 56}`} className="rating-radar" role="img" aria-label={language === "en" ? "Club rating radar" : "Radar de valoración del club"}>
       {/* Anillos + radios */}
       {[2, 4, 6, 8, 10].map((ring) => (
         <polygon key={ring} points={poly(axes.map(() => ring))} fill="none" stroke="var(--line)" strokeWidth="1" opacity={ring === 10 ? 0.9 : 0.5} />
