@@ -4457,13 +4457,13 @@ textarea:focus-visible {
 /* Asistente de ejes (valoración por dimensiones, en clave "cómo lo viviste"). */
 .axis-rate { display: grid; gap: 12px; margin: 6px 0 14px; }
 .axis-row { display: grid; gap: 5px; }
+.axis-row-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .axis-row-label { font-size: 0.9rem; }
-.axis-scale { display: flex; gap: 6px; }
-.axis-dot {
-  flex: 1; min-height: 40px; border: 1px solid var(--line); border-radius: var(--radius-sm);
-  background: var(--panel-0); color: var(--ink-1); font-family: var(--font-type); font-size: 0.9rem; cursor: pointer;
-}
-.axis-dot.is-on { border-color: var(--brand); color: var(--brand-strong); background: color-mix(in srgb, var(--brand) 12%, var(--panel-0)); }
+.axis-row-value { font-family: var(--font-type); font-size: 0.95rem; color: var(--ink-1); min-width: 1.2em; text-align: right; }
+.axis-row.is-set .axis-row-value { color: var(--brand-strong); font-weight: 700; }
+.axis-slider { width: 100%; height: 28px; cursor: pointer; accent-color: var(--brand); }
+/* Sin valorar: acento gris para que se note que aún no cuenta. */
+.axis-row:not(.is-set) .axis-slider { accent-color: var(--line); }
 .axis-poles { display: flex; justify-content: space-between; gap: 8px; font-size: 0.72rem; color: var(--ink-1); }
 .axis-poles span:last-child { text-align: right; }
 

@@ -1226,26 +1226,22 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                       <p className="chapter-finish-title">{pick(language, "¿Cómo lo viviste?", "How did you experience it?", "Como o viviches?")}</p>
                       <p className="hint">{pick(language, "Opcional. Ayuda al debate del club — no es una nota.", "Optional. It fuels the club's debate — it's not a score.", "Opcional. Axuda ao debate do club — non é unha nota.")}</p>
                       {genreAxes.map((ax) => (
-                        <div key={ax.key} className="axis-row">
+                        <div key={ax.key} className={`axis-row${axesInput[ax.key] ? " is-set" : ""}`}>
                           <div className="axis-row-head">
                             <span className="axis-row-label">{ax.label(language)}</span>
+                            <span className="axis-row-value">{axesInput[ax.key] ?? "–"}</span>
                           </div>
-                          <div className="axis-scale" role="radiogroup" aria-label={ax.label(language)}>
-                            {[1, 2, 3, 4, 5].map((v) => (
-                              <button
-                                key={v}
-                                type="button"
-                                role="radio"
-                                aria-checked={axesInput[ax.key] === v}
-                                className={`axis-dot${axesInput[ax.key] === v ? " is-on" : ""}`}
-                                disabled={busy}
-                                aria-label={`${ax.label(language)}: ${v}`}
-                                onClick={() => setAxesInput((prev) => ({ ...prev, [ax.key]: v }))}
-                              >
-                                {v}
-                              </button>
-                            ))}
-                          </div>
+                          <input
+                            type="range"
+                            min={1}
+                            max={5}
+                            step={1}
+                            value={axesInput[ax.key] ?? 3}
+                            className="axis-slider"
+                            aria-label={ax.label(language)}
+                            disabled={busy}
+                            onChange={(event) => setAxesInput((prev) => ({ ...prev, [ax.key]: Number(event.target.value) }))}
+                          />
                           <div className="axis-poles"><span>{ax.low(language)}</span><span>{ax.high(language)}</span></div>
                         </div>
                       ))}

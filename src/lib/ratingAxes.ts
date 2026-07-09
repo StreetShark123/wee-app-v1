@@ -16,7 +16,8 @@ export interface RatingAxis {
 
 const FICTION_AXES: RatingAxis[] = [
   { key: "pace", label: (l) => pick(l, "Ritmo", "Pace", "Ritmo"), low: (l) => pick(l, "lento", "slow", "lento"), high: (l) => pick(l, "trepidante", "gripping", "trepidante") },
-  { key: "focus", label: (l) => pick(l, "Personajes ↔ trama", "Characters ↔ plot", "Personaxes ↔ trama"), low: (l) => pick(l, "me movieron los personajes", "the characters moved me", "movéronme os personaxes"), high: (l) => pick(l, "me movió la trama", "the plot moved me", "moveume a trama") },
+  { key: "characters", label: (l) => pick(l, "Personajes", "Characters", "Personaxes"), low: (l) => pick(l, "planos", "flat", "planos"), high: (l) => pick(l, "inolvidables", "unforgettable", "inesquecibles") },
+  { key: "world", label: (l) => pick(l, "Trama y mundo", "Plot & world", "Trama e mundo"), low: (l) => pick(l, "previsible", "predictable", "previsible"), high: (l) => pick(l, "me atrapó", "pulled me in", "atrapoume") },
   { key: "emotion", label: (l) => pick(l, "Emoción", "Emotion", "Emoción"), low: (l) => pick(l, "me dejó frío", "left me cold", "deixoume frío"), high: (l) => pick(l, "me removió", "stirred me", "removeume") },
   { key: "prose", label: (l) => pick(l, "Prosa", "Prose", "Prosa"), low: (l) => pick(l, "funcional", "functional", "funcional"), high: (l) => pick(l, "me enamoró la escritura", "the writing won me over", "namoroume a escritura") }
 ];
@@ -25,7 +26,8 @@ const NONFICTION_AXES: RatingAxis[] = [
   { key: "rigor", label: (l) => pick(l, "Solidez", "Rigour", "Solidez"), low: (l) => pick(l, "flojo", "weak", "frouxo"), high: (l) => pick(l, "convincente", "convincing", "convincente") },
   { key: "clarity", label: (l) => pick(l, "Claridad", "Clarity", "Claridade"), low: (l) => pick(l, "denso", "dense", "denso"), high: (l) => pick(l, "cristalino", "crystal-clear", "cristalino") },
   { key: "novelty", label: (l) => pick(l, "Novedad", "Novelty", "Novidade"), low: (l) => pick(l, "ya lo sabía", "I knew it already", "xa o sabía"), high: (l) => pick(l, "me abrió la cabeza", "blew my mind", "abriume a cabeza") },
-  { key: "impact", label: (l) => pick(l, "Me removió", "It moved me", "Removeume"), low: (l) => pick(l, "me dejó igual", "left me unchanged", "deixoume igual"), high: (l) => pick(l, "me cambió la opinión", "changed my mind", "cambioume a opinión") }
+  { key: "impact", label: (l) => pick(l, "Me removió", "It moved me", "Removeume"), low: (l) => pick(l, "me dejó igual", "left me unchanged", "deixoume igual"), high: (l) => pick(l, "me cambió la opinión", "changed my mind", "cambioume a opinión") },
+  { key: "enjoyment", label: (l) => pick(l, "Amenidad", "Enjoyment", "Amenidade"), low: (l) => pick(l, "árido", "dry", "árido"), high: (l) => pick(l, "me enganchó", "hooked me", "engancoume") }
 ];
 
 export const GENRE_AXES: Record<BookGenre, RatingAxis[]> = {
