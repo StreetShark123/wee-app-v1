@@ -424,6 +424,55 @@ export const resetPasswordWithToken = async (token: string, password: string): P
   await request<{ ok: true }>("/auth/reset_password", { token, password });
 };
 
+// ───────────────────────── Biblioteca personal (independiente del club) ────
+export type PersonalShelf = "want" | "reading" | "read";
+
+export interface PersonalBook {
+  id: string;
+  isbn?: string;
+  title: string;
+  author?: string;
+  coverUrl?: string;
+  description?: string;
+  genre?: string;
+  publishedYear?: number;
+  pageCount?: number;
+  source: BookSourceTag;
+  shelf: PersonalShelf;
+  addedAt: number;
+  updatedAt: number;
+}
+
+export const listPersonalLibrary = async (): Promise<{ books: PersonalBook[] }> =>
+  request<{ books: PersonalBook[] }>("/me/library/list", {}, { retryRead: true });
+
+export const addToPersonalLibrary = async (book: NewBookPayload & { shelf?: PersonalShelf }): Promise<{ book: PersonalBook }> =>
+  request<{ book: PersonalBook }>("/me/library/add", {
+    book: {
+      isbn: book.isbn,
+      title: book.title,
+      author: book.author,
+      coverUrl: book.coverUrl,
+      description: book.description,
+      publishedYear: book.publishedYear,
+      pageCount: book.pageCount,
+      source: book.source,
+      shelf: book.shelf ?? "want"
+    }
+  });
+
+export const setPersonalShelf = async (bookId: string, shelf: PersonalShelf): Promise<{ book: PersonalBook }> =>
+  request<{ book: PersonalBook }>("/me/library/set_shelf", { book_id: bookId, shelf });
+
+export const removeFromPersonalLibrary = async (bookId: string): Promise<void> => {
+  await request<{ ok: true }>("/me/library/remove", { book_id: bookId });
+};
+
+// Propone al club ACTUAL un libro de tu biblioteca personal. Si estaba "Leído",
+// el club lo verá marcado como tal desde el minuto uno (book.proposedAsRead).
+export const proposeToClubFromLibrary = async (personalBookId: string): Promise<{ book: ClubBook }> =>
+  request<{ book: ClubBook }>("/me/library/propose_to_club", { personal_book_id: personalBookId });
+
 export const getPushPrefs = async (): Promise<PushPrefsPayload> =>
   request<PushPrefsPayload>("/push/prefs/get", {}, { retryRead: true });
 
@@ -576,6 +625,8 @@ export interface ClubBook {
   source: BookSourceTag;
   manuallyEdited: boolean;
   status: BookStatus;
+  /** true si quien lo propuso ya lo tenía como "leído" en su biblioteca personal. */
+  proposedAsRead?: boolean;
   featured?: BookFeatured;
   votes?: BookVotes;
   stats?: BookStats;

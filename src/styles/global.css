@@ -5717,3 +5717,38 @@ html[data-reduce-motion="on"] *::after {
 @media (prefers-reduced-motion: reduce) {
   .ptr-glyph.is-live::before { animation: none; content: "..."; }
 }
+
+/* ── Biblioteca personal ("Tú") ─────────────────────────────────────────── */
+.personal-shelf { margin-top: 16px; }
+.personal-shelf-title { margin: 0 0 8px; font-size: 0.86rem; color: var(--ink-1); text-transform: uppercase; letter-spacing: 0.03em; }
+.personal-book-list { display: grid; gap: 10px; }
+.personal-book-card {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  background: var(--panel-0);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+.personal-book-cover {
+  width: 56px;
+  aspect-ratio: 2 / 3;
+  flex: 0 0 auto;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: var(--panel-1);
+}
+.personal-book-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 auto; }
+.personal-book-title { font-size: 0.92rem; }
+.personal-book-author { color: var(--ink-1); font-size: 0.8rem; }
+.personal-book-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+
+/* Etiqueta "leído por X" en una propuesta ya leída por quien la trajo. */
+.book-already-read-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.76rem; color: var(--success);
+  border: 1px solid color-mix(in srgb, var(--success) 40%, var(--line));
+  background: color-mix(in srgb, var(--success) 8%, transparent);
+  border-radius: 999px; padding: 3px 10px;
+  margin-top: 6px;
+}

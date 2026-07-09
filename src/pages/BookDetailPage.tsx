@@ -999,6 +999,11 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
             <div className="section-head">
               <h2><Icon name="check" /> {pick(language, "¿Lo leemos?", "Shall we read it?", "Lémolo?")}</h2>
             </div>
+            {book.proposedAsRead ? (
+              <span className="book-already-read-tag">
+                <Icon name="check" size={12} /> {pick(language, `Leído por ${facilitatorAlias ?? "quien lo propuso"}`, `Read by ${facilitatorAlias ?? "the person who proposed it"}`, `Lido por ${facilitatorAlias ?? "quen o propuxo"}`)}
+              </span>
+            ) : null}
             {book.proposalNote ? (
               <blockquote className="book-proposal-note">
                 {facilitatorAlias ? <span className="book-proposal-by">{facilitatorAlias}: </span> : null}«{book.proposalNote}»

@@ -407,6 +407,7 @@ const rowToBook = (row: Record<string, any>): Record<string, any> => ({
   source: row.source ?? "manual",
   manuallyEdited: Boolean(row.manually_edited),
   status: row.status ?? "proposed",
+  proposedAsRead: Boolean(row.proposed_as_read),
   featured: row.featured ?? undefined,
   proposalNote: row.proposal_note ?? undefined,
   targetChapter: row.target_chapter ?? undefined,
@@ -430,6 +431,22 @@ const rowToMemberBook = (row: Record<string, any>): Record<string, any> => ({
   review: row.review ?? undefined,
   axes: (row.axes && typeof row.axes === "object") ? row.axes : {},
   finishedAt: row.finished_at ? toMillis(row.finished_at) : undefined,
+  updatedAt: toMillis(row.updated_at)
+});
+
+const rowToPersonalBook = (row: Record<string, any>): Record<string, any> => ({
+  id: row.id,
+  isbn: row.isbn ?? undefined,
+  title: row.title,
+  author: row.author ?? undefined,
+  coverUrl: row.cover_url ?? undefined,
+  description: row.description ?? undefined,
+  genre: row.genre ?? undefined,
+  publishedYear: row.published_year ?? undefined,
+  pageCount: row.page_count ?? undefined,
+  source: row.source ?? "manual",
+  shelf: row.shelf ?? "want",
+  addedAt: toMillis(row.added_at),
   updatedAt: toMillis(row.updated_at)
 });
 
@@ -4238,6 +4255,146 @@ const handlers = {
     );
     if (error) return dbFail(400, error);
     return json(200, { enabled, categories });
+  },
+
+  // ── Biblioteca personal (independiente de cualquier club) ────────────────
+  "/me/library/list": async (req: Request) => {
+    const auth = await requireGlobalSession(req);
+    if (auth instanceof Response) return auth;
+    const { data, error } = await db
+      .from("personal_books")
+      .select("*")
+      .eq("global_user_id", auth.user.id)
+      .order("added_at", { ascending: false });
+    if (error) return dbFail(500, error);
+    return json(200, { books: (data ?? []).map(rowToPersonalBook) });
+  },
+
+  "/me/library/add": async (req: Request) => {
+    const auth = await requireGlobalSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const b = (body.book ?? {}) as Record<string, any>;
+    const title = String(b.title ?? "").trim().slice(0, 300);
+    if (!title) return bad("title required");
+    const source = ["google_books", "open_library", "manual"].includes(b.source) ? b.source : "manual";
+    const genre = ["fiction", "nonfiction", "other"].includes(b.genre) ? b.genre : null;
+    const shelf = ["want", "reading", "read"].includes(b.shelf) ? b.shelf : "want";
+    const row = {
+      global_user_id: auth.user.id,
+      isbn: b.isbn ? String(b.isbn).trim().slice(0, 32) : null,
+      title,
+      author: b.author ? String(b.author).trim().slice(0, 200) : null,
+      cover_url: b.coverUrl ? String(b.coverUrl).trim() : null,
+      description: b.description ? String(b.description).trim().slice(0, 4000) : null,
+      genre,
+      published_year: Number.isFinite(Number(b.publishedYear)) ? Number(b.publishedYear) : null,
+      page_count: Number.isFinite(Number(b.pageCount)) ? Number(b.pageCount) : null,
+      source,
+      shelf
+    };
+    const ins = await db.from("personal_books").insert(row).select("*").single();
+    if (ins.error) return dbFail(400, ins.error);
+    return json(200, { book: rowToPersonalBook(ins.data as Record<string, any>) });
+  },
+
+  "/me/library/set_shelf": async (req: Request) => {
+    const auth = await requireGlobalSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    const shelf = String(body.shelf ?? "");
+    if (!bookId) return bad("book_id required");
+    if (!["want", "reading", "read"].includes(shelf)) return bad("invalid shelf");
+    const upd = await db
+      .from("personal_books")
+      .update({ shelf, updated_at: nowIso() })
+      .eq("id", bookId)
+      .eq("global_user_id", auth.user.id)
+      .select("*")
+      .maybeSingle();
+    if (upd.error) return dbFail(400, upd.error);
+    if (!upd.data) return json(404, { message: "Book not found" });
+    return json(200, { book: rowToPersonalBook(upd.data as Record<string, any>) });
+  },
+
+  "/me/library/remove": async (req: Request) => {
+    const auth = await requireGlobalSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    if (!bookId) return bad("book_id required");
+    await db.from("personal_books").delete().eq("id", bookId).eq("global_user_id", auth.user.id);
+    return json(200, { ok: true });
+  },
+
+  // Propone al club ACTUAL (requiere sesión de club) un libro de tu biblioteca
+  // personal. Si ya lo tenías como "Leído", marca tu member_books finished y
+  // el libro queda etiquetado "leído por X" (proposed_as_read) para que se vea
+  // sin esperar a que nadie más vote.
+  "/me/library/propose_to_club": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    if (auth.role !== "admin") {
+      const polRes = await db.from("communities").select("book_policy").eq("id", auth.community.id).maybeSingle();
+      if ((polRes.data?.book_policy as string) === "admins_only") {
+        return json(403, { message: "Only admins can add books in this club" });
+      }
+    }
+    const body = await parseBody(req);
+    const personalBookId = String(body.personal_book_id ?? "").trim();
+    if (!personalBookId) return bad("personal_book_id required");
+
+    const cuRes = await db.from("community_users").select("global_user_id").eq("id", auth.user.id).maybeSingle();
+    const globalUserId = cuRes.data?.global_user_id as string | undefined;
+    if (!globalUserId) return json(400, { message: "No se pudo vincular tu cuenta global" });
+
+    const pbRes = await db.from("personal_books").select("*").eq("id", personalBookId).eq("global_user_id", globalUserId).maybeSingle();
+    if (!pbRes.data) return json(404, { message: "Libro no encontrado en tu biblioteca" });
+    const pb = pbRes.data as Record<string, any>;
+    const alreadyRead = pb.shelf === "read";
+
+    const row = {
+      community_id: auth.community.id,
+      added_by: auth.user.id,
+      genre: pb.genre ?? null,
+      isbn: pb.isbn ?? null,
+      title: pb.title,
+      author: pb.author ?? null,
+      cover_url: pb.cover_url ?? null,
+      description: pb.description ?? null,
+      published_year: pb.published_year ?? null,
+      page_count: pb.page_count ?? null,
+      source: pb.source ?? "manual",
+      manually_edited: false,
+      status: "proposed",
+      proposed_as_read: alreadyRead,
+      author_url: null,
+      vote_deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+    };
+    const ins = await db.from("books").insert(row).select("*").single();
+    if (ins.error) {
+      if (ins.error.message.toLowerCase().includes("duplicate")) return json(409, { message: "BOOK_ALREADY_IN_CLUB" });
+      return dbFail(400, ins.error);
+    }
+    await db.from("book_votes").upsert(
+      { community_id: auth.community.id, book_id: ins.data.id, user_id: auth.user.id, vote: "yes", created_at: nowIso() },
+      { onConflict: "book_id,user_id" }
+    );
+    if (alreadyRead) {
+      await db.from("member_books").upsert(
+        { community_id: auth.community.id, book_id: ins.data.id, user_id: auth.user.id, shelf: "finished", chapters_done: 0, finished_at: nowIso(), updated_at: nowIso() },
+        { onConflict: "community_id,book_id,user_id" }
+      );
+    }
+    const active = await activeMemberIdSet(auth.community.id);
+    await notify(
+      auth.community.id,
+      [...active]
+        .filter((uid) => uid !== auth.user.id)
+        .map((uid) => ({ user_id: uid, kind: "book_proposed", actor_id: auth.user.id, book_id: ins.data.id }))
+    );
+    return json(200, { book: rowToBook(ins.data as Record<string, any>) });
   },
 
   // Exportación de datos PROPIOS (RGPD-friendly): solo lo del usuario que pide,
