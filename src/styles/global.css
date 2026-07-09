@@ -5494,8 +5494,17 @@ textarea:focus-visible {
   color: var(--ink-0);
   text-decoration: none;
 }
-/* La 3ª columna del grid queda vacía a propósito: mantiene el título centrado
-   con simetría ahora que los avisos personales viven en la pantalla social. */
+.masthead-settings {
+  grid-column: 3;
+  justify-self: end;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--ink-1);
+  border-radius: 50%;
+}
+.masthead-settings:active { background: color-mix(in srgb, var(--ink-0) 8%, transparent); }
 
 /* Dock: navegación principal al alcance del pulgar (tab bar). */
 .dock-nav {

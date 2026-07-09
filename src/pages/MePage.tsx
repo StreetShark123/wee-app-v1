@@ -3,31 +3,25 @@ import { Link } from "react-router-dom";
 import { AppFooter } from "../components/AppFooter";
 import { Avatar } from "../components/Avatar";
 import { Icon } from "../components/Icon";
-import { PushSettings } from "../components/PushSettings";
-import { ReadingSettings } from "../components/ReadingSettings";
 import { pick, useI18n } from "../lib/i18n";
 import { AVATAR_MAX_PX, imageFileToDataUrl } from "../lib/imageCompress";
-import { isAnalyticsOptedOut, setAnalyticsOptOut } from "../lib/usageAnalytics";
 import type { User } from "../lib/types";
 
-// "Tú": la persona en UNA página compacta — perfil editable, tus datos,
-// el club y la sesión. Absorbe el antiguo SettingsPage y las entradas del
-// menú del avatar; el colofón (AppFooter) vive aquí al pie.
+// "Tú": quién eres (perfil) — independiente del club. La biblioteca personal
+// (quiero leer / leyendo / leídos, a título individual) vive aquí también.
+// Los ajustes de la app (notificaciones, accesibilidad, datos, club, sesión)
+// se mudaron a /settings (la ruedita del masthead).
 interface MePageProps {
   activeUser: User;
-  communityName?: string;
   onUpdateAvatar: (userId: string, avatarDataUrl: string | undefined) => Promise<void>;
   onUpdateAlias: (userId: string, alias: string) => Promise<void>;
-  onExport: () => Promise<void>;
-  onLogout: () => void;
   onToast: (message: string) => void;
 }
 
-export const MePage = ({ activeUser, communityName, onUpdateAvatar, onUpdateAlias, onExport, onLogout, onToast }: MePageProps) => {
+export const MePage = ({ activeUser, onUpdateAvatar, onUpdateAlias, onToast }: MePageProps) => {
   const { language } = useI18n();
   const [alias, setAlias] = useState(activeUser.alias);
   const [savingAlias, setSavingAlias] = useState(false);
-  const [optedOut, setOptedOut] = useState(isAnalyticsOptedOut());
 
   const saveAlias = async (): Promise<void> => {
     const clean = alias.trim();
@@ -97,58 +91,6 @@ export const MePage = ({ activeUser, communityName, onUpdateAvatar, onUpdateAlia
           <Link to={`/profile/${activeUser.id}`} className="me-link-row">
             <Icon name="eye" size={14} /> {pick(language, "Ver mi perfil público (mis lecturas)", "See my public profile (my reads)", "Ver o meu perfil público")}
           </Link>
-        </section>
-
-        {/* Tus datos */}
-        <section className="page-section">
-          <div className="section-head"><h3><Icon name="shield" /> {pick(language, "Tus datos", "Your data", "Os teus datos")}</h3></div>
-          <p className="hint">{pick(language, "Guardamos lo justo para que el club funcione. Sin anuncios, sin perfilado, sin cobros.", "We store only what the club needs. No ads, no profiling, no charges.", "Gardamos o xusto. Sen anuncios, sen perfilado, sen cobros.")}</p>
-          <div className="me-actions-row">
-            <button type="button" className="btn" onClick={() => void onExport()}>
-              <Icon name="download" size={14} /> {pick(language, "Exportar mi copia", "Export my copy", "Exportar a miña copia")}
-            </button>
-            <button
-              type="button"
-              className="btn"
-              onClick={() => {
-                const next = !optedOut;
-                setAnalyticsOptOut(next);
-                setOptedOut(next);
-                onToast(next
-                  ? pick(language, "Medición de uso desactivada (al recargar).", "Usage measurement off (on reload).", "Medición desactivada (ao recargar).")
-                  : pick(language, "Medición de uso activada (al recargar).", "Usage measurement on (on reload).", "Medición activada (ao recargar).")
-                );
-              }}
-            >
-              <Icon name={optedOut ? "eyeOff" : "eye"} size={14} /> {optedOut
-                ? pick(language, "Activar medición anónima", "Turn anonymous measurement on", "Activar medición anónima")
-                : pick(language, "Desactivar medición de uso", "Turn usage measurement off", "Desactivar medición")}
-            </button>
-          </div>
-        </section>
-
-        {/* Notificaciones (Web Push) */}
-        <PushSettings />
-
-        {/* Accesibilidad de lectura */}
-        <ReadingSettings />
-
-        {/* El club */}
-        <section className="page-section">
-          <div className="section-head"><h3><Icon name="users" /> {pick(language, "El club", "The club", "O club")}</h3></div>
-          <Link to="/community" className="me-link-row">
-            <Icon name="settings" size={14} /> {communityName ?? pick(language, "Tu club", "Your club", "O teu club")} · {pick(language, "miembros, normas y ajustes", "members, rules & settings", "membros, normas e axustes")}
-          </Link>
-          <Link to="/communities" className="me-link-row">
-            <Icon name="link" size={14} /> {pick(language, "Cambiar de club o unirme a otro", "Switch club or join another", "Cambiar de club ou unirme a outro")}
-          </Link>
-        </section>
-
-        {/* Sesión */}
-        <section className="page-section">
-          <button type="button" className="btn me-logout" onClick={onLogout}>
-            <Icon name="logout" size={14} /> {pick(language, "Cerrar sesión", "Log out", "Pechar sesión")}
-          </button>
         </section>
 
         <AppFooter />

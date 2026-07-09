@@ -27,6 +27,7 @@ const BookDetailPage = lazy(async () => ({ default: (await import("./pages/BookD
 const ProfilePage = lazy(async () => ({ default: (await import("./pages/ProfilePage")).ProfilePage }));
 const FeedPage = lazy(async () => ({ default: (await import("./pages/FeedPage")).FeedPage }));
 const MePage = lazy(async () => ({ default: (await import("./pages/MePage")).MePage }));
+const SettingsPage = lazy(async () => ({ default: (await import("./pages/SettingsPage")).SettingsPage }));
 const CommunityPage = lazy(async () => ({ default: (await import("./pages/CommunityPage")).CommunityPage }));
 const CommunitiesPickerPage = lazy(async () => ({ default: (await import("./pages/CommunitiesPickerPage")).CommunitiesPickerPage }));
 const InvitePage = lazy(async () => ({ default: (await import("./pages/InvitePage")).InvitePage }));
@@ -658,8 +659,21 @@ const AppRoutes = () => {
           }
         />
 
-        {/* /settings vive ahora dentro de "Tú" (/me) */}
-        <Route path="/settings" element={<Navigate to="/me" replace />} />
+        <Route
+          path="/settings"
+          element={
+            <RequireAuth activeUser={activeUser} redirectPath={globalSession ? "/communities" : "/login"}>
+              <PageTransition>
+                <SettingsPage
+                  communityName={selectedCommunity?.name}
+                  onExport={onExport}
+                  onLogout={logoutGlobal}
+                  onToast={showToast}
+                />
+              </PageTransition>
+            </RequireAuth>
+          }
+        />
 
         <Route
           path="/feed"
@@ -679,11 +693,8 @@ const AppRoutes = () => {
               <PageTransition>
                 <MePage
                   activeUser={activeUser as NonNullable<typeof activeUser>}
-                  communityName={selectedCommunity?.name}
                   onUpdateAvatar={updateUserAvatar}
                   onUpdateAlias={updateUserAlias}
-                  onExport={onExport}
-                  onLogout={logoutGlobal}
                   onToast={showToast}
                 />
               </PageTransition>
