@@ -20,17 +20,22 @@ este libro", no una ficha de producto.
 ## Géneros y ejes (set definitivo, compacto — 4 ejes máx, en clave "cómo lo viviste")
 Nota global 1–5 SIEMPRE (única comparable entre libros), con leyenda semántica.
 
-- **Ficción** (novela, relato):
+- **Ficción** (5 ejes):
   - Ritmo: lento ↔ trepidante
-  - Personajes ↔ trama: me movieron los personajes ↔ me movió la trama
+  - Personajes: planos ↔ inolvidables
+  - Trama y mundo: previsible ↔ me atrapó
   - Emoción: me dejó frío ↔ me removió
   - Prosa: funcional ↔ me enamoró la escritura
-- **No ficción** (ensayo, divulgación):
+- **No ficción** (5 ejes):
   - Solidez: flojo ↔ convincente
   - Claridad: denso ↔ cristalino
   - Novedad: ya lo sabía ↔ me abrió la cabeza
   - Me removió: me dejó igual ↔ me cambió la opinión
+  - Amenidad: árido ↔ me enganchó
 - **Otro** (poesía, biografía, cómic…): solo nota global de momento.
+
+Input = **slider** arrastrable 1–5 (no botones); "sin valorar" hasta tocarlo.
+Radar se adapta al nº de ejes (pentágono con 5).
 
 ## Experiencia (paso a paso, cómoda)
 Se desbloquea al terminar el libro (`allDone`). Mini-asistente:
