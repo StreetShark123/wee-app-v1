@@ -4483,6 +4483,20 @@ textarea:focus-visible {
 .debate-spread.is-agree { color: var(--success); border-color: color-mix(in srgb, var(--success) 40%, var(--line)); }
 .debate-extremes { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .debate-extreme { display: inline-flex; align-items: center; gap: 4px; }
+
+/* Reconocimientos (badges) en el perfil: hitos, no ranking. */
+.badge-grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 8px; }
+.badge-item {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--star-gold) 35%, var(--line));
+  border-radius: 999px; padding: 5px 12px;
+  background: color-mix(in srgb, var(--star-gold) 9%, var(--panel-0));
+  font-size: 0.82rem;
+}
+.badge-icon { color: var(--star-gold); display: inline-flex; }
+.badge-item.is-next { background: transparent; border-style: dashed; border-color: var(--line); opacity: 0.7; }
+.badge-item.is-next .badge-icon { color: var(--ink-1); }
+.badge-next-tag { font-size: 0.68rem; color: var(--ink-1); border-left: 1px solid var(--line); padding-left: 6px; }
 .book-review-form-actions { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
 /* Feedback de guardado: el botón vira a verde "✓ Reseña guardada" un instante. */
 .btn.is-saved {

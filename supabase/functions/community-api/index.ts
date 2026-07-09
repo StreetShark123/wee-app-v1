@@ -4300,7 +4300,7 @@ const handlers = {
       db.from("community_user_roles").select("role").eq("community_id", auth.community.id).eq("user_id", userId).maybeSingle(),
       db
         .from("member_books")
-        .select("book_id,shelf,chapters_done,rating,review,finished_at,updated_at")
+        .select("book_id,shelf,chapters_done,rating,review,axes,finished_at,updated_at")
         .eq("community_id", auth.community.id)
         .eq("user_id", userId)
     ]);
@@ -4326,6 +4326,7 @@ const handlers = {
           totalChapters: b.total_chapters ?? undefined,
           rating: m.rating ?? undefined,
           review: m.review ?? undefined,
+          axes: (m.axes && typeof m.axes === "object") ? m.axes : {},
           finishedAt: m.finished_at ? toMillis(m.finished_at) : undefined,
           updatedAt: toMillis(m.updated_at)
         };

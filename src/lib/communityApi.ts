@@ -811,6 +811,7 @@ export interface UserProfileBook {
   totalChapters?: number;
   rating?: number;
   review?: string;
+  axes?: Record<string, number>;
   finishedAt?: number;
   updatedAt: number;
 }

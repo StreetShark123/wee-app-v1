@@ -5,6 +5,7 @@ import { Icon } from "../components/Icon";
 import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { getUserProfile, type UserProfile } from "../lib/communityApi";
+import { computeBadges } from "../lib/badges";
 import { isFresh, markFetched } from "../lib/freshness";
 import { AVATAR_MAX_PX, imageFileToDataUrl } from "../lib/imageCompress";
 import type { User } from "../lib/types";
@@ -71,6 +72,7 @@ export const ProfilePage = ({
 
   const finishedBooks = profile?.books.filter((b) => b.shelf === "finished") ?? [];
   const readingBooks = profile?.books.filter((b) => b.shelf === "reading") ?? [];
+  const { earned: badges, next: nextBadge } = profile ? computeBadges(profile.books) : { earned: [], next: null };
 
   const canManageUser = activeUser.role === "admin" && !isOwnProfile;
   const isTargetAdmin = (profileUser.role ?? "member") === "admin";
@@ -149,6 +151,28 @@ export const ProfilePage = ({
               </form>
             ) : null}
           </div>
+
+          {profile && (badges.length > 0 || (isOwnProfile && nextBadge)) ? (
+            <article className="settings-card profile-badges">
+              <div className="section-head"><h3><Icon name="star" /> {pick(language, "Reconocimientos", "Recognitions", "Recoñecementos")}</h3></div>
+              <div className="badge-grid">
+                {badges.map((b) => (
+                  <div key={b.id} className="badge-item" title={b.desc(language)}>
+                    <span className="badge-icon"><Icon name={b.icon} size={16} /></span>
+                    <span className="badge-label">{b.label(language)}</span>
+                  </div>
+                ))}
+                {isOwnProfile && nextBadge ? (
+                  <div className="badge-item is-next" title={nextBadge.desc(language)}>
+                    <span className="badge-icon"><Icon name={nextBadge.icon} size={16} /></span>
+                    <span className="badge-label">{nextBadge.label(language)}</span>
+                    <span className="badge-next-tag">{pick(language, "a un paso", "almost", "a un paso")}</span>
+                  </div>
+                ) : null}
+              </div>
+              <p className="hint">{pick(language, "Se celebran al participar y aportar al debate. Aquí no hay ranking.", "Earned by taking part and fuelling the debate. No leaderboard here.", "Gáñanse participando e aportando ao debate. Aquí non hai ranking.")}</p>
+            </article>
+          ) : null}
 
           {profile && profile.books.length > 0 ? (
             <article className="settings-card profile-reads">
