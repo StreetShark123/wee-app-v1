@@ -1227,22 +1227,23 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                       <p className="hint">{pick(language, "Opcional. Ayuda al debate del club — no es una nota.", "Optional. It fuels the club's debate — it's not a score.", "Opcional. Axuda ao debate do club — non é unha nota.")}</p>
                       {genreAxes.map((ax) => (
                         <div key={ax.key} className={`axis-row${axesInput[ax.key] ? " is-set" : ""}`}>
-                          <div className="axis-row-head">
-                            <span className="axis-row-label">{ax.label(language)}</span>
-                            <span className="axis-row-value">{axesInput[ax.key] ?? "–"}</span>
-                          </div>
+                          <span className="axis-row-label">{ax.label(language)}</span>
                           <input
                             type="range"
                             min={1}
-                            max={5}
+                            max={10}
                             step={1}
-                            value={axesInput[ax.key] ?? 3}
+                            value={axesInput[ax.key] ?? 5}
                             className="axis-slider"
                             aria-label={ax.label(language)}
                             disabled={busy}
                             onChange={(event) => setAxesInput((prev) => ({ ...prev, [ax.key]: Number(event.target.value) }))}
                           />
-                          <div className="axis-poles"><span>{ax.low(language)}</span><span>{ax.high(language)}</span></div>
+                          <div className="axis-ticks" aria-hidden="true">{Array.from({ length: 10 }).map((_, i) => <span key={i} />)}</div>
+                          <div className="axis-poles">
+                            <span className="axis-pole"><span className="axis-arrow" aria-hidden="true">‹</span> {ax.low(language)}</span>
+                            <span className="axis-pole">{ax.high(language)} <span className="axis-arrow" aria-hidden="true">›</span></span>
+                          </div>
                         </div>
                       ))}
                     </div>

@@ -4456,15 +4456,17 @@ textarea:focus-visible {
 
 /* Asistente de ejes (valoración por dimensiones, en clave "cómo lo viviste"). */
 .axis-rate { display: grid; gap: 12px; margin: 6px 0 14px; }
-.axis-row { display: grid; gap: 5px; }
-.axis-row-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.axis-row-label { font-size: 0.9rem; }
-.axis-row-value { font-family: var(--font-type); font-size: 0.95rem; color: var(--ink-1); min-width: 1.2em; text-align: right; }
-.axis-row.is-set .axis-row-value { color: var(--brand-strong); font-weight: 700; }
-.axis-slider { width: 100%; height: 28px; cursor: pointer; accent-color: var(--brand); }
+.axis-row { display: grid; gap: 1px; }
+.axis-row-label { font-size: 0.9rem; margin-bottom: 3px; }
+.axis-slider { width: 100%; height: 26px; margin: 0; cursor: pointer; accent-color: var(--brand); }
 /* Sin valorar: acento gris para que se note que aún no cuenta. */
 .axis-row:not(.is-set) .axis-slider { accent-color: var(--line); }
+/* Pautas: una marca en cada tope 1..10, bajo el recorrido del pulgar. */
+.axis-ticks { display: flex; justify-content: space-between; padding: 0 9px; margin-top: -3px; }
+.axis-ticks span { width: 1px; height: 5px; background: var(--line); }
 .axis-poles { display: flex; justify-content: space-between; gap: 8px; font-size: 0.72rem; color: var(--ink-1); }
+.axis-pole { display: inline-flex; align-items: center; gap: 3px; }
+.axis-arrow { color: var(--brand); font-weight: 700; font-size: 0.9rem; line-height: 1; }
 .axis-poles span:last-child { text-align: right; }
 
 /* Radar + debate (el mapa del club). */

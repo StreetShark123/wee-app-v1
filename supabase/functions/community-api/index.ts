@@ -443,7 +443,7 @@ const sanitizeAxes = (raw: unknown): Record<string, number> => {
     if (n >= 12) break;
     const key = String(k).slice(0, 32).replace(/[^a-z0-9_]/gi, "");
     const val = Math.floor(Number(v));
-    if (key && val >= 1 && val <= 5) { out[key] = val; n += 1; }
+    if (key && val >= 1 && val <= 10) { out[key] = val; n += 1; }
   }
   return out;
 };
@@ -2894,8 +2894,8 @@ const handlers = {
       if (!axes || typeof axes !== "object") return;
       for (const [k, vRaw] of Object.entries(axes)) {
         const v = Number(vRaw);
-        if (!(v >= 1 && v <= 5)) continue;
-        const a = axisAgg[k] ?? (axisAgg[k] = { sum: 0, count: 0, min: 6, max: 0, minU: "", maxU: "" });
+        if (!(v >= 1 && v <= 10)) continue;
+        const a = axisAgg[k] ?? (axisAgg[k] = { sum: 0, count: 0, min: 11, max: 0, minU: "", maxU: "" });
         a.sum += v; a.count += 1;
         if (v < a.min) { a.min = v; a.minU = m.userId; }
         if (v > a.max) { a.max = v; a.maxU = m.userId; }

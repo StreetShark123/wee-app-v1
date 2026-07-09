@@ -21,7 +21,7 @@ export const RatingRadar = ({ axes, stats, myAxes, language }: RatingRadarProps)
   const statByKey = new Map(stats.map((s) => [s.key, s]));
   const angle = (i: number) => (-90 + (i * 360) / n) * (Math.PI / 180);
   const point = (i: number, value: number) => {
-    const rr = (Math.max(0, Math.min(5, value)) / 5) * R;
+    const rr = (Math.max(0, Math.min(10, value)) / 10) * R;
     return [C + rr * Math.cos(angle(i)), C + rr * Math.sin(angle(i))];
   };
   const poly = (values: number[]) => values.map((v, i) => point(i, v).join(",")).join(" ");
@@ -34,11 +34,11 @@ export const RatingRadar = ({ axes, stats, myAxes, language }: RatingRadarProps)
   return (
     <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="rating-radar" role="img" aria-label={language === "en" ? "Club rating radar" : "Radar de valoración del club"}>
       {/* Anillos + radios */}
-      {[1, 2, 3, 4, 5].map((ring) => (
-        <polygon key={ring} points={poly(axes.map(() => ring))} fill="none" stroke="var(--line)" strokeWidth="1" opacity={ring === 5 ? 0.9 : 0.5} />
+      {[2, 4, 6, 8, 10].map((ring) => (
+        <polygon key={ring} points={poly(axes.map(() => ring))} fill="none" stroke="var(--line)" strokeWidth="1" opacity={ring === 10 ? 0.9 : 0.5} />
       ))}
       {axes.map((_, i) => {
-        const [x, y] = point(i, 5);
+        const [x, y] = point(i, 10);
         return <line key={i} x1={C} y1={C} x2={x} y2={y} stroke="var(--line)" strokeWidth="1" opacity="0.5" />;
       })}
       {/* Media del club (relleno) */}
@@ -51,7 +51,7 @@ export const RatingRadar = ({ axes, stats, myAxes, language }: RatingRadarProps)
       ) : null}
       {/* Etiquetas de eje */}
       {axes.map((a, i) => {
-        const [x, y] = point(i, 6.05);
+        const [x, y] = point(i, 12.1);
         const anchor = Math.abs(x - C) < 8 ? "middle" : x > C ? "start" : "end";
         return (
           <text key={a.key} x={x} y={y} textAnchor={anchor} dominantBaseline="middle" className="rating-radar-label">
