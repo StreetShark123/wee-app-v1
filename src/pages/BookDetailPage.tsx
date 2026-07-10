@@ -8,6 +8,7 @@ import { ReadersModal } from "../components/ReadersModal";
 import { UserBadge, UserDot, styleFor } from "../components/UserBadge";
 import { RatingRadar } from "../components/RatingRadar";
 import { axesForGenre, GENRES } from "../lib/ratingAxes";
+import { statusLabel } from "../lib/bookLabels";
 import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
 import { parseChapterList } from "../lib/parseChapters";
@@ -62,13 +63,6 @@ interface BookDetailPageProps {
   onLogout: () => void;
   onBooksChanged: () => void;
 }
-
-const statusLabel = (status: string, language: "es" | "en" | "gl"): string => {
-  if (status === "reading") return pick(language, "En lectura", "Reading", "En lectura");
-  if (status === "finished") return pick(language, "Leído por el club", "Read by the club", "Lido polo club");
-  if (status === "rejected") return pick(language, "Descartado", "Declined", "Descartado");
-  return pick(language, "Propuesto", "Proposed", "Proposto");
-};
 
 export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksChanged }: BookDetailPageProps) => {
   const { language } = useI18n();
@@ -396,6 +390,14 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     // Baja hasta el formulario ya desplegado (si no, queda fuera de vista).
     window.setTimeout(() => document.getElementById("book-edit-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
   };
+  // Enlace directo a editar (desde el reverso de la card en la estantería:
+  // /book/:id#edit) — auto-abre el formulario una vez cargado el detalle.
+  const editHashHandled = useRef(false);
+  useEffect(() => {
+    if (!detail || !isAdmin || location.hash !== "#edit" || editHashHandled.current) return;
+    editHashHandled.current = true;
+    openEdit();
+  }, [detail, isAdmin, location.hash]);
   const handleSetTarget = () =>
     run(async () => {
       const r = await setBookTarget(book.id, {

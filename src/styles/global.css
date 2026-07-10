@@ -3185,39 +3185,113 @@ textarea:focus-visible {
   margin-top: 16px;
 }
 
-.book-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px;
-  text-align: left;
+/* Card con flip: la portada es la protagonista (cara A, sin cuerpo de texto
+   debajo); un botón "i" da la vuelta a la cara B con los datos extendidos. */
+.book-card-flip {
+  perspective: 1200px;
+  aspect-ratio: 2 / 3;
+}
+.book-card-flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 480ms var(--ease-emphasized, ease);
+  transform-style: preserve-3d;
+}
+.book-card-flip.is-flipped .book-card-flip-inner { transform: rotateY(180deg); }
+@media (prefers-reduced-motion: reduce) {
+  .book-card-flip-inner { transition: none; }
+}
+
+.book-card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgb(74 54 30 / 8%);
+}
+.book-card-face-front {
+  background: var(--panel-1);
+  transition: box-shadow var(--motion-fast) var(--ease-standard);
+}
+.book-card-flip:hover .book-card-face-front { box-shadow: var(--shadow-warm-lg); }
+.book-card-face-back {
+  transform: rotateY(180deg);
   background: var(--panel-0);
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 2px 10px rgb(74 54 30 / 8%);
-  transition: border-color var(--motion-fast) var(--ease-standard),
-    transform var(--motion-fast) var(--ease-standard), box-shadow var(--motion-fast) var(--ease-standard);
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
 }
 
-.book-card:hover {
-  border-color: var(--brand);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-warm-lg);
+.book-card-cover-btn {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
 }
-.book-card:active { transform: translateY(0); transition-duration: 60ms; }
-
 .book-card-cover {
   width: 100%;
-  aspect-ratio: 2 / 3;
+  height: 100%;
   object-fit: cover;
-  border-radius: var(--radius-md);
-  background: var(--panel-1);
+  display: block;
 }
+.book-card-flip.book-card-rejected .book-card-cover { filter: grayscale(1) contrast(0.9); }
+.book-card-flip.book-card-rejected .book-card-back-title { text-decoration: line-through; text-decoration-color: var(--stamp); }
+
+/* Overlay inferior: barra de progreso + quién lo está leyendo, sobre la portada. */
+.book-card-overlay {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  display: grid;
+  gap: 5px;
+  padding: 18px 8px 8px;
+  background: linear-gradient(to top, rgb(20 16 10 / 82%), rgb(20 16 10 / 45%) 65%, transparent);
+}
+.book-card-progress-bar {
+  display: block;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: rgb(255 255 255 / 28%);
+  overflow: hidden;
+}
+.book-card-progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--status-reading);
+  border-radius: var(--radius-pill);
+}
+.book-card-readers-stack { display: inline-flex; align-items: center; }
+.book-card-readers-stack .user-dot { width: 20px; height: 20px; margin-left: -7px; box-shadow: 0 0 0 1.5px rgb(20 16 10 / 60%); }
+.book-card-readers-stack .user-dot:first-child { margin-left: 0; }
+.book-card-readers-more { margin-left: 4px; font-size: 0.68rem; font-weight: 600; color: #fff; text-shadow: 0 1px 2px rgb(0 0 0 / 40%); }
+
+/* Botón "i" (flip) y "‹" (volver): mismo look en las dos caras. En cara A va
+   abajo-derecha (arriba-derecha ya la ocupan ribbon/voto/descartado). */
+.book-card-flip-btn {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: rgb(20 16 10 / 55%);
+  color: #fff;
+  backdrop-filter: blur(2px);
+}
+.book-card-flip-btn-back { background: transparent; color: var(--ink-1); position: static; margin-bottom: 6px; align-self: flex-start; }
 
 /* Propuesta descartada: portada apagada en gris + etiqueta roja. */
-.book-card-rejected { opacity: 0.7; }
-.book-card-rejected .book-card-cover { filter: grayscale(1) contrast(0.9); }
-.book-card-rejected .book-card-title { text-decoration: line-through; text-decoration-color: var(--stamp); }
+.book-card-rejected .book-card-face-front { opacity: 0.75; }
 .book-card-rejected-tag {
   position: absolute;
   top: 8px;
@@ -3232,6 +3306,24 @@ textarea:focus-visible {
   border-radius: var(--radius-pill);
   padding: 2px 7px;
 }
+
+/* Cara B: datos extendidos. */
+.book-card-back-body { display: grid; gap: 3px; overflow: hidden; }
+.book-card-back-title { font-size: 0.88rem; line-height: 1.25; color: var(--ink-0); }
+.book-card-back-author { font-size: 0.78rem; color: var(--ink-1); }
+.book-card-back-meta { font-size: 0.72rem; color: var(--ink-1); }
+.book-card-back-desc {
+  margin: 4px 0 0;
+  font-size: 0.74rem;
+  line-height: 1.4;
+  color: var(--ink-1);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+.book-card-back-by { margin-top: auto; padding-top: 6px; font-size: 0.7rem; color: var(--ink-1); }
+.book-card-edit-btn { align-self: flex-start; margin-top: 8px; }
 
 /* ── Portada editorial generada (libros sin imagen) ──────────────────────────
    Composición de clásico de bolsillo: banda de autor, título en serif, marca
@@ -3310,12 +3402,6 @@ textarea:focus-visible {
 .gen-cover-lg .gen-cover-title { font-size: 0.78rem; -webkit-line-clamp: 4; }
 .gen-cover-lg .gen-cover-mark { font-size: 0.56rem; }
 
-.book-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
 .book-card-status {
   align-self: flex-start;
   font-family: var(--font-type);
@@ -3361,17 +3447,6 @@ textarea:focus-visible {
   color: var(--stamp);
   border-color: color-mix(in srgb, var(--stamp) 55%, var(--line));
   background: color-mix(in srgb, var(--stamp) 8%, var(--panel-0));
-}
-
-.book-card-title {
-  font-size: 0.92rem;
-  line-height: 1.25;
-  color: var(--ink-0);
-}
-
-.book-card-author {
-  font-size: 0.8rem;
-  color: var(--ink-1);
 }
 
 /* Modal de alta de libro (búsqueda + revisión) */
@@ -4017,7 +4092,6 @@ textarea:focus-visible {
   }
 }
 
-.book-card-featured-gold { border-color: color-mix(in srgb, var(--stamp) 45%, var(--line)); }
 .book-card-featured-silver { border-color: var(--ink-1); }
 
 /* Marcapáginas (cinta de registro) para la lectura principal del club */
@@ -4039,7 +4113,7 @@ textarea:focus-visible {
   pointer-events: none;
 }
 .book-ribbon::before { content: "★"; }
-.book-card .book-ribbon { top: 8px; right: 8px; }
+.book-card-face-front .book-ribbon { top: 8px; right: 8px; }
 .book-cover-btn .book-ribbon { top: 6px; right: 6px; }
 
 .book-feature-controls {
@@ -4709,21 +4783,6 @@ textarea:focus-visible {
 .sk-meta { display: flex; flex-direction: column; gap: 9px; flex: 1; }
 .sk-rows { display: flex; flex-direction: column; gap: 9px; margin-top: 12px; }
 
-/* A1: datos por estantería en la card */
-.book-card-stat {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 2px 6px;
-  font-size: 0.74rem;
-  color: var(--ink-1);
-  margin-top: 2px;
-}
-.book-card-stat-n,
-.book-card-stat-sub { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
-.book-card-rating { color: var(--accent-amber); font-weight: 700; }
-.book-card-stat-sub { color: var(--ink-1); }
-
 /* B1: quórum de votación */
 .vote-quorum { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
 .vote-quorum-bar { flex: 1; height: 8px; border-radius: var(--radius-pill); background: var(--panel-1); overflow: hidden; }
@@ -4913,8 +4972,10 @@ textarea:focus-visible {
 .cadence-check.is-intense { color: var(--danger); }
 .book-cadence-edit .link-btn { color: var(--brand-strong); }
 
-/* Revisión redundancias: indicador sutil "tú lo lees" + fila de estado + estante vacío compacto */
-.book-card-mine .book-card-title::before { content: "● "; color: var(--brand); font-size: 0.7em; vertical-align: middle; }
+/* Indicador sutil "tú lo lees": borde de marca en toda la card (antes era un
+   punto de color pegado al título, que desapareció con el rediseño de la
+   card-portada). */
+.book-card-flip.book-card-mine .book-card-face-front { box-shadow: 0 0 0 2px var(--brand); }
 
 .book-status-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
@@ -5350,6 +5411,9 @@ textarea:focus-visible {
   display: inline-grid; place-items: center; width: 22px; height: 22px;
   border-radius: var(--radius-pill); border: 1px solid; color: #fff; font-size: 0.64rem; font-weight: 700; flex: 0 0 auto;
 }
+/* Lector que ya terminó (en vistas compactas): check en vez de avatar, más
+   discreto que quienes aún faltan por leer (esos sí llevan avatar/color). */
+.user-dot-done { background: color-mix(in srgb, var(--success) 55%, var(--panel-0)); border-color: var(--success); color: var(--success); opacity: 0.8; }
 .chapter-readers { display: inline-flex; align-items: center; }
 .chapter-readers .user-dot { margin-left: -7px; box-shadow: 0 0 0 1.5px var(--panel-0); }
 .chapter-readers .user-dot:first-child { margin-left: 0; }

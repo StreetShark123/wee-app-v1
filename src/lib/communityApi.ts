@@ -614,6 +614,8 @@ export interface ClubBook {
   author?: string;
   coverUrl?: string;
   description?: string;
+  /** Solo en /books/list: recorte corto (≤220 chars) para el reverso de la card. */
+  descriptionPreview?: string;
   genre?: string;
   publishedYear?: number;
   pageCount?: number;
@@ -630,6 +632,7 @@ export interface ClubBook {
   featured?: BookFeatured;
   votes?: BookVotes;
   stats?: BookStats;
+  readersPreview?: BookReaderPreview[];
   proposalNote?: string;
   targetChapter?: number;
   targetDate?: string;
@@ -649,6 +652,17 @@ export interface BookStats {
   ratingCount: number;
   readers: number;
   lastActivityAt: number | null;
+  /** Progreso medio (0-100) de quienes lo están leyendo/terminaron. Null si nadie ha empezado. */
+  avgProgressPct: number | null;
+}
+
+/** Vista previa de un lector para la card de la estantería (avatar + si terminó). */
+export interface BookReaderPreview {
+  userId: string;
+  alias: string;
+  avatarUrl?: string;
+  colorIndex: number;
+  done: boolean;
 }
 
 export type BookVote = "yes" | "no";

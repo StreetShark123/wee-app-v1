@@ -15,6 +15,8 @@ interface HomePageProps {
   booksLoading: boolean;
   /** false si el club es "solo admins añaden libros" y no eres admin */
   canAddBook: boolean;
+  /** Para resolver "propuesto por X" en el reverso de la card. */
+  communityMembers: Array<{ id: string; alias: string; role: "admin" | "member" }>;
   onOpenAddBook: () => void;
   onLogout: () => void;
 }
@@ -31,6 +33,7 @@ export const HomePage = ({
   memberBooks,
   booksLoading,
   canAddBook,
+  communityMembers,
   onOpenAddBook,
   onLogout
 }: HomePageProps) => {
@@ -39,6 +42,8 @@ export const HomePage = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const isAdmin = activeUser.role === "admin";
+  const aliasById = useMemo(() => new Map(communityMembers.map((m) => [m.id, m.alias])), [communityMembers]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebouncedSearchQuery(searchQuery.trim().toLowerCase()), 180);
@@ -56,6 +61,9 @@ export const HomePage = ({
   );
 
   const openBook = useCallback((entry: ClubBook) => navigate(`/book/${entry.id}`), [navigate]);
+  // Desde el reverso de la card (solo admin): abre la ficha con el editor ya
+  // desplegado, sin pasar por el botón "editar" de dentro de la ficha.
+  const editBook = useCallback((entry: ClubBook) => navigate(`/book/${entry.id}#edit`), [navigate]);
 
   const featuredRank = (book: (typeof books)[number]): number =>
     book.featured === "gold" ? 0 : book.featured === "silver" ? 1 : 2;
@@ -97,7 +105,15 @@ export const HomePage = ({
         </div>
         <div className="book-grid">
           {list.map((book) => (
-            <BookCard key={book.id} book={book} member={memberByBookId.get(book.id)} onOpen={openBook} />
+            <BookCard
+              key={book.id}
+              book={book}
+              member={memberByBookId.get(book.id)}
+              onOpen={openBook}
+              addedByAlias={book.addedBy ? aliasById.get(book.addedBy) : undefined}
+              canEdit={isAdmin}
+              onEdit={editBook}
+            />
           ))}
         </div>
       </section>

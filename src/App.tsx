@@ -614,6 +614,7 @@ const AppRoutes = () => {
                   memberBooks={memberBooks}
                   booksLoading={booksLoading}
                   canAddBook={activeUser?.role === "admin" || selectedCommunity?.bookPolicy !== "admins_only"}
+                  communityMembers={communityMembers}
                   onOpenAddBook={() => setBookModalOpen(true)}
                   onLogout={logoutGlobal}
                 />

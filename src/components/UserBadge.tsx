@@ -42,9 +42,18 @@ export const UserBadge = ({ alias, avatarUrl, colorIndex, withAvatar = false }: 
   );
 };
 
-// Solo el avatar (para apilar los lectores de un capítulo).
-export const UserDot = ({ alias, avatarUrl, colorIndex, title }: BadgeProps & { title?: string }) => {
+// Solo el avatar (para apilar los lectores de un capítulo). `done`: en vistas
+// compactas (la card de la estantería), quien ya terminó se funde en un check
+// genérico — así destacan, por contraste, quienes aún faltan por leer.
+export const UserDot = ({ alias, avatarUrl, colorIndex, title, done }: BadgeProps & { title?: string; done?: boolean }) => {
   const hue = userHue(colorIndex, alias);
+  if (done) {
+    return (
+      <span className="user-dot user-dot-done" title={title ?? alias}>
+        <Icon name="check" size={11} />
+      </span>
+    );
+  }
   return avatarUrl ? (
     <img className="user-dot user-avatar-photo" src={avatarUrl} alt="" title={title ?? alias} style={{ borderColor: `hsl(${hue} 65% 62%)` }} />
   ) : (

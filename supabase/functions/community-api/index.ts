@@ -2716,7 +2716,7 @@ const handlers = {
     if (auth instanceof Response) return auth;
     // Sin cron: al listar, resolvemos las propuestas cuyo plazo ya venció.
     await resolveExpiredProposals(auth.community.id);
-    const [booksRes, memberRes, votesRes, active] = await Promise.all([
+    const [booksRes, memberRes, votesRes, active, metaMap] = await Promise.all([
       db
         .from("books")
         .select("*")
@@ -2730,7 +2730,8 @@ const handlers = {
         .from("book_votes")
         .select("book_id,user_id,vote")
         .eq("community_id", auth.community.id),
-      activeMemberIdSet(auth.community.id)
+      activeMemberIdSet(auth.community.id),
+      clubUserMetaMap(auth.community.id)
     ]);
     if (booksRes.error) return dbFail(500, booksRes.error);
     if (memberRes.error) return dbFail(500, memberRes.error);
@@ -2746,34 +2747,62 @@ const handlers = {
       else if (row.vote === "later") v.later += 1;
     });
 
-    // Estadísticas agregadas por libro (nota media, lectores activos, última actividad).
-    // Solo miembros ACTIVOS: nada de fantasmas expulsados/salidos inflando conteos.
-    const statsByBook: Record<string, { ratings: number[]; readers: number; lastActivityAt: number }> = {};
+    // Estadísticas agregadas por libro (nota media, lectores activos, última actividad,
+    // progreso medio). Solo miembros ACTIVOS: nada de fantasmas expulsados/salidos
+    // inflando conteos. readersByBook: vista previa de lectores (avatar+alias+si
+    // terminó) para la card — barata desde que los avatares son URL (Storage), no
+    // base64; se limita a 8 por libro y ordena "no leídos" primero (para que se
+    // note quién falta, como pide el diseño de la card).
+    const totalChaptersByBook = new Map((booksRes.data ?? []).map((b: Record<string, any>) => [b.id, Number(b.total_chapters ?? 0)]));
+    const statsByBook: Record<string, { ratings: number[]; readers: number; lastActivityAt: number; progressSum: number; progressCount: number }> = {};
+    const readersByBook: Record<string, Array<{ userId: string; alias: string; avatarUrl?: string; colorIndex: number; done: boolean }>> = {};
     const allMembers = memberRes.data ?? [];
     allMembers.forEach((row: Record<string, any>) => {
       if (!active.has(String(row.user_id))) return;
-      const s = (statsByBook[row.book_id] = statsByBook[row.book_id] ?? { ratings: [], readers: 0, lastActivityAt: 0 });
+      const s = (statsByBook[row.book_id] = statsByBook[row.book_id] ?? { ratings: [], readers: 0, lastActivityAt: 0, progressSum: 0, progressCount: 0 });
       if (typeof row.rating === "number") s.ratings.push(row.rating);
-      if (row.shelf === "reading" || row.shelf === "finished" || Number(row.chapters_done ?? 0) > 0) s.readers += 1;
+      const isReading = row.shelf === "reading" || row.shelf === "finished" || Number(row.chapters_done ?? 0) > 0;
+      if (isReading) {
+        s.readers += 1;
+        const total = totalChaptersByBook.get(row.book_id) ?? 0;
+        const pct = row.shelf === "finished" ? 1 : total > 0 ? Math.min(1, Number(row.chapters_done ?? 0) / total) : 0;
+        s.progressSum += pct;
+        s.progressCount += 1;
+        const meta = metaMap.get(row.user_id);
+        (readersByBook[row.book_id] = readersByBook[row.book_id] ?? []).push({
+          userId: row.user_id,
+          alias: meta?.alias ?? "—",
+          avatarUrl: meta?.avatarUrl,
+          colorIndex: meta?.colorIndex ?? 0,
+          done: row.shelf === "finished"
+        });
+      }
       s.lastActivityAt = Math.max(s.lastActivityAt, toMillis(row.updated_at));
     });
+    Object.values(readersByBook).forEach((list) => list.sort((a, b) => Number(a.done) - Number(b.done)));
 
     return json(200, {
       books: (booksRes.data ?? []).map((row) => {
         const id = (row as Record<string, any>).id;
         const s = statsByBook[id];
-        // La lista NO usa `description` (el card no lo pinta; el detalle lo trae
-        // por /books/get). Quitarlo evita mandar hasta 4000 chars × cada libro
-        // en un endpoint de home. Egress: la lección de la cuota agotada.
-        const { description: _omitDescription, ...book } = rowToBook(row as Record<string, any>);
+        // La lista NO manda la description COMPLETA (hasta 4000 chars × libro —
+        // la lección de la cuota agotada). La card (reverso) sí necesita un
+        // resumen breve, así que se manda solo un recorte corto en su lugar.
+        const { description: fullDescription, ...book } = rowToBook(row as Record<string, any>);
+        const descriptionPreview = typeof fullDescription === "string" && fullDescription.length > 0
+          ? fullDescription.slice(0, 220)
+          : undefined;
         return {
           ...book,
+          descriptionPreview,
           votes: voteByBook[id] ?? { yes: 0, no: 0, later: 0, myVote: null },
+          readersPreview: (readersByBook[id] ?? []).slice(0, 8),
           stats: {
             avgRating: s && s.ratings.length > 0 ? Math.round((s.ratings.reduce((a, b) => a + b, 0) / s.ratings.length) * 10) / 10 : null,
             ratingCount: s ? s.ratings.length : 0,
             readers: s ? s.readers : 0,
-            lastActivityAt: s && s.lastActivityAt > 0 ? s.lastActivityAt : null
+            lastActivityAt: s && s.lastActivityAt > 0 ? s.lastActivityAt : null,
+            avgProgressPct: s && s.progressCount > 0 ? Math.round((s.progressSum / s.progressCount) * 100) : null
           }
         };
       }),
