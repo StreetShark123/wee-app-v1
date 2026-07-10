@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 import { AddBookModal } from "../components/AddBookModal";
 import { AppFooter } from "../components/AppFooter";
-import { Avatar } from "../components/Avatar";
 import { Icon } from "../components/Icon";
 import { PersonalBookCard } from "../components/PersonalBookCard";
 import { pick, useI18n } from "../lib/i18n";
 import { useConfirm } from "../lib/confirm";
-import { AVATAR_MAX_PX, imageFileToDataUrl } from "../lib/imageCompress";
 import { getSelectedCommunity } from "../lib/communitySession";
 import type { BookDraft } from "../lib/bookSearch";
 import {
@@ -19,31 +18,23 @@ import {
   type PersonalBook,
   type PersonalShelf
 } from "../lib/communityApi";
-import type { User } from "../lib/types";
-
-// "Tú": quién eres (perfil) — independiente del club. La biblioteca personal
-// (quiero leer / leyendo / leídos, a título individual) vive aquí también.
-// Los ajustes de la app (notificaciones, accesibilidad, datos, club, sesión)
-// se mudaron a /settings (la ruedita del masthead).
+// "Tú": tu biblioteca personal — independiente de cualquier club. Quién eres
+// (perfil, avatar, alias) vive en Ajustes (la ruedita del masthead); aquí solo
+// tus lecturas a título individual.
 interface MePageProps {
-  activeUser: User;
-  onUpdateAvatar: (userId: string, avatarDataUrl: string | undefined) => Promise<void>;
-  onUpdateAlias: (userId: string, alias: string) => Promise<void>;
   onToast: (message: string) => void;
 }
 
-const SHELVES: { key: PersonalShelf; label: (l: "es" | "en" | "gl") => string; empty: (l: "es" | "en" | "gl") => string }[] = [
-  { key: "reading", label: (l) => pick(l, "Leyendo ahora", "Reading now", "Lendo agora"), empty: (l) => pick(l, "Nada en marcha ahora mismo.", "Nothing in progress right now.", "Nada en marcha agora mesmo.") },
-  { key: "want", label: (l) => pick(l, "Quiero leer", "Want to read", "Quero ler"), empty: (l) => pick(l, "Guarda aquí libros que te llamen la atención.", "Save books that catch your eye here.", "Garda aquí libros que che chamen a atención.") },
-  { key: "read", label: (l) => pick(l, "Leídos", "Read", "Lidos"), empty: (l) => pick(l, "Los libros que termines quedan aquí.", "Books you finish land here.", "Os libros que remates quedan aquí.") }
+const SHELVES: { key: PersonalShelf; label: (l: "es" | "en" | "gl") => string }[] = [
+  { key: "reading", label: (l) => pick(l, "Leyendo ahora", "Reading now", "Lendo agora") },
+  { key: "want", label: (l) => pick(l, "Quiero leer", "Want to read", "Quero ler") },
+  { key: "read", label: (l) => pick(l, "Leídos", "Read", "Lidos") }
 ];
 
-export const MePage = ({ activeUser, onUpdateAvatar, onUpdateAlias, onToast }: MePageProps) => {
+export const MePage = ({ onToast }: MePageProps) => {
   const { language } = useI18n();
   const navigate = useNavigate();
   const confirm = useConfirm();
-  const [alias, setAlias] = useState(activeUser.alias);
-  const [savingAlias, setSavingAlias] = useState(false);
   const [books, setBooks] = useState<PersonalBook[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -57,18 +48,6 @@ export const MePage = ({ activeUser, onUpdateAvatar, onUpdateAlias, onToast }: M
       .finally(() => setLoading(false));
   };
   useEffect(load, []);
-
-  const saveAlias = async (): Promise<void> => {
-    const clean = alias.trim();
-    if (!clean || clean === activeUser.alias || savingAlias) return;
-    setSavingAlias(true);
-    try {
-      await onUpdateAlias(activeUser.id, clean);
-      onToast(pick(language, "Alias actualizado.", "Alias updated.", "Alias actualizado."));
-    } finally {
-      setSavingAlias(false);
-    }
-  };
 
   const handleAddBook = async (draft: BookDraft): Promise<void> => {
     const { book } = await addToPersonalLibrary({
@@ -146,106 +125,56 @@ export const MePage = ({ activeUser, onUpdateAvatar, onUpdateAlias, onToast }: M
   return (
     <main>
       <div className="me-page">
-        {/* Perfil */}
-        <section className="page-section me-hero">
-          <div className="me-hero-head">
-            <Avatar user={activeUser} size={64} />
-            <div className="me-hero-id">
-              <strong className="me-hero-alias">{activeUser.alias}</strong>
-              <span className="hint">{activeUser.role === "admin"
-                ? pick(language, "Administras el club", "You run the club", "Administras o club")
-                : pick(language, "Miembro del club", "Club member", "Membro do club")}</span>
-            </div>
-          </div>
-          <div className="me-hero-actions">
-            <label className="btn">
-              <Icon name="camera" size={14} /> {pick(language, "Cambiar foto", "Change photo", "Cambiar foto")}
-              <input
-                type="file"
-                accept="image/*"
-                style={{ display: "none" }}
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (!file) return;
-                  void imageFileToDataUrl(file, AVATAR_MAX_PX).then((dataUrl) => {
-                    void onUpdateAvatar(activeUser.id, dataUrl);
-                    onToast(pick(language, "Foto de perfil actualizada.", "Profile photo updated.", "Foto de perfil actualizada."));
-                  });
-                }}
-              />
-            </label>
-            {activeUser.avatarDataUrl ? (
-              <button
-                type="button"
-                className="btn"
-                onClick={() => {
-                  void onUpdateAvatar(activeUser.id, undefined);
-                  onToast(pick(language, "Foto eliminada.", "Photo removed.", "Foto eliminada."));
-                }}
-              >
-                <Icon name="trash" size={14} /> {pick(language, "Quitar foto", "Remove photo", "Quitar foto")}
-              </button>
-            ) : null}
-          </div>
-          <label className="me-alias-row">
-            {pick(language, "Alias", "Alias", "Alias")}
-            <span className="me-alias-controls">
-              <input value={alias} onChange={(event) => setAlias(event.target.value)} maxLength={40} />
-              <button type="button" className="btn btn-primary" disabled={savingAlias || !alias.trim() || alias.trim() === activeUser.alias} onClick={() => void saveAlias()}>
-                {pick(language, "Guardar", "Save", "Gardar")}
-              </button>
-            </span>
-          </label>
-          <Link to={`/profile/${activeUser.id}`} className="me-link-row">
-            <Icon name="eye" size={14} /> {pick(language, "Ver mi perfil público (mis lecturas)", "See my public profile (my reads)", "Ver o meu perfil público")}
-          </Link>
-        </section>
-
         {/* Biblioteca personal: independiente de cualquier club. */}
-        <section className="page-section personal-library">
-          <div className="section-head">
-            <h3><Icon name="book" /> {pick(language, "Tu biblioteca", "Your library", "A túa biblioteca")}</h3>
-            <button type="button" className="btn btn-primary" onClick={() => setModalOpen(true)}>
-              <Icon name="plus" size={14} /> {pick(language, "Añadir libro", "Add book", "Engadir libro")}
-            </button>
-          </div>
-          <p className="hint">{pick(language, "Tus lecturas a título individual, aparte del club. Puedes proponer al club cualquiera de estos libros.", "Your reading, aside from the club. You can propose any of these books to your club.", "As túas lecturas a título individual, á parte do club. Podes propoñer calquera destes libros ao club.")}</p>
+        <div className="section-head">
+          <h2><Icon name="book" /> {pick(language, "Tu biblioteca", "Your library", "A túa biblioteca")}</h2>
+          <button type="button" className="btn btn-primary" onClick={() => setModalOpen(true)}>
+            <Icon name="plus" size={14} /> {pick(language, "Añadir libro", "Add book", "Engadir libro")}
+          </button>
+        </div>
+        <p className="hint">{pick(language, "Tus lecturas a título individual, aparte del club. Puedes proponer al club cualquiera de estos libros.", "Your reading, aside from the club. You can propose any of these books to your club.", "As túas lecturas a título individual, á parte do club. Podes propoñer calquera destes libros ao club.")}</p>
 
-          {loading ? (
-            <p className="hint">{pick(language, "Cargando…", "Loading…", "Cargando…")}</p>
-          ) : books.length === 0 ? (
-            <article className="empty-state">
-              <p>{pick(language, "Aún no has añadido ningún libro.", "You haven't added any books yet.", "Aínda non engadiches ningún libro.")}</p>
-            </article>
-          ) : (
-            SHELVES.map((s) => {
-              const list = books.filter((b) => b.shelf === s.key);
-              if (list.length === 0) return null;
-              return (
-                <div key={s.key} className="personal-shelf">
-                  <h4 className="personal-shelf-title">{s.label(language)}</h4>
-                  <div className="personal-book-list">
-                    {list.map((b) => (
-                      <PersonalBookCard
-                        key={b.id}
-                        book={b}
-                        busy={busyId === b.id}
-                        onSetShelf={(id, shelf) => void handleSetShelf(id, shelf)}
-                        onPropose={(id) => void handlePropose(id)}
-                        onRemove={(id) => void handleRemove(id)}
-                      />
-                    ))}
-                  </div>
+        {loading ? (
+          <p className="hint">{pick(language, "Cargando…", "Loading…", "Cargando…")}</p>
+        ) : books.length === 0 ? (
+          <article className="page-section empty-state">
+            <p>{pick(language, "Aún no has añadido ningún libro.", "You haven't added any books yet.", "Aínda non engadiches ningún libro.")}</p>
+          </article>
+        ) : (
+          SHELVES.map((s) => {
+            const list = books.filter((b) => b.shelf === s.key);
+            if (list.length === 0) return null;
+            return (
+              <div key={s.key} className="personal-shelf">
+                <h4 className="personal-shelf-title">{s.label(language)}</h4>
+                <div className="personal-book-list">
+                  {list.map((b) => (
+                    <PersonalBookCard
+                      key={b.id}
+                      book={b}
+                      busy={busyId === b.id}
+                      onSetShelf={(id, shelf) => void handleSetShelf(id, shelf)}
+                      onPropose={(id) => void handlePropose(id)}
+                      onRemove={(id) => void handleRemove(id)}
+                    />
+                  ))}
                 </div>
-              );
-            })
-          )}
-        </section>
+              </div>
+            );
+          })
+        )}
 
         <AppFooter />
       </div>
 
-      <AddBookModal open={modalOpen} onClose={() => setModalOpen(false)} onAddBook={handleAddBook} onToast={onToast} />
+      {/* Portal a <body>: PageTransition envuelve esta página en un contenedor
+          con transform, que convertiría el overlay fixed del modal en algo
+          relativo a ese contenedor (queda cortado por el dock). Mismo patrón
+          que el modal de onboarding de HomePage. */}
+      {createPortal(
+        <AddBookModal open={modalOpen} onClose={() => setModalOpen(false)} onAddBook={handleAddBook} onToast={onToast} />,
+        document.body
+      )}
     </main>
   );
 };

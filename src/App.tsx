@@ -665,7 +665,10 @@ const AppRoutes = () => {
             <RequireAuth activeUser={activeUser} redirectPath={globalSession ? "/communities" : "/login"}>
               <PageTransition>
                 <SettingsPage
+                  activeUser={activeUser as NonNullable<typeof activeUser>}
                   communityName={selectedCommunity?.name}
+                  onUpdateAvatar={updateUserAvatar}
+                  onUpdateAlias={updateUserAlias}
                   onExport={onExport}
                   onLogout={logoutGlobal}
                   onToast={showToast}
@@ -691,12 +694,7 @@ const AppRoutes = () => {
           element={
             <RequireAuth activeUser={activeUser} redirectPath={globalSession ? "/communities" : "/login"}>
               <PageTransition>
-                <MePage
-                  activeUser={activeUser as NonNullable<typeof activeUser>}
-                  onUpdateAvatar={updateUserAvatar}
-                  onUpdateAlias={updateUserAlias}
-                  onToast={showToast}
-                />
+                <MePage onToast={showToast} />
               </PageTransition>
             </RequireAuth>
           }
