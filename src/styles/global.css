@@ -3185,72 +3185,24 @@ textarea:focus-visible {
   margin-top: 16px;
 }
 
-/* Card con flip: la portada es la protagonista (cara A, sin cuerpo de texto
-   debajo); un botón "i" da la vuelta a la cara B con los datos extendidos. */
-.book-card-flip {
-  perspective: 1200px;
-  aspect-ratio: 2 / 3;
-}
-.book-card-flip-inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  transition: transform 480ms var(--ease-emphasized, ease);
-  transform-style: preserve-3d;
-}
-.book-card-flip.is-flipped .book-card-flip-inner { transform: rotateY(180deg); }
-@media (prefers-reduced-motion: reduce) {
-  .book-card-flip-inner { transition: none; }
-}
-
-.book-card-face {
-  position: absolute;
-  inset: 0;
-  backface-visibility: hidden;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: 0 2px 10px rgb(74 54 30 / 8%);
-}
-.book-card-face-front {
-  background: var(--panel-1);
-  transition: box-shadow var(--motion-fast) var(--ease-standard);
-}
-.book-card-flip:hover .book-card-face-front { box-shadow: var(--shadow-warm-lg); }
-.book-card-face-back {
-  transform: rotateY(180deg);
-  background: var(--panel-0);
-  border: 1px solid var(--line);
-  display: flex;
-  flex-direction: column;
-  padding: 12px;
-}
-
-.book-card-cover-btn {
-  position: relative;
-  display: block;
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-}
-.book-card-cover {
+/* ── Portada + overlay (compartido: tarjeta de biblioteca y cara A del héroe) ──
+   Portada a bleed completo con barra de progreso + avatares de lectores encima.
+   El overlay NO captura toques (pointer-events:none) para que los botones-hit
+   de debajo (zoom/lectores/flip de la ficha) reciban el tap. */
+.book-cover-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  background: var(--panel-1);
 }
-.book-card-flip.book-card-rejected .book-card-cover { filter: grayscale(1) contrast(0.9); }
-.book-card-flip.book-card-rejected .book-card-back-title { text-decoration: line-through; text-decoration-color: var(--stamp); }
-
-/* Overlay inferior: barra de progreso + quién lo está leyendo, sobre la portada. */
 .book-card-overlay {
   position: absolute;
   left: 0; right: 0; bottom: 0;
   display: grid;
   gap: 5px;
   padding: 18px 8px 8px;
+  pointer-events: none;
   background: linear-gradient(to top, rgb(20 16 10 / 82%), rgb(20 16 10 / 45%) 65%, transparent);
 }
 .book-card-progress-bar {
@@ -3271,59 +3223,102 @@ textarea:focus-visible {
 .book-card-readers-stack .user-dot:first-child { margin-left: 0; }
 .book-card-readers-more { margin-left: 4px; font-size: 0.68rem; font-weight: 600; color: #fff; text-shadow: 0 1px 2px rgb(0 0 0 / 40%); }
 
-/* Botón "i" (flip) y "‹" (volver): mismo look en las dos caras. En cara A va
-   abajo-derecha (arriba-derecha ya la ocupan ribbon/voto/descartado). */
-.book-card-flip-btn {
+/* Tarjeta de biblioteca: portada ESTÁTICA (botón que abre la ficha). */
+.book-card {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  padding: 0;
+  text-align: left;
+  border: none;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--panel-1);
+  box-shadow: 0 2px 10px rgb(74 54 30 / 8%);
+  cursor: pointer;
+  transition: transform var(--motion-fast) var(--ease-standard), box-shadow var(--motion-fast) var(--ease-standard);
+}
+.book-card.book-card-mine { box-shadow: 0 0 0 2px var(--brand); }
+.book-card.book-card-rejected { opacity: 0.75; }
+.book-card.book-card-rejected .book-cover-img { filter: grayscale(1) contrast(0.9); }
+
+.book-card-rejected-tag {
+  position: absolute; top: 8px; left: 8px; z-index: 3;
+  font-family: var(--font-type); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.04em;
+  color: #fff; background: var(--stamp); border-radius: var(--radius-pill); padding: 2px 7px;
+}
+
+/* ── Héroe de la ficha: tarjeta con FLIP (cara A portada / cara B datos) ──── */
+.book-hero-flip {
+  perspective: 1400px;
+  width: min(200px, 56vw);
+  margin: 0 auto;
+  aspect-ratio: 2 / 3;
+}
+.book-hero-flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 520ms cubic-bezier(0.22, 0.68, 0.2, 1);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.book-hero-flip.is-flipped .book-hero-flip-inner { transform: rotateY(180deg); }
+@media (prefers-reduced-motion: reduce) { .book-hero-flip-inner { transition: none; } }
+
+.book-hero-face {
   position: absolute;
-  bottom: 8px;
-  right: 8px;
-  z-index: 4;
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
+  inset: 0;
+  backface-visibility: hidden;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgb(74 54 30 / 10%);
+}
+.book-hero-face-back {
+  transform: rotateY(180deg);
+  background: var(--panel-0);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+}
+
+/* Cara A: botones-hit transparentes (siblings, sin anidar): zoom de portada
+   (toda) + lectores (franja inferior). El overlay va con pointer-events:none. */
+.book-hero-hit { position: absolute; border: none; background: transparent; padding: 0; cursor: pointer; }
+.book-hero-hit-cover { inset: 0; z-index: 1; }
+.book-hero-hit-readers { left: 0; right: 0; bottom: 0; height: 46px; z-index: 2; }
+
+/* Botón "i" (cara A) y "‹" (cara B): MISMA posición (arriba-derecha) para que
+   ir y volver sea el mismo gesto en el mismo punto. */
+.book-hero-flip-btn {
+  position: absolute;
+  top: 8px; right: 8px;
+  z-index: 3;
+  display: grid; place-items: center;
+  width: 30px; height: 30px;
   border-radius: 50%;
   border: none;
-  background: rgb(20 16 10 / 55%);
+  background: rgb(20 16 10 / 58%);
   color: #fff;
   backdrop-filter: blur(2px);
+  cursor: pointer;
 }
-.book-card-flip-btn-back { background: transparent; color: var(--ink-1); position: static; margin-bottom: 6px; align-self: flex-start; }
+.book-hero-face-back .book-hero-flip-btn { background: var(--panel-1); color: var(--ink-1); border: 1px solid var(--line); backdrop-filter: none; }
 
-/* Propuesta descartada: portada apagada en gris + etiqueta roja. */
-.book-card-rejected .book-card-face-front { opacity: 0.75; }
-.book-card-rejected-tag {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  z-index: 2;
-  font-family: var(--font-type);
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #fff;
-  background: var(--stamp);
-  border-radius: var(--radius-pill);
-  padding: 2px 7px;
+.book-hero-back-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  gap: 5px;
+  align-content: start;
+  padding-top: 28px; /* banda superior libre para el botón volver */
 }
-
-/* Cara B: datos extendidos. */
-.book-card-back-body { display: grid; gap: 3px; overflow: hidden; }
-.book-card-back-title { font-size: 0.88rem; line-height: 1.25; color: var(--ink-0); }
-.book-card-back-author { font-size: 0.78rem; color: var(--ink-1); }
-.book-card-back-meta { font-size: 0.72rem; color: var(--ink-1); }
-.book-card-back-desc {
-  margin: 4px 0 0;
-  font-size: 0.74rem;
-  line-height: 1.4;
-  color: var(--ink-1);
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 4;
-  overflow: hidden;
-}
-.book-card-back-by { margin-top: auto; padding-top: 6px; font-size: 0.7rem; color: var(--ink-1); }
-.book-card-edit-btn { align-self: flex-start; margin-top: 8px; }
+.book-hero-back-scroll h1 { font-size: 1rem; line-height: 1.2; margin: 2px 0 0; }
+.book-hero-back-scroll .book-detail-author { margin: 0; }
+.book-hero-synopsis { font-size: 0.78rem; line-height: 1.45; color: var(--ink-1); margin: 4px 0 0; }
+.book-hero-edit { align-self: flex-start; margin-top: 8px; }
+.book-hero-cadence { display: inline-flex; align-items: center; gap: 6px; margin: 10px 0 0; font-size: 0.82rem; color: var(--ink-1); }
 
 /* ── Portada editorial generada (libros sin imagen) ──────────────────────────
    Composición de clásico de bolsillo: banda de autor, título en serif, marca
@@ -4078,7 +4073,6 @@ textarea:focus-visible {
 }
 
 /* ───────────────────────────── Libro destacado (oro/plata) ───────────────────── */
-.book-card { position: relative; }
 /* Tacto: la tarjeta responde al dedo como un objeto físico. */
 .book-card:active {
   transform: translateY(1px) scale(0.985);
@@ -4113,7 +4107,7 @@ textarea:focus-visible {
   pointer-events: none;
 }
 .book-ribbon::before { content: "★"; }
-.book-card-face-front .book-ribbon { top: 8px; right: 8px; }
+.book-card .book-ribbon { top: 8px; right: 8px; }
 .book-cover-btn .book-ribbon { top: 6px; right: 6px; }
 
 .book-feature-controls {
@@ -4971,11 +4965,6 @@ textarea:focus-visible {
 .cadence-check { margin: 0; }
 .cadence-check.is-intense { color: var(--danger); }
 .book-cadence-edit .link-btn { color: var(--brand-strong); }
-
-/* Indicador sutil "tú lo lees": borde de marca en toda la card (antes era un
-   punto de color pegado al título, que desapareció con el rediseño de la
-   card-portada). */
-.book-card-flip.book-card-mine .book-card-face-front { box-shadow: 0 0 0 2px var(--brand); }
 
 .book-status-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { BookCoverFace } from "../components/BookCoverFace";
 import { ChapterTimeline } from "../components/ChapterTimeline";
-import { GeneratedCover } from "../components/GeneratedCover";
 import { Icon } from "../components/Icon";
 import { PunctuationLoader } from "../components/PunctuationLoader";
 import { ReadersModal } from "../components/ReadersModal";
-import { UserBadge, UserDot, styleFor } from "../components/UserBadge";
+import { UserBadge, styleFor } from "../components/UserBadge";
 import { RatingRadar } from "../components/RatingRadar";
 import { axesForGenre, GENRES } from "../lib/ratingAxes";
 import { statusLabel } from "../lib/bookLabels";
@@ -117,7 +117,6 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
   const [minutesPerDay, setMinutesPerDay] = useState(30);
   const [calcPreview, setCalcPreview] = useState<{ date: string; days: number } | null>(null);
   const [coverLightbox, setCoverLightbox] = useState(false);
-  const [synopsisOpen, setSynopsisOpen] = useState(false);
   const [reminded, setReminded] = useState(false);
   const [readersOpen, setReadersOpen] = useState(false);
 
@@ -226,22 +225,10 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     };
   }, [detail, location.hash]);
 
-  // Enlace directo a editar (desde el reverso de la card en la estantería:
-  // /book/:id#edit) — auto-abre el formulario una vez cargado el detalle. DEBE
-  // ir antes de los early returns (loading/error) para no romper el orden de
-  // hooks; por eso inlinea la apertura en vez de llamar a openEdit() (que se
-  // define más abajo y depende de `book`, aún no destructurado aquí).
-  const editHashHandled = useRef(false);
-  useEffect(() => {
-    if (!detail || activeUser.role !== "admin" || location.hash !== "#edit" || editHashHandled.current) return;
-    editHashHandled.current = true;
-    const b = detail.book;
-    setEdit({ title: b.title, author: b.author ?? "", coverUrl: b.coverUrl ?? "", description: b.description ?? "", genre: b.genre ?? "" });
-    setTargetCh(b.targetChapter ? String(b.targetChapter) : "");
-    setTargetDate(b.targetDate ?? "");
-    setEditOpen(true);
-    window.setTimeout(() => document.getElementById("book-edit-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
-  }, [detail, location.hash, activeUser.role]);
+  // Cara del héroe visible: A = portada (limpia, con progreso+lectores), B =
+  // metadatos (título, autor, año, sinopsis, propuesto por). El header pesado
+  // de datos ya no aparece de golpe al entrar a leer; está a un toque de la "i".
+  const [heroFlipped, setHeroFlipped] = useState(false);
 
   // Actualiza SOLO lo que cambia en la ficha (nunca recarga toda la página).
   const patch = (fn: (d: BookDetail) => BookDetail) => setDetail((prev) => (prev ? fn(prev) : prev));
@@ -434,7 +421,14 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
       const r = await updateBook(book.id, { numberChapters: !(book.numberChapters !== false) });
       patch((d) => ({ ...d, book: r.book }));
     });
-  const progressPct = total > 0 ? Math.min(100, Math.round((doneCount / total) * 100)) : 0;
+  // Cara-portada del héroe: lectores (los que ya terminaron → check) y progreso
+  // medio del club (mismo lenguaje visual que la tarjeta de la estantería).
+  const heroReaders = members
+    .filter((m) => m.shelf === "reading" || m.shelf === "finished" || m.chaptersDone > 0)
+    .map((m) => ({ userId: m.userId, alias: m.alias, done: m.shelf === "finished", ...styleFor(clubMembers, m.userId) }));
+  const clubProgressPct = total > 0 && heroReaders.length > 0
+    ? Math.round((members.reduce((sum, m) => sum + (m.shelf === "finished" ? 1 : Math.min(1, m.chaptersDone / total)), 0) / heroReaders.length) * 100)
+    : null;
   const parsedPreview = parseChapterList(chaptersRaw);
   const daysLeft = book.targetDate ? Math.ceil((new Date(`${book.targetDate}T23:59:59`).getTime() - Date.now()) / 86400000) : null;
   const hasCadence = book.status === "reading" && (book.targetChapter || book.targetDate);
@@ -707,128 +701,114 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
           {coverLightbox && book.coverUrl ? <ImageLightbox url={book.coverUrl} onClose={() => setCoverLightbox(false)} showVisit={false} /> : null}
           {readersOpen ? <ReadersModal members={members} total={total} bookStatus={book.status} clubMembers={clubMembers} onClose={() => setReadersOpen(false)} /> : null}
 
-          {/* Editar anclado a la esquina del héroe (no sobre la portada, que lo
-              recortaba visualmente). */}
-          {isAdmin && !editOpen ? (
-            <button type="button" className="book-edit-corner" onClick={openEdit} aria-label={pick(language, "Editar libro", "Edit book", "Editar libro")} title={pick(language, "Editar", "Edit", "Editar")}>
-              <Icon name="pencil" size={14} />
-            </button>
-          ) : null}
-
-          <div className="book-head-top">
-            <div className="book-head-info">
-              <div className="book-status-row">
-                <span className={`book-card-status book-card-status-${book.status}`}>{statusLabel(book.status, language)}</span>
-                {book.featured === "gold" ? (
-                  <span className="book-featured-tag"><Icon name="star" size={12} /> {pick(language, "Destacado", "Featured", "Destacado")}</span>
+          {/* Héroe = tarjeta con flip. Cara A: portada limpia (progreso+lectores
+              integrados). Cara B ("i"): estado, título, autor, año, páginas,
+              sinopsis y quién lo propuso. El header ya no llega cargado de datos
+              al empezar a leer; están a un toque. */}
+          <div className={`book-hero-flip${heroFlipped ? " is-flipped" : ""}`}>
+            <div className="book-hero-flip-inner">
+              {/* Cara A — portada */}
+              <div className="book-hero-face book-hero-face-front">
+                <BookCoverFace
+                  coverUrl={book.coverUrl}
+                  title={book.title}
+                  author={book.author}
+                  progressPct={clubProgressPct}
+                  readers={heroReaders}
+                />
+                {book.coverUrl ? (
+                  <button type="button" className="book-hero-hit book-hero-hit-cover" onClick={() => setCoverLightbox(true)} aria-label={pick(language, "Ver portada", "View cover", "Ver portada")} />
                 ) : null}
-              </div>
-              <h1>{book.title}</h1>
-              <p className="book-detail-author">
-                {book.author ? (
-                  book.authorUrl ? (
-                    <a className="book-author-link" href={book.authorUrl} target="_blank" rel="noopener noreferrer nofollow" title={pick(language, `Más sobre ${book.author}`, `More about ${book.author}`, `Máis sobre ${book.author}`)}>
-                      {book.author}
-                    </a>
-                  ) : (
-                    book.author
-                  )
-                ) : (
-                  pick(language, "Autor desconocido", "Unknown author", "Autor descoñecido")
-                )}
-              </p>
-              {book.publishedYear || book.pageCount ? (
-                <p className="book-detail-metaline">
-                  {[
-                    book.publishedYear ? String(book.publishedYear) : null,
-                    book.pageCount ? pick(language, `${book.pageCount} págs.`, `${book.pageCount} pp.`, `${book.pageCount} páxs.`) : null
-                  ].filter(Boolean).join(" · ")}
-                </p>
-              ) : null}
-            </div>
-
-            <div className="book-cover-wrap">
-              {book.coverUrl ? (
-                <button type="button" className="book-cover book-cover-lg book-cover-btn" onClick={() => setCoverLightbox(true)} aria-label={pick(language, "Ver portada", "View cover", "Ver portada")}>
-                  <img src={book.coverUrl} alt="" />
+                {heroReaders.length > 0 ? (
+                  <button type="button" className="book-hero-hit book-hero-hit-readers" onClick={() => setReadersOpen(true)} aria-label={pick(language, "Ver quién lo está leyendo", "See who's reading it", "Ver quen o está lendo")} />
+                ) : null}
+                <button type="button" className="book-hero-flip-btn" onClick={() => setHeroFlipped(true)} aria-label={pick(language, "Más información", "More information", "Máis información")} title={pick(language, "Más información", "More information", "Máis información")}>
+                  <Icon name="info" size={16} />
                 </button>
-              ) : (
-                <GeneratedCover className="book-cover book-cover-lg" size="lg" title={book.title} author={book.author} />
-              )}
-            </div>
-          </div>
-
-          <div className="book-head-rest">
-            {(book.status === "reading" || book.status === "finished") && members.length > 0 ? (
-              <button type="button" className="book-readers-row" onClick={() => setReadersOpen(true)} aria-label={pick(language, "Ver quién lo está leyendo", "See who's reading it", "Ver quen o está lendo")}>
-                <span className="book-readers-stack">
-                  {members.slice(0, 5).map((m) => (
-                    <UserDot key={m.userId} alias={m.alias} {...styleFor(clubMembers, m.userId)} />
-                  ))}
-                </span>
-                <span className="book-readers-label">
-                  {members.length > 5 ? `+${members.length - 5} · ` : ""}
-                  {pick(language, `${members.length} leyendo`, `${members.length} reading`, `${members.length} lendo`)}
-                </span>
-              </button>
-            ) : null}
-            {book.description ? (
-              <div className={`book-detail-synopsis${synopsisOpen ? " is-open" : ""}`}>
-                <p>{book.description}</p>
-                {book.description.length > 260 ? (
-                  <button type="button" className="book-synopsis-toggle" aria-expanded={synopsisOpen} onClick={() => setSynopsisOpen((v) => !v)}>
-                    {synopsisOpen ? pick(language, "Ver menos", "Show less", "Ver menos") : pick(language, "Ver más", "Show more", "Ver máis")}
-                  </button>
-                ) : null}
               </div>
-            ) : null}
-            {(facilitatorAlias && book.status !== "proposed") || (hasCadence && !showReadingPace) ? (
-              <div className="book-meta-chips">
-                {facilitatorAlias && book.status !== "proposed" ? (
-                  <span className="book-chip"><Icon name="spark" size={12} /> {pick(language, `Propuesto por ${facilitatorAlias}`, `Proposed by ${facilitatorAlias}`, `Proposto por ${facilitatorAlias}`)}</span>
-                ) : null}
-                {(book.status === "reading" || book.status === "finished") && book.decidedBy ? (
-                  <span className="book-chip">
-                    <Icon name="check" size={12} /> {book.decidedBy === "vote"
-                      ? pick(language, "Aprobado por votación", "Approved by vote", "Aprobado por votación")
-                      : book.decidedBy === "deadline"
-                        ? pick(language, "Aprobado al vencer el plazo", "Approved when the deadline passed", "Aprobado ao vencer o prazo")
-                        : pick(language, "Aprobado por un admin", "Approved by an admin", "Aprobado por un admin")}
-                  </span>
-                ) : null}
-                {hasCadence && !showReadingPace ? (
-                  <span className="book-chip">
-                    <Icon name="target" size={12} />{" "}
-                    {pick(language, "Meta esta semana", "This week's goal", "Meta esta semana")}
-                    {daysLeft != null ? (
-                      <span className={`book-cadence-days${daysLeft < 0 ? " is-overdue" : ""}`}>
-                        {" · "}
-                        {daysLeft < 0 ? pick(language, "vencida", "overdue", "vencida") : daysLeft === 0 ? pick(language, "hoy", "today", "hoxe") : pick(language, `faltan ${daysLeft} días`, `${daysLeft} days left`, `faltan ${daysLeft} días`)}
+
+              {/* Cara B — datos */}
+              <div className="book-hero-face book-hero-face-back">
+                <button type="button" className="book-hero-flip-btn" onClick={() => setHeroFlipped(false)} aria-label={pick(language, "Volver a la portada", "Back to the cover", "Volver á portada")} title={pick(language, "Volver", "Back", "Volver")}>
+                  <Icon name="arrowLeft" size={16} />
+                </button>
+                <div className="book-hero-back-scroll">
+                  <div className="book-status-row">
+                    <span className={`book-card-status book-card-status-${book.status}`}>{statusLabel(book.status, language)}</span>
+                    {book.featured === "gold" ? (
+                      <span className="book-featured-tag"><Icon name="star" size={12} /> {pick(language, "Destacado", "Featured", "Destacado")}</span>
+                    ) : null}
+                  </div>
+                  <h1>{book.title}</h1>
+                  <p className="book-detail-author">
+                    {book.author ? (
+                      book.authorUrl ? (
+                        <a className="book-author-link" href={book.authorUrl} target="_blank" rel="noopener noreferrer nofollow" title={pick(language, `Más sobre ${book.author}`, `More about ${book.author}`, `Máis sobre ${book.author}`)}>
+                          {book.author}
+                        </a>
+                      ) : (
+                        book.author
+                      )
+                    ) : (
+                      pick(language, "Autor desconocido", "Unknown author", "Autor descoñecido")
+                    )}
+                  </p>
+                  {book.publishedYear || book.pageCount ? (
+                    <p className="book-detail-metaline">
+                      {[
+                        book.publishedYear ? String(book.publishedYear) : null,
+                        book.pageCount ? pick(language, `${book.pageCount} págs.`, `${book.pageCount} pp.`, `${book.pageCount} páxs.`) : null
+                      ].filter(Boolean).join(" · ")}
+                    </p>
+                  ) : null}
+                  {book.description ? <p className="book-hero-synopsis">{book.description}</p> : null}
+                  <div className="book-meta-chips">
+                    {facilitatorAlias && book.status !== "proposed" ? (
+                      <span className="book-chip"><Icon name="spark" size={12} /> {pick(language, `Propuesto por ${facilitatorAlias}`, `Proposed by ${facilitatorAlias}`, `Proposto por ${facilitatorAlias}`)}</span>
+                    ) : null}
+                    {(book.status === "reading" || book.status === "finished") && book.decidedBy ? (
+                      <span className="book-chip">
+                        <Icon name="check" size={12} /> {book.decidedBy === "vote"
+                          ? pick(language, "Aprobado por votación", "Approved by vote", "Aprobado por votación")
+                          : book.decidedBy === "deadline"
+                            ? pick(language, "Aprobado al vencer el plazo", "Approved when the deadline passed", "Aprobado ao vencer o prazo")
+                            : pick(language, "Aprobado por un admin", "Approved by an admin", "Aprobado por un admin")}
                       </span>
                     ) : null}
-                  </span>
-                ) : null}
+                  </div>
+                  {isAdmin && !editOpen ? (
+                    <button type="button" className="btn btn-tiny book-hero-edit" onClick={openEdit}>
+                      <Icon name="pencil" size={12} /> {pick(language, "Editar libro", "Edit book", "Editar libro")}
+                    </button>
+                  ) : null}
+                </div>
               </div>
-            ) : null}
-            {book.status === "reading" && book.targetChapter ? (
-              <ReadingPace
-                targetChapter={book.targetChapter}
-                totalChapters={chapters.length}
-                membersDone={members.map((m) => m.chaptersDone)}
-                myChaptersDone={myMember?.chaptersDone ?? 0}
-                canManage={isAdder || isAdmin}
-                onRemind={() => remindReading(book.id)}
-              />
-            ) : null}
-            {named ? (
-              <div className="book-head-progress">
-                <span className="book-card-progress">
-                  <span className="book-card-progress-fill" style={{ width: `${progressPct}%` }} />
-                </span>
-                <span className="book-head-progress-label">{pick(language, `${doneCount}/${total} leídos`, `${doneCount}/${total} read`, `${doneCount}/${total} lidos`)}</span>
-              </div>
-            ) : null}
+            </div>
           </div>
+
+          {/* Ritmo de lectura: fuera del flip, siempre visible (es lo que de
+              verdad hace falta mientras se lee). */}
+          {book.status === "reading" && book.targetChapter ? (
+            <ReadingPace
+              targetChapter={book.targetChapter}
+              totalChapters={chapters.length}
+              membersDone={members.map((m) => m.chaptersDone)}
+              myChaptersDone={myMember?.chaptersDone ?? 0}
+              canManage={isAdder || isAdmin}
+              onRemind={() => remindReading(book.id)}
+            />
+          ) : null}
+          {hasCadence && !showReadingPace ? (
+            <p className="book-hero-cadence">
+              <Icon name="target" size={12} /> {pick(language, "Meta esta semana", "This week's goal", "Meta esta semana")}
+              {daysLeft != null ? (
+                <span className={`book-cadence-days${daysLeft < 0 ? " is-overdue" : ""}`}>
+                  {" · "}
+                  {daysLeft < 0 ? pick(language, "vencida", "overdue", "vencida") : daysLeft === 0 ? pick(language, "hoy", "today", "hoxe") : pick(language, `faltan ${daysLeft} días`, `${daysLeft} days left`, `faltan ${daysLeft} días`)}
+                </span>
+              ) : null}
+            </p>
+          ) : null}
         </section>
 
         {editOpen ? (
