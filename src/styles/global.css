@@ -2554,7 +2554,6 @@ textarea::placeholder {
 .book-resource-link { display: inline-flex; align-items: center; gap: 5px; color: var(--brand); text-decoration: none; min-width: 0; }
 .book-resource-host { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .book-resource-by { font-size: 0.76rem; color: var(--ink-1); flex: 0 0 auto; }
-.book-convo-hint { margin-top: 0; }
 
 /* La cita del club: tarjeta con acento (es el momento social del libro). */
 .meeting-card { border-left: 3px solid var(--brand); background: color-mix(in srgb, var(--brand) 5%, var(--panel-0)); }
@@ -4330,6 +4329,17 @@ textarea:focus-visible {
 /* Votación */
 .vote-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
 .vote-btn { font-weight: 600; }
+/* Controles de admin (aprobar/descartar/recordar): separados de los botones de
+   voto de todos, para que no se lean como "una fila más de opciones iguales". */
+.vote-admin-controls {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--ink-0) 3%, transparent);
+}
+.vote-admin-controls-label { display: block; font-size: 0.72rem; color: var(--ink-1); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 6px; }
+.vote-admin-controls .vote-buttons { margin: 0; }
 .vote-btn.yes.is-on { background: var(--success); border-color: var(--success); color: var(--panel-0); }
 .vote-btn.no.is-on { background: var(--danger); border-color: var(--danger); color: var(--panel-0); }
 .vote-btn.later.is-on { background: var(--warning); border-color: var(--warning); color: var(--panel-0); }
