@@ -79,6 +79,7 @@ export type IconName =
   | "chili"
   | "news"
   | "book"
+  | "info"
   | "settings"
   | "trophy"
   | "dice"
