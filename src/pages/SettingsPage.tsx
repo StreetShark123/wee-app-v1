@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { AppFooter } from "../components/AppFooter";
 import { Avatar } from "../components/Avatar";
 import { Icon, type IconName } from "../components/Icon";
 import { PushSettings } from "../components/PushSettings";
@@ -8,7 +7,11 @@ import { ReadingSettings } from "../components/ReadingSettings";
 import { pick, useI18n } from "../lib/i18n";
 import { AVATAR_MAX_PX, imageFileToDataUrl } from "../lib/imageCompress";
 import { isAnalyticsOptedOut, setAnalyticsOptOut } from "../lib/usageAnalytics";
+import { useInstallPrompt } from "../lib/useInstallPrompt";
 import type { AppLanguage, User } from "../lib/types";
+
+const ALPHA_VERSION = "v0.4.0-alpha";
+const ALPHA_UPDATED_AT = "2026-06-27";
 
 // Ajustes: índice tipo "Ajustes del sistema" — filas con icono que abren su
 // propia sub-sección, en vez de una página larga con todo desplegado. Orden:
@@ -24,7 +27,7 @@ interface SettingsPageProps {
   onToast: (message: string) => void;
 }
 
-type SectionKey = "profile" | "club" | "notifications" | "accessibility" | "data" | "session";
+type SectionKey = "profile" | "club" | "notifications" | "accessibility" | "data" | "about" | "session";
 
 const SECTIONS: { key: SectionKey; icon: IconName; label: (l: AppLanguage) => string; hint: (l: AppLanguage) => string }[] = [
   { key: "profile", icon: "user", label: (l) => pick(l, "Perfil", "Profile", "Perfil"), hint: (l) => pick(l, "Foto y alias", "Photo and alias", "Foto e alcume") },
@@ -32,6 +35,7 @@ const SECTIONS: { key: SectionKey; icon: IconName; label: (l: AppLanguage) => st
   { key: "notifications", icon: "bell", label: (l) => pick(l, "Notificaciones", "Notifications", "Notificacións"), hint: (l) => pick(l, "Qué avisos quieres recibir", "Which alerts you want", "Que avisos queres recibir") },
   { key: "accessibility", icon: "eye", label: (l) => pick(l, "Accesibilidad de lectura", "Reading accessibility", "Accesibilidade de lectura"), hint: (l) => pick(l, "Tamaño de texto y demás", "Text size and more", "Tamaño de texto e demais") },
   { key: "data", icon: "shield", label: (l) => pick(l, "Tus datos", "Your data", "Os teus datos"), hint: (l) => pick(l, "Exportar y privacidad", "Export and privacy", "Exportar e privacidade") },
+  { key: "about", icon: "book", label: (l) => pick(l, "Sobre Wee", "About Wee", "Sobre Wee"), hint: (l) => pick(l, "Qué es y cómo funciona", "What it is and how it works", "Que é e como funciona") },
   { key: "session", icon: "logout", label: (l) => pick(l, "Sesión", "Session", "Sesión"), hint: (l) => pick(l, "Cerrar sesión", "Log out", "Pechar sesión") }
 ];
 
@@ -41,6 +45,7 @@ export const SettingsPage = ({ activeUser, communityName, onUpdateAvatar, onUpda
   const [optedOut, setOptedOut] = useState(isAnalyticsOptedOut());
   const [alias, setAlias] = useState(activeUser.alias);
   const [savingAlias, setSavingAlias] = useState(false);
+  const { canInstall, promptInstall } = useInstallPrompt();
 
   const saveAlias = async (): Promise<void> => {
     const clean = alias.trim();
@@ -73,7 +78,6 @@ export const SettingsPage = ({ activeUser, communityName, onUpdateAvatar, onUpda
               </button>
             ))}
           </div>
-          <AppFooter />
         </div>
       </main>
     );
@@ -194,6 +198,55 @@ export const SettingsPage = ({ activeUser, communityName, onUpdateAvatar, onUpda
           </section>
         ) : null}
 
+        {section === "about" ? (
+          <section className="page-section">
+            <p className="hint">
+              {pick(
+                language,
+                `Estado: Alpha · Versión ${ALPHA_VERSION} · Última actualización ${ALPHA_UPDATED_AT}`,
+                `Status: Alpha · Version ${ALPHA_VERSION} · Last update ${ALPHA_UPDATED_AT}`,
+                `Estado: Alpha · Versión ${ALPHA_VERSION} · Última actualización ${ALPHA_UPDATED_AT}`
+              )}
+            </p>
+            <div className="about-grid">
+              <article className="about-card">
+                <h3><Icon name="users" /> {pick(language, "Qué es Wee", "What Wee is", "Que é Wee")}</h3>
+                <p>
+                  {pick(language, "Somos gente que lee y quería un sitio cálido para leer en grupo y debatir los libros sin prisa. Wee es eso: un club de lectura para grupos reducidos, con ritmo compartido y debate ordenado.", "We're people who read and wanted a warm place to read together and discuss books unhurried. Wee is that: a reading club for small groups, with shared pace and tidy discussion.", "Somos xente que le e quería un sitio cálido para ler en grupo e debater os libros sen présa. Wee é iso: un club de lectura para grupos reducidos, con ritmo compartido.")}
+                </p>
+              </article>
+
+              <article className="about-card">
+                <h3><Icon name="target" /> {pick(language, "Cómo funciona", "How it works", "Como funciona")}</h3>
+                <p>
+                  {pick(language, "Proponéis libros y el club vota. El aprobado pasa a lectura: seguís los capítulos, dejáis notas y debatís en hilos. Cuando todos terminan, queda en 'leídos'.", "You propose books and the club votes. The approved one starts reading: track chapters, leave notes and discuss in threads. When everyone finishes, it moves to 'read'.", "Propoñedes libros e o club vota. O aprobado pasa a lectura: seguides os capítulos, deixades notas e debatides en fíos. Cando todos rematan, queda en 'lidos'.")}
+                </p>
+              </article>
+
+              <article className="about-card">
+                <h3><Icon name="heart" /> {pick(language, "Comunidad, sin ruido", "Community, no noise", "Comunidade, sen ruído")}</h3>
+                <p>
+                  {pick(language, "Sin monetización, sin rankings de velocidad ni rachas. Notas anti-spoiler, ritmo sano y debate cuidado. La lectura es un placer compartido, no una competición.", "No monetization, no speed rankings or streaks. Anti-spoiler notes, healthy pace and tidy debate. Reading is a shared pleasure, not a competition.", "Sen monetización, sen rankings de velocidade nin rachas. Notas anti-spoiler, ritmo san e debate coidado.")}
+                </p>
+              </article>
+
+              <article className="about-card">
+                <h3><Icon name="download" /> {pick(language, "Instálala en tu móvil", "Install it on your phone", "Instálaa no teu móbil")}</h3>
+                <p>
+                  {canInstall
+                    ? pick(language, "Pulsa “Instalar app” aquí abajo y la tendrás como una app más, sin tiendas.", "Tap “Install app” below and you'll have it like any other app, no stores.", "Preme “Instalar app” aquí abaixo e terala como unha app máis, sen tendas.")
+                    : pick(language, "En Android: menú del navegador → “Instalar app / Añadir a pantalla de inicio”. En iPhone (Safari): Compartir → “Añadir a pantalla de inicio”.", "On Android: browser menu → “Install app / Add to Home screen”. On iPhone (Safari): Share → “Add to Home Screen”.", "En Android: menú do navegador → “Instalar app”. En iPhone (Safari): Compartir → “Engadir á pantalla de inicio”.")}
+                </p>
+                {canInstall ? (
+                  <button type="button" className="btn btn-primary" onClick={() => void promptInstall()}>
+                    <Icon name="download" size={14} /> {pick(language, "Instalar app", "Install app", "Instalar app")}
+                  </button>
+                ) : null}
+              </article>
+            </div>
+          </section>
+        ) : null}
+
         {section === "session" ? (
           <section className="page-section">
             <button type="button" className="btn me-logout" onClick={onLogout}>
@@ -201,8 +254,6 @@ export const SettingsPage = ({ activeUser, communityName, onUpdateAvatar, onUpda
             </button>
           </section>
         ) : null}
-
-        <AppFooter />
       </div>
     </main>
   );

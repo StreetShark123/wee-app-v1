@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { AddBookModal } from "../components/AddBookModal";
-import { AppFooter } from "../components/AppFooter";
 import { Icon } from "../components/Icon";
 import { PersonalBookCard } from "../components/PersonalBookCard";
 import { pick, useI18n } from "../lib/i18n";
@@ -163,8 +162,6 @@ export const MePage = ({ onToast }: MePageProps) => {
             );
           })
         )}
-
-        <AppFooter />
       </div>
 
       {/* Portal a <body>: PageTransition envuelve esta página en un contenedor

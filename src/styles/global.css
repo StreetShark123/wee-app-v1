@@ -2771,52 +2771,6 @@ textarea::placeholder {
   margin: 0.42rem 0 0;
 }
 
-.app-footer {
-  margin: 2rem auto 0.95rem;
-  max-width: var(--content-max);
-  padding: 1rem 1rem 0;
-  /* Colofón: el pie se separa del contenido con un hilo, como la última página. */
-  border-top: 1px solid var(--line);
-}
-
-.footer-bar {
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  padding: 0.2rem 0.1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.7rem;
-}
-
-.footer-bar p {
-  margin: 0;
-  color: var(--ink-1);
-  font-size: 0.8rem;
-  letter-spacing: 0.01em;
-}
-
-.footer-copy {
-  display: grid;
-  gap: 0.18rem;
-}
-
-.footer-meta {
-  color: var(--ink-1);
-  font-size: 0.72rem;
-}
-
-.about-modal {
-  width: min(920px, 100%);
-  padding: 1.25rem 1.25rem 1.1rem;
-  border-color: var(--line);
-  background:
-    radial-gradient(360px 160px at 0% 0%, rgb(47 106 102 / 8%), transparent 70%),
-    radial-gradient(280px 120px at 100% 0%, rgb(176 122 43 / 6%), transparent 72%),
-    var(--panel-0);
-}
-
 .about-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -2951,11 +2905,6 @@ textarea:focus-visible {
   .user-menu-dropdown {
     right: 0;
     left: auto;
-  }
-
-  .footer-bar {
-    flex-direction: column;
-    align-items: flex-start;
   }
 
   .post-grid {
@@ -5231,9 +5180,6 @@ textarea:focus-visible {
   .chapter-note-threadbar .chapter-note-action:only-child { grid-column: 1 / -1; }
 }
 
-/* PWA: acciones del footer (Instalar app + Sobre Wee) */
-.footer-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-
 /* Zona peligrosa colapsada (details) */
 .book-delete-summary { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--danger); font-weight: 600; font-size: 0.82rem; padding: 4px 0; list-style: none; }
 .book-delete-summary::-webkit-details-marker { display: none; }
@@ -5608,7 +5554,6 @@ body:has(.dock-nav) main { padding-bottom: calc(78px + env(safe-area-inset-botto
 .me-link-row:last-child { border-bottom: 0; }
 .me-actions-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .me-logout { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); }
-.me-page .app-footer { margin-top: 0.4rem; border-top: 0; padding-top: 0; }
 
 /* ── Accesibilidad de lectura ──────────────────────────────────────────────
    Preferencias de vista por-dispositivo (ver src/lib/readingA11y.ts). Se
