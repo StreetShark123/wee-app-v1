@@ -226,6 +226,23 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     };
   }, [detail, location.hash]);
 
+  // Enlace directo a editar (desde el reverso de la card en la estantería:
+  // /book/:id#edit) — auto-abre el formulario una vez cargado el detalle. DEBE
+  // ir antes de los early returns (loading/error) para no romper el orden de
+  // hooks; por eso inlinea la apertura en vez de llamar a openEdit() (que se
+  // define más abajo y depende de `book`, aún no destructurado aquí).
+  const editHashHandled = useRef(false);
+  useEffect(() => {
+    if (!detail || activeUser.role !== "admin" || location.hash !== "#edit" || editHashHandled.current) return;
+    editHashHandled.current = true;
+    const b = detail.book;
+    setEdit({ title: b.title, author: b.author ?? "", coverUrl: b.coverUrl ?? "", description: b.description ?? "", genre: b.genre ?? "" });
+    setTargetCh(b.targetChapter ? String(b.targetChapter) : "");
+    setTargetDate(b.targetDate ?? "");
+    setEditOpen(true);
+    window.setTimeout(() => document.getElementById("book-edit-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+  }, [detail, location.hash, activeUser.role]);
+
   // Actualiza SOLO lo que cambia en la ficha (nunca recarga toda la página).
   const patch = (fn: (d: BookDetail) => BookDetail) => setDetail((prev) => (prev ? fn(prev) : prev));
 
@@ -390,14 +407,6 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     // Baja hasta el formulario ya desplegado (si no, queda fuera de vista).
     window.setTimeout(() => document.getElementById("book-edit-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
   };
-  // Enlace directo a editar (desde el reverso de la card en la estantería:
-  // /book/:id#edit) — auto-abre el formulario una vez cargado el detalle.
-  const editHashHandled = useRef(false);
-  useEffect(() => {
-    if (!detail || !isAdmin || location.hash !== "#edit" || editHashHandled.current) return;
-    editHashHandled.current = true;
-    openEdit();
-  }, [detail, isAdmin, location.hash]);
   const handleSetTarget = () =>
     run(async () => {
       const r = await setBookTarget(book.id, {
