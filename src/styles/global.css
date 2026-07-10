@@ -5752,3 +5752,57 @@ html[data-reduce-motion="on"] *::after {
   border-radius: 999px; padding: 3px 10px;
   margin-top: 6px;
 }
+
+/* Ajustes: índice tipo "Ajustes del sistema" (filas con icono → sub-sección). */
+.settings-index {
+  display: grid;
+  background: var(--panel-0);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.settings-index-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 14px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-0);
+  cursor: pointer;
+}
+.settings-index-row:last-child { border-bottom: 0; }
+.settings-index-row:active { background: color-mix(in srgb, var(--brand) 6%, transparent); }
+.settings-index-icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--brand) 12%, var(--panel-0));
+  color: var(--brand-strong);
+}
+.settings-index-text { display: grid; gap: 1px; min-width: 0; flex: 1 1 auto; }
+.settings-index-text strong { font-size: 0.94rem; }
+.settings-index-text .hint { margin: 0; font-size: 0.78rem; }
+.settings-index-chevron { color: var(--ink-1); font-size: 1.1rem; flex: 0 0 auto; }
+
+/* Volver al índice desde una sub-sección abierta. */
+.settings-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: var(--ink-1);
+  font-size: 0.86rem;
+  padding: 4px 0;
+  cursor: pointer;
+}
+.settings-back:active { color: var(--brand-strong); }
