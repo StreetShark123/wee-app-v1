@@ -667,6 +667,10 @@ const AppRoutes = () => {
                 <SettingsPage
                   activeUser={activeUser as NonNullable<typeof activeUser>}
                   communityName={selectedCommunity?.name}
+                  communityId={selectedCommunity?.id}
+                  communityMembers={communityMembers}
+                  myCommunities={myCommunities}
+                  onSwitchCommunity={setCommunityAsActive}
                   onUpdateAvatar={updateUserAvatar}
                   onUpdateAlias={updateUserAlias}
                   onExport={onExport}

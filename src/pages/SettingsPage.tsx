@@ -1,14 +1,17 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Avatar } from "../components/Avatar";
 import { Icon, type IconName } from "../components/Icon";
 import { PushSettings } from "../components/PushSettings";
 import { ReadingSettings } from "../components/ReadingSettings";
+import { UserDot } from "../components/UserBadge";
 import { pick, useI18n } from "../lib/i18n";
 import { AVATAR_MAX_PX, imageFileToDataUrl } from "../lib/imageCompress";
 import { isAnalyticsOptedOut, setAnalyticsOptOut } from "../lib/usageAnalytics";
 import { useInstallPrompt } from "../lib/useInstallPrompt";
 import type { AppLanguage, User } from "../lib/types";
+
+type ClubListItem = { community_id: string; name: string; description?: string; role: "admin" | "member" };
 
 const ALPHA_VERSION = "v0.4.0-alpha";
 const ALPHA_UPDATED_AT = "2026-06-27";
@@ -20,6 +23,10 @@ const ALPHA_UPDATED_AT = "2026-06-27";
 interface SettingsPageProps {
   activeUser: User;
   communityName?: string;
+  communityId?: string;
+  communityMembers: Array<{ id: string; alias: string; role: "admin" | "member" }>;
+  myCommunities: ClubListItem[];
+  onSwitchCommunity: (communityId: string) => Promise<unknown>;
   onUpdateAvatar: (userId: string, avatarDataUrl: string | undefined) => Promise<void>;
   onUpdateAlias: (userId: string, alias: string) => Promise<void>;
   onExport: () => Promise<void>;
@@ -39,10 +46,27 @@ const SECTIONS: { key: SectionKey; icon: IconName; label: (l: AppLanguage) => st
   { key: "session", icon: "logout", label: (l) => pick(l, "Sesión", "Session", "Sesión"), hint: (l) => pick(l, "Cerrar sesión", "Log out", "Pechar sesión") }
 ];
 
-export const SettingsPage = ({ activeUser, communityName, onUpdateAvatar, onUpdateAlias, onExport, onLogout, onToast }: SettingsPageProps) => {
+export const SettingsPage = ({ activeUser, communityName, communityId, communityMembers, myCommunities, onSwitchCommunity, onUpdateAvatar, onUpdateAlias, onExport, onLogout, onToast }: SettingsPageProps) => {
   const { language } = useI18n();
+  const navigate = useNavigate();
   const [section, setSection] = useState<SectionKey | null>(null);
+  const [switchingId, setSwitchingId] = useState<string | null>(null);
   const [optedOut, setOptedOut] = useState(isAnalyticsOptedOut());
+  const isClubAdmin = activeUser.role === "admin";
+
+  const switchClub = async (id: string): Promise<void> => {
+    if (id === communityId || switchingId) return;
+    setSwitchingId(id);
+    try {
+      await onSwitchCommunity(id);
+      onToast(pick(language, "Club cambiado.", "Club switched.", "Club cambiado."));
+      navigate("/home");
+    } catch {
+      onToast(pick(language, "No se pudo cambiar de club.", "Couldn't switch club.", "Non se puido cambiar de club."));
+    } finally {
+      setSwitchingId(null);
+    }
+  };
   const [alias, setAlias] = useState(activeUser.alias);
   const [savingAlias, setSavingAlias] = useState(false);
   const { canInstall, promptInstall } = useInstallPrompt();
@@ -156,14 +180,87 @@ export const SettingsPage = ({ activeUser, communityName, onUpdateAvatar, onUpda
         ) : null}
 
         {section === "club" ? (
-          <section className="page-section">
-            <Link to="/community" className="me-link-row">
-              <Icon name="settings" size={14} /> {communityName ?? pick(language, "Tu club", "Your club", "O teu club")} · {pick(language, "miembros, normas y ajustes", "members, rules & settings", "membros, normas e axustes")}
-            </Link>
-            <Link to="/communities" className="me-link-row">
-              <Icon name="link" size={14} /> {pick(language, "Cambiar de club o unirme a otro", "Switch club or join another", "Cambiar de club ou unirme a outro")}
-            </Link>
-          </section>
+          <>
+            {/* Vista rápida del club actual: nombre + vistazo de miembros +
+                accesos a editar/invitar (la gestión completa vive en /community). */}
+            <section className="page-section club-quick">
+              <div className="club-quick-head">
+                <span className="club-quick-icon"><Icon name="users" size={18} /></span>
+                <div className="club-quick-id">
+                  <strong className="club-quick-name">{communityName ?? pick(language, "Tu club", "Your club", "O teu club")}</strong>
+                  <span className="hint">{pick(language, `${communityMembers.length} ${communityMembers.length === 1 ? "miembro" : "miembros"}`, `${communityMembers.length} ${communityMembers.length === 1 ? "member" : "members"}`, `${communityMembers.length} ${communityMembers.length === 1 ? "membro" : "membros"}`)}</span>
+                </div>
+              </div>
+
+              {communityMembers.length > 0 ? (
+                <button type="button" className="club-quick-members" onClick={() => navigate("/community")} aria-label={pick(language, "Ver los miembros del club", "See club members", "Ver os membros do club")}>
+                  <span className="club-quick-stack">
+                    {communityMembers.slice(0, 7).map((m, i) => (
+                      <UserDot key={m.id} alias={m.alias} colorIndex={i} />
+                    ))}
+                  </span>
+                  {communityMembers.length > 7 ? <span className="club-quick-more">+{communityMembers.length - 7}</span> : null}
+                </button>
+              ) : null}
+
+              <div className="club-quick-actions">
+                {isClubAdmin ? (
+                  <>
+                    <Link to="/community" className="btn">
+                      <Icon name="settings" size={14} /> {pick(language, "Editar club", "Edit club", "Editar club")}
+                    </Link>
+                    <Link to="/community" className="btn">
+                      <Icon name="send" size={14} /> {pick(language, "Invitar", "Invite", "Convidar")}
+                    </Link>
+                  </>
+                ) : (
+                  <Link to="/community" className="btn">
+                    <Icon name="users" size={14} /> {pick(language, "Ver el club", "View the club", "Ver o club")}
+                  </Link>
+                )}
+              </div>
+            </section>
+
+            {/* Tus clubs: cambio rápido entre los clubs de los que formas parte. */}
+            {myCommunities.length > 1 ? (
+              <section className="page-section">
+                <div className="section-head section-head-sub">
+                  <h3>{pick(language, "Tus clubs", "Your clubs", "Os teus clubs")}</h3>
+                </div>
+                <div className="club-switch-list">
+                  {myCommunities.map((c) => {
+                    const current = c.community_id === communityId;
+                    return (
+                      <button
+                        key={c.community_id}
+                        type="button"
+                        className={`club-switch-row${current ? " is-current" : ""}`}
+                        disabled={current || switchingId != null}
+                        onClick={() => void switchClub(c.community_id)}
+                      >
+                        <Icon name={current ? "check" : "users"} size={14} />
+                        <span className="club-switch-name">{c.name}</span>
+                        {current ? (
+                          <span className="club-switch-tag">{pick(language, "actual", "current", "actual")}</span>
+                        ) : switchingId === c.community_id ? (
+                          <span className="club-switch-tag">{pick(language, "cambiando…", "switching…", "cambiando…")}</span>
+                        ) : (
+                          <span className="club-switch-go" aria-hidden="true">›</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
+
+            <section className="page-section">
+              <button type="button" className="btn btn-primary club-create-btn" onClick={() => navigate("/communities")}>
+                <Icon name="plus" size={14} /> {pick(language, "Crear tu club", "Create your club", "Crear o teu club")}
+              </button>
+              <p className="hint">{pick(language, "Empieza un club nuevo e invita a tu gente.", "Start a new club and invite your people.", "Comeza un club novo e convida á túa xente.")}</p>
+            </section>
+          </>
         ) : null}
 
         {section === "notifications" ? <PushSettings /> : null}
