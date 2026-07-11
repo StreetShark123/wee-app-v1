@@ -36,6 +36,7 @@ const InvitePage = lazy(async () => ({ default: (await import("./pages/InvitePag
 const JoinPage = lazy(async () => ({ default: (await import("./pages/JoinPage")).JoinPage }));
 const ResetPasswordPage = lazy(async () => ({ default: (await import("./pages/ResetPasswordPage")).ResetPasswordPage }));
 const ClubLandingPage = lazy(async () => ({ default: (await import("./pages/ClubLandingPage")).ClubLandingPage }));
+const LandingPage = lazy(async () => ({ default: (await import("./pages/LandingPage")).LandingPage }));
 
 // Splash: tiempo mínimo en pantalla (deja que el "wee." acabe de teclearse,
 // 0.85s + 0.1s de delay en CSS) y duración del fade de salida (casa con el
@@ -761,8 +762,17 @@ const AppRoutes = () => {
           }
         />
 
-        <Route path="/" element={<Navigate to={resolveRootRoute({ hasGlobalSession: Boolean(globalSession), hasActiveCommunitySession: Boolean(activeUser) })} replace />} />
-        <Route path="*" element={<Navigate to={resolveRootRoute({ hasGlobalSession: Boolean(globalSession), hasActiveCommunitySession: Boolean(activeUser) })} replace />} />
+        {/* Visitante sin cuenta: landing de bienvenida (sign-up + crear club),
+            no el formulario de login pelado. Con sesión, al destino de siempre. */}
+        <Route
+          path="/"
+          element={
+            globalSession
+              ? <Navigate to={resolveRootRoute({ hasGlobalSession: true, hasActiveCommunitySession: Boolean(activeUser) })} replace />
+              : <PageTransition><LandingPage /></PageTransition>
+          }
+        />
+        <Route path="*" element={<Navigate to={globalSession ? resolveRootRoute({ hasGlobalSession: true, hasActiveCommunitySession: Boolean(activeUser) }) : "/"} replace />} />
         </Routes>
         </Suspense>
         </AppErrorBoundary>

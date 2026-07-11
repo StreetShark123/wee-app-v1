@@ -142,12 +142,19 @@ export const AuthPage = ({ mode, onLogin, onRegister }: AuthPageProps) => {
               )}
           </button>
           <p className="auth-next-step">
-            {pick(
-              language,
-              "Siguiente paso: eliges tu club de lectura y entras directo a las lecturas.",
-              "Next step: pick your community and go straight to feed.",
-              "Seguinte paso: escolles comunidade e entras directo no feed."
-            )}
+            {mode === "signup"
+              ? pick(
+                  language,
+                  "Siguiente paso: creas tu club (o te unes a uno) e invitas a tu gente.",
+                  "Next step: create your club (or join one) and invite your people.",
+                  "Seguinte paso: creas o teu club (ou úneste a un) e convidas á túa xente."
+                )
+              : pick(
+                  language,
+                  "Siguiente paso: eliges tu club de lectura y entras directo a las lecturas.",
+                  "Next step: pick your community and go straight to feed.",
+                  "Seguinte paso: escolles comunidade e entras directo no feed."
+                )}
           </p>
         </form>
 
