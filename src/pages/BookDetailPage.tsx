@@ -421,6 +421,15 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
       const r = await updateBook(book.id, { numberChapters: !(book.numberChapters !== false) });
       patch((d) => ({ ...d, book: r.book }));
     });
+  // Estantería a la que pertenece el libro (mismo lenguaje visual que biblioteca:
+  // cuadradito de color por estado + nombre). rejected cae en "Propuestas", como
+  // en la home. Se pinta como chip en la esquina superior derecha de la ficha.
+  const shelfVariant = book.status === "reading" ? "reading" : book.status === "finished" ? "finished" : "proposed";
+  const shelfLabel = shelfVariant === "reading"
+    ? pick(language, "En lectura", "Reading", "En lectura")
+    : shelfVariant === "finished"
+      ? pick(language, "Leídos", "Read", "Lidos")
+      : pick(language, "Propuestas", "Proposals", "Propostas");
   // Cara-portada del héroe: lectores (los que ya terminaron → check) y progreso
   // medio del club (mismo lenguaje visual que la tarjeta de la estantería).
   const heroReaders = members
@@ -693,8 +702,12 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
       <div className="book-detail">
         <div className="book-action-bar">
           <button type="button" className="book-back" onClick={() => navigate("/home")}>
-            <Icon name="arrowLeft" size={14} /> {pick(language, "Estantería del club", "Club shelf", "Estantería do club")}
+            <Icon name="arrowLeft" size={14} /> {pick(language, "Volver a la biblioteca", "Back to the library", "Volver á biblioteca")}
           </button>
+          <span className={`book-shelf-chip shelf-${shelfVariant}`}>
+            <span className="book-shelf-dot" aria-hidden="true" />
+            {shelfLabel}
+          </span>
         </div>
 
         <section className="page-section book-detail-head">

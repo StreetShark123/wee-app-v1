@@ -5356,9 +5356,25 @@ textarea:focus-visible {
 .book-cover-btn img { width: 100%; height: auto; aspect-ratio: 2 / 3; object-fit: cover; border-radius: var(--radius-sm); display: block; background: var(--panel-1); }
 .book-detail-head .book-cover-lg { width: 100%; height: auto; aspect-ratio: 2 / 3; }
 
-/* Barra de acciones superior (volver | editar) */
+/* Barra de acciones superior (volver | estantería actual) */
 .book-action-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
 .book-action-bar .book-back { margin: 0; }
+
+/* Chip "estantería en la que estás": mismo lenguaje que la home (cuadradito de
+   color por estado + nombre, fondo tintado). */
+.book-shelf-chip {
+  display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto;
+  font-size: 0.76rem; font-weight: 700;
+  padding: 3px 10px; border-radius: var(--radius-pill);
+  color: var(--ink-1); background: var(--panel-1);
+}
+.book-shelf-dot { width: 9px; height: 9px; border-radius: 3px; flex: 0 0 auto; background: var(--ink-1); }
+.book-shelf-chip.shelf-reading { color: var(--status-reading); background: color-mix(in srgb, var(--status-reading) 13%, var(--panel-0)); }
+.book-shelf-chip.shelf-reading .book-shelf-dot { background: var(--status-reading); }
+.book-shelf-chip.shelf-proposed { color: var(--status-proposed); background: color-mix(in srgb, var(--status-proposed) 15%, var(--panel-0)); }
+.book-shelf-chip.shelf-proposed .book-shelf-dot { background: var(--status-proposed); }
+.book-shelf-chip.shelf-finished { color: var(--status-finished); background: color-mix(in srgb, var(--status-finished) 13%, var(--panel-0)); }
+.book-shelf-chip.shelf-finished .book-shelf-dot { background: var(--status-finished); }
 
 /* Chips de meta (estado/facilita/cadencia) y barra de progreso en cabecera */
 .book-meta-chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
