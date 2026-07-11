@@ -10,6 +10,7 @@ import { PullToRefresh } from "./components/PullToRefresh";
 import { AddBookModal } from "./components/AddBookModal";
 import type { BookDraft } from "./lib/bookSearch";
 import { createClubBook, demoteMember, exportMyData, joinPublicCommunity, listClubBooks, listNotifications, markNotificationsRead, previewCommunityBySlug, promoteMember, removeMember, requestJoinCommunity, type ClubBook, type MemberBook } from "./lib/communityApi";
+import { getCommunitySession } from "./lib/communitySession";
 import { clearBooksCache, getCachedList, setCachedList } from "./lib/booksCache";
 import { isFresh, markFetched } from "./lib/freshness";
 import { Toast } from "./components/Toast";
@@ -245,6 +246,13 @@ const AppRoutes = () => {
 
   useEffect(() => {
     if (!globalSession || activeUser || loading || communitiesLoading) return;
+    // Auto-entrar al club por defecto es SOLO para cuando aún no estás en ningún
+    // club (login fresco con "entrar siempre aquí"). Si ya hay sesión de club NO
+    // debe dispararse: durante un cambio de club `activeUser` parpadea a null un
+    // instante mientras se recarga la lista de usuarios, y sin este guard el
+    // efecto te forzaba de vuelta al club por defecto ("siempre me manda al
+    // mismo"). La sesión ya apunta al club nuevo en ese parpadeo, así que basta.
+    if (getCommunitySession()) return;
     const params = new URLSearchParams(location.search);
     const hasInviteOrCodeQuery = Boolean(params.get("invite") || params.get("code"));
     const canAutoEnter = shouldAutoEnterDefaultCommunity({
