@@ -6,6 +6,7 @@ import { DockNav } from "./components/DockNav";
 import { Icon } from "./components/Icon";
 import { Masthead } from "./components/Masthead";
 import { PageTransition } from "./components/PageTransition";
+import { PunctuationLoader } from "./components/PunctuationLoader";
 import { PullToRefresh } from "./components/PullToRefresh";
 import { AddBookModal } from "./components/AddBookModal";
 import type { BookDraft } from "./lib/bookSearch";
@@ -93,6 +94,11 @@ const AppRoutes = () => {
   // detrás, para revelarla sin fogonazo en blanco.
   const [loaderFinishing, setLoaderFinishing] = useState(false);
   const bootStartRef = useRef(Date.now());
+  // El logo "wee." es SOLO para el arranque. Una vez que el boot-splash termina,
+  // cualquier overlay posterior (cambiar de club, etc.) usa el loader de
+  // puntuación. Ref (no estado): solo cambia al DESMONTARSE el splash, cuando el
+  // overlay ya no está visible, así que no hay swap de contenido a mitad de fade.
+  const bootSplashDoneRef = useRef(false);
   // Tope de seguridad: por muy lento (o roto) que vaya el backend, soltamos el
   // splash pasado este tiempo y caemos a skeletons antes que atrapar al usuario.
   const [loaderMaxReached, setLoaderMaxReached] = useState(false);
@@ -230,7 +236,10 @@ const AppRoutes = () => {
     const elapsed = Date.now() - bootStartRef.current;
     const untilFade = Math.max(0, MIN_SPLASH_MS - elapsed);
     const fadeTimer = window.setTimeout(() => setLoaderFinishing(true), untilFade);
-    const unmountTimer = window.setTimeout(() => setShowLoadingOverlay(false), untilFade + SPLASH_FADE_MS);
+    const unmountTimer = window.setTimeout(() => {
+      setShowLoadingOverlay(false);
+      bootSplashDoneRef.current = true; // a partir de aquí, overlays = puntuación
+    }, untilFade + SPLASH_FADE_MS);
     return () => {
       window.clearTimeout(fadeTimer);
       window.clearTimeout(unmountTimer);
@@ -467,7 +476,18 @@ const AppRoutes = () => {
     <I18nContext.Provider value={i18nValue}>
       <NotificationsContext.Provider value={notificationsValue}>
         <AppErrorBoundary>
-        {activeUser && !showLoadingOverlay ? <Masthead communityName={selectedCommunity?.name} /> : null}
+        {activeUser && !showLoadingOverlay ? (
+          <Masthead
+            communityName={selectedCommunity?.name}
+            communityId={selectedCommunity?.id}
+            members={communityMembers}
+            myCommunities={myCommunities}
+            readingCount={books.filter((b) => b.status === "reading").length}
+            finishedCount={books.filter((b) => b.status === "finished").length}
+            onSwitchCommunity={setCommunityAsActive}
+            onToast={showToast}
+          />
+        ) : null}
         {activeUser && !showLoadingOverlay ? <PullToRefresh onRefresh={handlePullRefresh} /> : null}
         <Suspense fallback={<div className="route-fallback" aria-busy="true"><span className="route-spinner" /></div>}>
         {/* Sin AnimatePresence: el modo "wait" + startTransition + chunks lazy
@@ -757,7 +777,9 @@ const AppRoutes = () => {
           onToast={showToast}
         />
         {showLoadingOverlay ? (
-          <CommunityLoadingScreen finishing={loaderFinishing} />
+          bootSplashDoneRef.current
+            ? <PunctuationLoader finishing={loaderFinishing} />
+            : <CommunityLoadingScreen finishing={loaderFinishing} />
         ) : null}
       </NotificationsContext.Provider>
     </I18nContext.Provider>

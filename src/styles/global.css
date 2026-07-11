@@ -5453,6 +5453,13 @@ textarea:focus-visible {
 @keyframes app-loading-in {
   to { opacity: 1; }
 }
+/* Fundido de salida: revela la home ya cargada sin corte (mismo gesto que el
+   splash). Un cambio de club siempre tarda >450ms, así que el loader ya está a
+   opacity 1 cuando se aplica; no hay flash. */
+.app-loading-screen.is-finishing {
+  animation: community-loading-out 420ms var(--ease-standard) forwards;
+  pointer-events: none;
+}
 .app-loading-glyph {
   font-family: var(--font-type);
   font-size: 3.2rem;
@@ -5526,6 +5533,17 @@ textarea:focus-visible {
   color: var(--ink-0);
   text-decoration: none;
 }
+/* El título es un botón (abre el menú ligero de club): reset + caret discreto. */
+.masthead-title-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.masthead-title-btn svg { color: var(--ink-1); flex: 0 0 auto; }
 .masthead-settings {
   grid-column: 3;
   justify-self: end;
@@ -5898,3 +5916,21 @@ html[data-reduce-motion="on"] *::after {
 }
 .member-role-admin { color: var(--brand-strong); background: color-mix(in srgb, var(--brand) 12%, var(--panel-0)); }
 .member-go { flex: 0 0 auto; color: var(--ink-1); font-size: 1.1rem; }
+
+/* Menú ligero de club (desde el nombre en el header). */
+.club-quick-modal { display: grid; gap: 14px; }
+.club-quick-stats { display: flex; gap: 8px; }
+.club-quick-stat {
+  flex: 1 1 0; display: grid; gap: 1px; place-items: center;
+  padding: 10px 6px; border-radius: var(--radius-md);
+  background: var(--panel-1); border: 1px solid var(--line);
+}
+.club-quick-stat strong { font-size: 1.25rem; line-height: 1; }
+.club-quick-stat span { font-size: 0.72rem; color: var(--ink-1); }
+.club-quick-avatars { display: inline-flex; align-items: center; }
+.club-quick-avatars .user-dot { margin-left: -7px; box-shadow: 0 0 0 1.5px var(--panel-0); }
+.club-quick-avatars .user-dot:first-child { margin-left: 0; }
+.club-quick-more { margin-left: 6px; font-size: 0.76rem; color: var(--ink-1); font-weight: 600; }
+.club-quick-switch { display: grid; gap: 4px; }
+.club-quick-switch-label { font-size: 0.78rem; color: var(--ink-1); font-weight: 600; }
+.club-quick-manage { align-self: flex-start; }
