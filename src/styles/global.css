@@ -3281,6 +3281,13 @@ textarea:focus-visible {
   flex-direction: column;
   padding: 12px;
 }
+/* La cara que está de espaldas NO debe capturar toques: con transforms 3D,
+   backface-visibility oculta la cara girada pero (según el navegador) puede
+   seguir recibiendo el tap por encima. Sin esto, al volver de la cara B tocabas
+   el hit-área de la portada de la cara A → se abría el zoom en vez de voltear. */
+.book-hero-face-back { pointer-events: none; }
+.book-hero-flip.is-flipped .book-hero-face-front { pointer-events: none; }
+.book-hero-flip.is-flipped .book-hero-face-back { pointer-events: auto; }
 
 /* Cara A: botones-hit transparentes (siblings, sin anidar): zoom de portada
    (toda) + lectores (franja inferior). El overlay va con pointer-events:none. */
