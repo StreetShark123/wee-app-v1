@@ -1542,6 +1542,14 @@ const handlers = {
       { onConflict: "community_id,user_id" }
     );
     if (roleUpsert.error) return dbFail(500, roleUpsert.error);
+    // El creador entra como MIEMBRO ACTIVO. Sin esta fila, /community/enter
+    // (que valida membership en community_members) devuelve 403 y el creador no
+    // puede entrar en el club que acaba de crear (bug: caía al club anterior).
+    const memberUpsert = await db.from("community_members").upsert(
+      { community_id: communityId, user_id: globalAuth.user.id, status: "active" },
+      { onConflict: "community_id,user_id" }
+    );
+    if (memberUpsert.error) return dbFail(500, memberUpsert.error);
     // El creador es el "admin principal" (owner) del club.
     await db.from("communities").update({ created_by_user_id: profileRes.data.community_user_id }).eq("id", communityId).is("created_by_user_id", null);
 

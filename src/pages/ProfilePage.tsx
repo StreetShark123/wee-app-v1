@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Avatar } from "../components/Avatar";
 import { Icon } from "../components/Icon";
 import { pick, useI18n } from "../lib/i18n";
@@ -39,6 +39,7 @@ export const ProfilePage = ({
 }: ProfilePageProps) => {
   const { language } = useI18n();
   const confirm = useConfirm();
+  const navigate = useNavigate();
   const params = useParams();
   const userId = params.userId ?? activeUser.id;
   const profileUser = users.find((user) => user.id === userId) ?? activeUser;
@@ -79,6 +80,11 @@ export const ProfilePage = ({
 
   return (
     <main>
+      <div className="book-action-bar">
+        <button type="button" className="book-back" onClick={() => navigate(-1)}>
+          <Icon name="arrowLeft" size={14} /> {isOwnProfile ? pick(language, "Volver", "Back", "Volver") : pick(language, "Volver al club", "Back to the club", "Volver ao club")}
+        </button>
+      </div>
       <section className="page-section profile-page">
         <div className="profile-stack">
           <div className="profile-hero">
