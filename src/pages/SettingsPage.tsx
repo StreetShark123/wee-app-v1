@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { Avatar } from "../components/Avatar";
 import { Icon, type IconName } from "../components/Icon";
 import { PushSettings } from "../components/PushSettings";
 import { ReadingSettings } from "../components/ReadingSettings";
 import { UserDot } from "../components/UserBadge";
+import { communityHealth } from "../lib/communityApi";
 import { pick, useI18n } from "../lib/i18n";
 import { AVATAR_MAX_PX, imageFileToDataUrl } from "../lib/imageCompress";
 import { isAnalyticsOptedOut, setAnalyticsOptOut } from "../lib/usageAnalytics";
@@ -12,6 +14,19 @@ import { useInstallPrompt } from "../lib/useInstallPrompt";
 import type { AppLanguage, User } from "../lib/types";
 
 type ClubListItem = { community_id: string; name: string; description?: string; role: "admin" | "member" };
+type CreateClubInput = { name: string; description?: string; invitePolicy: "admins_only" | "members_allowed"; visibility?: "public" | "private" | "invite"; rulesText?: string };
+
+// "activo hace X": relativa corta a partir de un timestamp (última actividad).
+const activeAgo = (ms: number, language: AppLanguage): string => {
+  const diff = Date.now() - ms;
+  const day = 86400000;
+  if (diff < 3600000) return pick(language, "hace poco", "recently", "hai pouco");
+  if (diff < day) return pick(language, `hace ${Math.floor(diff / 3600000)} h`, `${Math.floor(diff / 3600000)}h ago`, `hai ${Math.floor(diff / 3600000)} h`);
+  const days = Math.floor(diff / day);
+  if (days < 30) return pick(language, `hace ${days} d`, `${days}d ago`, `hai ${days} d`);
+  const months = Math.max(1, Math.floor(days / 30));
+  return pick(language, `hace ${months} mes`, `${months}mo ago`, `hai ${months} mes`);
+};
 
 const ALPHA_VERSION = "v0.4.0-alpha";
 const ALPHA_UPDATED_AT = "2026-06-27";
@@ -27,6 +42,7 @@ interface SettingsPageProps {
   communityMembers: Array<{ id: string; alias: string; role: "admin" | "member" }>;
   myCommunities: ClubListItem[];
   onSwitchCommunity: (communityId: string) => Promise<unknown>;
+  onCreateCommunity: (input: CreateClubInput) => Promise<{ id: string }>;
   onUpdateAvatar: (userId: string, avatarDataUrl: string | undefined) => Promise<void>;
   onUpdateAlias: (userId: string, alias: string) => Promise<void>;
   onExport: () => Promise<void>;
@@ -46,13 +62,47 @@ const SECTIONS: { key: SectionKey; icon: IconName; label: (l: AppLanguage) => st
   { key: "session", icon: "logout", label: (l) => pick(l, "Sesión", "Session", "Sesión"), hint: (l) => pick(l, "Cerrar sesión", "Log out", "Pechar sesión") }
 ];
 
-export const SettingsPage = ({ activeUser, communityName, communityId, communityMembers, myCommunities, onSwitchCommunity, onUpdateAvatar, onUpdateAlias, onExport, onLogout, onToast }: SettingsPageProps) => {
+export const SettingsPage = ({ activeUser, communityName, communityId, communityMembers, myCommunities, onSwitchCommunity, onCreateCommunity, onUpdateAvatar, onUpdateAlias, onExport, onLogout, onToast }: SettingsPageProps) => {
   const { language } = useI18n();
   const navigate = useNavigate();
   const [section, setSection] = useState<SectionKey | null>(null);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
   const [optedOut, setOptedOut] = useState(isAnalyticsOptedOut());
   const isClubAdmin = activeUser.role === "admin";
+  // Última actividad por miembro (solo admin: viene de /community/health). Se
+  // carga al abrir la sección del club; si falla o no eres admin, no se muestra.
+  const [lastActiveById, setLastActiveById] = useState<Record<string, number>>({});
+  const [healthLoaded, setHealthLoaded] = useState(false);
+  // Modal "crear tu club".
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newDesc, setNewDesc] = useState("");
+  const [newVisibility, setNewVisibility] = useState<"public" | "private" | "invite">("private");
+
+  useEffect(() => {
+    if (section !== "club" || !isClubAdmin || healthLoaded) return;
+    setHealthLoaded(true);
+    void communityHealth()
+      .then((r) => setLastActiveById(Object.fromEntries(r.members.filter((m) => m.lastActive != null).map((m) => [m.id, m.lastActive as number]))))
+      .catch(() => undefined);
+  }, [section, isClubAdmin, healthLoaded]);
+
+  const createClub = async (): Promise<void> => {
+    const name = newName.trim();
+    if (!name || creating) return;
+    setCreating(true);
+    try {
+      const created = await onCreateCommunity({ name, description: newDesc.trim() || undefined, visibility: newVisibility, invitePolicy: "admins_only" });
+      await onSwitchCommunity(created.id);
+      onToast(pick(language, "Club creado. ¡Vamos allá!", "Club created. Let's go!", "Club creado. Imos aló!"));
+      navigate("/home");
+    } catch {
+      onToast(pick(language, "No se pudo crear el club.", "Couldn't create the club.", "Non se puido crear o club."));
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const switchClub = async (id: string): Promise<void> => {
     if (id === communityId || switchingId) return;
@@ -181,8 +231,8 @@ export const SettingsPage = ({ activeUser, communityName, communityId, community
 
         {section === "club" ? (
           <>
-            {/* Vista rápida del club actual: nombre + vistazo de miembros +
-                accesos a editar/invitar (la gestión completa vive en /community). */}
+            {/* Vista rápida del club actual: nombre + accesos a editar/invitar
+                (la gestión completa vive en /community). */}
             <section className="page-section club-quick">
               <div className="club-quick-head">
                 <span className="club-quick-icon"><Icon name="users" size={18} /></span>
@@ -191,18 +241,6 @@ export const SettingsPage = ({ activeUser, communityName, communityId, community
                   <span className="hint">{pick(language, `${communityMembers.length} ${communityMembers.length === 1 ? "miembro" : "miembros"}`, `${communityMembers.length} ${communityMembers.length === 1 ? "member" : "members"}`, `${communityMembers.length} ${communityMembers.length === 1 ? "membro" : "membros"}`)}</span>
                 </div>
               </div>
-
-              {communityMembers.length > 0 ? (
-                <button type="button" className="club-quick-members" onClick={() => navigate("/community")} aria-label={pick(language, "Ver los miembros del club", "See club members", "Ver os membros do club")}>
-                  <span className="club-quick-stack">
-                    {communityMembers.slice(0, 7).map((m, i) => (
-                      <UserDot key={m.id} alias={m.alias} colorIndex={i} />
-                    ))}
-                  </span>
-                  {communityMembers.length > 7 ? <span className="club-quick-more">+{communityMembers.length - 7}</span> : null}
-                </button>
-              ) : null}
-
               <div className="club-quick-actions">
                 {isClubAdmin ? (
                   <>
@@ -220,6 +258,31 @@ export const SettingsPage = ({ activeUser, communityName, communityId, community
                 )}
               </div>
             </section>
+
+            {/* Miembros: lista clicable → perfil, con rango y (admin) actividad. */}
+            {communityMembers.length > 0 ? (
+              <section className="page-section">
+                <div className="section-head section-head-sub">
+                  <h3>{pick(language, "Miembros", "Members", "Membros")}</h3>
+                </div>
+                <div className="member-list">
+                  {communityMembers.map((m, i) => {
+                    const seen = lastActiveById[m.id];
+                    return (
+                      <button key={m.id} type="button" className="member-row" onClick={() => navigate(`/profile/${m.id}`)}>
+                        <UserDot alias={m.alias} colorIndex={i} />
+                        <span className="member-row-main">
+                          <span className="member-name">{m.alias}{m.id === activeUser.id ? pick(language, " (tú)", " (you)", " (ti)") : ""}</span>
+                          {seen != null ? <span className="member-seen">{pick(language, "activo", "active", "activo")} {activeAgo(seen, language)}</span> : null}
+                        </span>
+                        <span className={`member-role member-role-${m.role}`}>{m.role === "admin" ? pick(language, "Admin", "Admin", "Admin") : pick(language, "Miembro", "Member", "Membro")}</span>
+                        <span className="member-go" aria-hidden="true">›</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
 
             {/* Tus clubs: cambio rápido entre los clubs de los que formas parte. */}
             {myCommunities.length > 1 ? (
@@ -255,7 +318,7 @@ export const SettingsPage = ({ activeUser, communityName, communityId, community
             ) : null}
 
             <section className="page-section">
-              <button type="button" className="btn btn-primary club-create-btn" onClick={() => navigate("/communities")}>
+              <button type="button" className="btn btn-primary club-create-btn" onClick={() => setCreateOpen(true)}>
                 <Icon name="plus" size={14} /> {pick(language, "Crear tu club", "Create your club", "Crear o teu club")}
               </button>
               <p className="hint">{pick(language, "Empieza un club nuevo e invita a tu gente.", "Start a new club and invite your people.", "Comeza un club novo e convida á túa xente.")}</p>
@@ -352,6 +415,42 @@ export const SettingsPage = ({ activeUser, communityName, communityId, community
           </section>
         ) : null}
       </div>
+
+      {/* Modal crear club: portal a <body> (si no, PageTransition lo recorta). */}
+      {createOpen ? createPortal(
+        <div className="modal-overlay" role="dialog" aria-modal="true" onClick={() => (creating ? undefined : setCreateOpen(false))}>
+          <div className="modal-card modal-card-compact" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <div>
+                <h2>{pick(language, "Crea tu club", "Create your club", "Crea o teu club")}</h2>
+                <p>{pick(language, "Un espacio nuevo para leer en grupo. Luego invitas a tu gente.", "A fresh space to read together. Invite your people next.", "Un espazo novo para ler en grupo. Logo convidas á túa xente.")}</p>
+              </div>
+              <button type="button" className="btn btn-icon-compact" onClick={() => setCreateOpen(false)} disabled={creating} aria-label={pick(language, "Cerrar", "Close", "Pechar")}>
+                <Icon name="x" size={16} />
+              </button>
+            </div>
+            <div className="stack">
+              <label className="form-field">{pick(language, "Nombre del club", "Club name", "Nome do club")}
+                <input value={newName} onChange={(e) => setNewName(e.target.value)} maxLength={80} placeholder={pick(language, "p. ej. Club de los martes", "e.g. Tuesday Book Club", "p. ex. Club dos martes")} autoFocus />
+              </label>
+              <label className="form-field">{pick(language, "Descripción (opcional)", "Description (optional)", "Descrición (opcional)")}
+                <input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} maxLength={200} />
+              </label>
+              <label className="form-field">{pick(language, "Quién puede entrar", "Who can join", "Quen pode entrar")}
+                <select value={newVisibility} onChange={(e) => setNewVisibility(e.target.value as "public" | "private" | "invite")}>
+                  <option value="private">{pick(language, "Privado — piden entrada", "Private — people request to join", "Privado — piden entrada")}</option>
+                  <option value="invite">{pick(language, "Cerrado — solo con código", "Invite-only — code required", "Pechado — só con código")}</option>
+                  <option value="public">{pick(language, "Público — cualquiera con el enlace", "Public — anyone with the link", "Público — calquera coa ligazón")}</option>
+                </select>
+              </label>
+              <button type="button" className="btn btn-primary" disabled={creating || !newName.trim()} onClick={() => void createClub()}>
+                <Icon name="check" size={14} /> {creating ? pick(language, "Creando…", "Creating…", "Creando…") : pick(language, "Crear y entrar", "Create and enter", "Crear e entrar")}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      ) : null}
     </main>
   );
 };

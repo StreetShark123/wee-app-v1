@@ -671,6 +671,7 @@ const AppRoutes = () => {
                   communityMembers={communityMembers}
                   myCommunities={myCommunities}
                   onSwitchCommunity={setCommunityAsActive}
+                  onCreateCommunity={createCommunityFlow}
                   onUpdateAvatar={updateUserAvatar}
                   onUpdateAlias={updateUserAlias}
                   onExport={onExport}

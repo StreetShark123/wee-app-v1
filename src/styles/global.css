@@ -5876,3 +5876,25 @@ html[data-reduce-motion="on"] *::after {
 .club-switch-tag { flex: 0 0 auto; font-size: 0.72rem; color: var(--ink-1); text-transform: uppercase; letter-spacing: 0.03em; }
 .club-switch-go { flex: 0 0 auto; color: var(--ink-1); font-size: 1.1rem; }
 .club-create-btn { align-self: flex-start; }
+
+/* Lista de miembros del club (clicable → perfil). */
+.member-list { display: grid; gap: 2px; }
+.member-row {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; min-height: 52px; padding: 8px 4px;
+  text-align: left; background: transparent; border: none;
+  border-bottom: 1px dashed var(--line); color: var(--ink-0); cursor: pointer;
+}
+.member-row:last-child { border-bottom: 0; }
+.member-row:active { background: color-mix(in srgb, var(--brand) 6%, transparent); }
+.member-row-main { display: grid; gap: 1px; min-width: 0; flex: 1 1 auto; }
+.member-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.member-seen { font-size: 0.74rem; color: var(--ink-1); }
+.member-role {
+  flex: 0 0 auto; font-size: 0.68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.03em;
+  padding: 2px 8px; border-radius: var(--radius-pill);
+  color: var(--ink-1); background: var(--panel-1);
+}
+.member-role-admin { color: var(--brand-strong); background: color-mix(in srgb, var(--brand) 12%, var(--panel-0)); }
+.member-go { flex: 0 0 auto; color: var(--ink-1); font-size: 1.1rem; }
