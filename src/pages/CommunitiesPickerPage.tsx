@@ -5,7 +5,7 @@ import { CommunityLoadingScreen } from "../components/CommunityLoadingScreen";
 import { Icon } from "../components/Icon";
 import { PunctuationLoader } from "../components/PunctuationLoader";
 import { pick, useI18n } from "../lib/i18n";
-import type { CommunitySelection } from "../lib/communitySession";
+import { getCommunitySession, type CommunitySelection } from "../lib/communitySession";
 import type { CommunityListItem } from "../lib/communityApi";
 import { shouldAutoEnterDefaultCommunity } from "../lib/communityNavigation";
 
@@ -59,6 +59,10 @@ export const CommunitiesPickerPage = ({
   }, [skipPicker]);
 
   useEffect(() => {
+    // Si ya hay sesión de club (p.ej. llegamos aquí por el parpadeo de un cambio
+    // de club), NO auto-entrar al club por defecto: deshace el cambio. El
+    // auto-enter es solo para login fresco sin club.
+    if (getCommunitySession()) return;
     const query = new URLSearchParams(location.search);
     const canAutoEnter = shouldAutoEnterDefaultCommunity({
       skipPicker,
