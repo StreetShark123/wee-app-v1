@@ -13,6 +13,30 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Wee" />
     <title>Wee — club de lectura</title>
+    <link rel="canonical" href="https://wee-app-v1.vercel.app/" />
+
+    <!-- Previsualización al compartir el enlace (Open Graph: WhatsApp, Telegram,
+         Facebook, Slack, Discord…). og:image debe ser una URL ABSOLUTA a un
+         raster (1200×630). Para regenerar la imagen:
+         npx @resvg/resvg-js-cli public/og-image.svg public/og-image.png -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Wee" />
+    <meta property="og:title" content="Wee — vuestro club de lectura" />
+    <meta property="og:description" content="Proponéis libros, votáis, leéis por capítulos y debatís sin spoilers. Sin anuncios ni rankings." />
+    <meta property="og:url" content="https://wee-app-v1.vercel.app/" />
+    <meta property="og:image" content="https://wee-app-v1.vercel.app/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Wee — vuestro club de lectura" />
+    <meta property="og:locale" content="es_ES" />
+
+    <!-- Twitter/X Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Wee — vuestro club de lectura" />
+    <meta name="twitter:description" content="Proponéis libros, votáis, leéis por capítulos y debatís sin spoilers." />
+    <meta name="twitter:image" content="https://wee-app-v1.vercel.app/og-image.png" />
+    <meta name="twitter:image:alt" content="Wee — vuestro club de lectura" />
     <!-- Fuentes: preconnect + link en el <head> (antes iban por @import dentro de
          global.css, que encadenaba round-trips y retrasaba el primer pintado). -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />

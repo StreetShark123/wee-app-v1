@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#efe6d2"/>
+      <stop offset="0.55" stop-color="#e9dec8"/>
+      <stop offset="1" stop-color="#efe6d2"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="28" y="28" width="1144" height="574" rx="28" fill="none" stroke="#d6c9ac" stroke-width="6"/>
+  <circle cx="120" cy="80" r="260" fill="#2f6a66" opacity="0.06"/>
+  <circle cx="1090" cy="560" r="230" fill="#2f6a66" opacity="0.05"/>
+
+  <!-- Insignia W -->
+  <g transform="translate(96,150)">
+    <rect width="150" height="150" rx="34" fill="#efe6d2" stroke="#d6c9ac" stroke-width="5"/>
+    <text x="75" y="112" font-family="'Courier New',monospace" font-size="104" font-weight="700" text-anchor="middle" fill="#2a241b">W</text>
+  </g>
+
+  <!-- Wordmark + claim -->
+  <text x="280" y="270" font-family="'Courier New',monospace" font-size="132" font-weight="700" fill="#2a241b">wee.</text>
+  <text x="286" y="340" font-family="Georgia,'Times New Roman',serif" font-size="42" fill="#4a3f2e">Vuestro club de lectura</text>
+
+  <text x="96" y="452" font-family="Georgia,'Times New Roman',serif" font-size="34" fill="#5c5341">Proponéis libros, votáis, leéis por capítulos</text>
+  <text x="96" y="502" font-family="Georgia,'Times New Roman',serif" font-size="34" fill="#5c5341">y debatís sin spoilers. Sin anuncios ni rankings.</text>
+
+  <text x="96" y="566" font-family="'Courier New',monospace" font-size="26" letter-spacing="1" fill="#8a7d63">wee-app-v1.vercel.app</text>
+</svg>
