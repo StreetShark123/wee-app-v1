@@ -430,14 +430,13 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
     : shelfVariant === "finished"
       ? pick(language, "Leídos", "Read", "Lidos")
       : pick(language, "Propuestas", "Proposals", "Propostas");
-  // Cara-portada del héroe: lectores (los que ya terminaron → check) y progreso
-  // medio del club (mismo lenguaje visual que la tarjeta de la estantería).
+  // Cara-portada del héroe: SOLO lectores (sin barra de progreso). Los que aún
+  // están leyendo (los que "quedan") van PRIMERO y como avatar; los que ya
+  // terminaron van después y se funden en un check (menos prominentes).
   const heroReaders = members
     .filter((m) => m.shelf === "reading" || m.shelf === "finished" || m.chaptersDone > 0)
-    .map((m) => ({ userId: m.userId, alias: m.alias, done: m.shelf === "finished", ...styleFor(clubMembers, m.userId) }));
-  const clubProgressPct = total > 0 && heroReaders.length > 0
-    ? Math.round((members.reduce((sum, m) => sum + (m.shelf === "finished" ? 1 : Math.min(1, m.chaptersDone / total)), 0) / heroReaders.length) * 100)
-    : null;
+    .map((m) => ({ userId: m.userId, alias: m.alias, done: m.shelf === "finished", ...styleFor(clubMembers, m.userId) }))
+    .sort((a, b) => Number(a.done) - Number(b.done));
   const parsedPreview = parseChapterList(chaptersRaw);
   const daysLeft = book.targetDate ? Math.ceil((new Date(`${book.targetDate}T23:59:59`).getTime() - Date.now()) / 86400000) : null;
   const hasCadence = book.status === "reading" && (book.targetChapter || book.targetDate);
@@ -726,7 +725,7 @@ export const BookDetailPage = ({ activeUser, onOpenAddBook, onLogout, onBooksCha
                   coverUrl={book.coverUrl}
                   title={book.title}
                   author={book.author}
-                  progressPct={clubProgressPct}
+                  progressPct={null}
                   readers={heroReaders}
                 />
                 {book.coverUrl ? (

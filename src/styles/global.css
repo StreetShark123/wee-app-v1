@@ -3324,7 +3324,7 @@ textarea:focus-visible {
 /* ── Héroe de la ficha: tarjeta con FLIP (cara A portada / cara B datos) ──── */
 .book-hero-flip {
   perspective: 1400px;
-  width: min(200px, 56vw);
+  width: min(264px, 72vw);
   margin: 0 auto;
   aspect-ratio: 2 / 3;
 }
@@ -3347,6 +3347,9 @@ textarea:focus-visible {
   overflow: hidden;
   box-shadow: 0 2px 10px rgb(74 54 30 / 10%);
 }
+/* La portada del héroe ahora muestra SOLO lectores (sin barra): avatares un
+   poco más grandes para que protagonicen. */
+.book-hero-face-front .book-card-readers-stack .user-dot { width: 26px; height: 26px; }
 .book-hero-face-back {
   transform: rotateY(180deg);
   background: var(--panel-0);
@@ -4701,6 +4704,10 @@ textarea:focus-visible {
 }
 .readers-modal-head h3 { margin: 0; display: inline-flex; align-items: center; gap: 6px; font-size: 1.02rem; }
 .book-member-who { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+/* Identidad + última actividad en el libro (Completado / Activo · hace X). */
+.book-member-id { display: grid; gap: 1px; min-width: 0; }
+.book-member-alias { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.book-member-seen { font-size: 0.74rem; color: var(--ink-1); }
 
 /* Fix: texto de capítulos NO leídos legible (el botón heredaba color negro) */
 .chapter-head { color: var(--ink-0); }
