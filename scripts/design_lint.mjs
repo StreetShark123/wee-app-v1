@@ -10,6 +10,8 @@ const ALLOWED_INLINE_STYLE_FILES = new Set([
   "src/components/Avatar.tsx",
   "src/components/UserBadge.tsx",
   "src/components/BookCoverFace.tsx",
+  "src/components/PersonalBookCard.tsx",
+  "src/pages/PersonalBookDetailPage.tsx",
   "src/components/TopicBlock.tsx",
   "src/components/PageTransition.tsx",
   "src/components/PullToRefresh.tsx",

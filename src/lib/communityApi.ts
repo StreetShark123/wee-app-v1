@@ -427,6 +427,11 @@ export const resetPasswordWithToken = async (token: string, password: string): P
 // ───────────────────────── Biblioteca personal (independiente del club) ────
 export type PersonalShelf = "want" | "reading" | "read";
 
+export interface PersonalChapter {
+  id: string;
+  title: string;
+}
+
 export interface PersonalBook {
   id: string;
   isbn?: string;
@@ -439,12 +444,23 @@ export interface PersonalBook {
   pageCount?: number;
   source: BookSourceTag;
   shelf: PersonalShelf;
+  /** Seguimiento de capítulos a título individual (sin nada social). */
+  chapters: PersonalChapter[];
+  chaptersDone: string[];
   addedAt: number;
   updatedAt: number;
 }
 
 export const listPersonalLibrary = async (): Promise<{ books: PersonalBook[] }> =>
   request<{ books: PersonalBook[] }>("/me/library/list", {}, { retryRead: true });
+
+// Define/reemplaza los capítulos de un libro personal (reinicia el progreso).
+export const setPersonalChapters = async (bookId: string, titles: string[]): Promise<{ book: PersonalBook }> =>
+  request<{ book: PersonalBook }>("/me/library/set_chapters", { book_id: bookId, titles });
+
+// Marca/desmarca un capítulo como leído (recalcula la estantería en el backend).
+export const togglePersonalChapter = async (bookId: string, chapterId: string): Promise<{ book: PersonalBook }> =>
+  request<{ book: PersonalBook }>("/me/library/toggle_chapter", { book_id: bookId, chapter_id: chapterId });
 
 export const addToPersonalLibrary = async (book: NewBookPayload & { shelf?: PersonalShelf }): Promise<{ book: PersonalBook }> =>
   request<{ book: PersonalBook }>("/me/library/add", {

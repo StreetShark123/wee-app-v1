@@ -446,9 +446,21 @@ const rowToPersonalBook = (row: Record<string, any>): Record<string, any> => ({
   pageCount: row.page_count ?? undefined,
   source: row.source ?? "manual",
   shelf: row.shelf ?? "want",
+  chapters: Array.isArray(row.chapters) ? row.chapters : [],
+  chaptersDone: Array.isArray(row.chapters_done) ? row.chapters_done : [],
   addedAt: toMillis(row.added_at),
   updatedAt: toMillis(row.updated_at)
 });
+
+// Estantería derivada del progreso de capítulos: todo hecho → "read"; algo →
+// "reading"; nada → no baja de lo que hubiera (want/reading).
+const shelfFromChapters = (chapters: Array<{ id: string }>, done: string[], current: string): string => {
+  const total = chapters.length;
+  const doneCount = chapters.filter((c) => done.includes(c.id)).length;
+  if (total > 0 && doneCount >= total) return "read";
+  if (doneCount > 0) return "reading";
+  return current === "read" ? "reading" : current;
+};
 
 // Saneo de ejes de valoración: {key: 1..5}. No valida keys contra género (el
 // front controla qué ejes se envían); solo limita nº, longitud de key y rango.
@@ -4354,6 +4366,65 @@ const handlers = {
     const upd = await db
       .from("personal_books")
       .update({ shelf, updated_at: nowIso() })
+      .eq("id", bookId)
+      .eq("global_user_id", auth.user.id)
+      .select("*")
+      .maybeSingle();
+    if (upd.error) return dbFail(400, upd.error);
+    if (!upd.data) return json(404, { message: "Book not found" });
+    return json(200, { book: rowToPersonalBook(upd.data as Record<string, any>) });
+  },
+
+  // Define/reemplaza la lista de capítulos de un libro personal (títulos → ids).
+  // Al cambiar la lista se reinicia el progreso (ids nuevos). Sube shelf a
+  // "reading" si estaba en "want".
+  "/me/library/set_chapters": async (req: Request) => {
+    const auth = await requireGlobalSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    if (!bookId) return bad("book_id required");
+    const titles = Array.isArray(body.titles) ? body.titles : [];
+    const chapters = titles
+      .map((t: unknown) => String(t ?? "").trim())
+      .filter((t: string) => t.length > 0)
+      .slice(0, 400)
+      .map((title: string) => ({ id: crypto.randomUUID(), title: title.slice(0, 300) }));
+    const cur = await db.from("personal_books").select("shelf").eq("id", bookId).eq("global_user_id", auth.user.id).maybeSingle();
+    if (cur.error || !cur.data) return json(404, { message: "Book not found" });
+    const shelf = (cur.data.shelf as string) === "want" && chapters.length > 0 ? "reading" : (cur.data.shelf as string);
+    const upd = await db
+      .from("personal_books")
+      .update({ chapters, chapters_done: [], shelf, updated_at: nowIso() })
+      .eq("id", bookId)
+      .eq("global_user_id", auth.user.id)
+      .select("*")
+      .maybeSingle();
+    if (upd.error) return dbFail(400, upd.error);
+    if (!upd.data) return json(404, { message: "Book not found" });
+    return json(200, { book: rowToPersonalBook(upd.data as Record<string, any>) });
+  },
+
+  // Marca/desmarca un capítulo como leído. Recalcula la estantería.
+  "/me/library/toggle_chapter": async (req: Request) => {
+    const auth = await requireGlobalSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    const chapterId = String(body.chapter_id ?? "").trim();
+    if (!bookId || !chapterId) return bad("book_id and chapter_id required");
+    const cur = await db.from("personal_books").select("chapters,chapters_done,shelf").eq("id", bookId).eq("global_user_id", auth.user.id).maybeSingle();
+    if (cur.error || !cur.data) return json(404, { message: "Book not found" });
+    const chapters = Array.isArray(cur.data.chapters) ? (cur.data.chapters as Array<{ id: string }>) : [];
+    if (!chapters.some((c) => c.id === chapterId)) return bad("unknown chapter");
+    const done = new Set(Array.isArray(cur.data.chapters_done) ? (cur.data.chapters_done as string[]) : []);
+    if (done.has(chapterId)) done.delete(chapterId);
+    else done.add(chapterId);
+    const doneArr = [...done];
+    const shelf = shelfFromChapters(chapters, doneArr, (cur.data.shelf as string) ?? "want");
+    const upd = await db
+      .from("personal_books")
+      .update({ chapters_done: doneArr, shelf, updated_at: nowIso() })
       .eq("id", bookId)
       .eq("global_user_id", auth.user.id)
       .select("*")

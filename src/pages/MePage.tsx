@@ -1,25 +1,20 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { AddBookModal } from "../components/AddBookModal";
 import { Icon } from "../components/Icon";
 import { PersonalBookCard } from "../components/PersonalBookCard";
 import { pick, useI18n } from "../lib/i18n";
-import { useConfirm } from "../lib/confirm";
-import { getSelectedCommunity } from "../lib/communitySession";
 import type { BookDraft } from "../lib/bookSearch";
 import {
   addToPersonalLibrary,
   listPersonalLibrary,
-  proposeToClubFromLibrary,
-  removeFromPersonalLibrary,
-  setPersonalShelf,
   type PersonalBook,
   type PersonalShelf
 } from "../lib/communityApi";
-// "Tú": tu biblioteca personal — independiente de cualquier club. Quién eres
-// (perfil, avatar, alias) vive en Ajustes (la ruedita del masthead); aquí solo
-// tus lecturas a título individual.
+// "Tú": tu biblioteca personal — independiente de cualquier club. Como la del
+// club: los libros se tocan y abren su detalle (seguimiento de capítulos, sin
+// nada social). Quién eres (perfil, avatar) vive en Ajustes.
 interface MePageProps {
   onToast: (message: string) => void;
 }
@@ -33,20 +28,24 @@ const SHELVES: { key: PersonalShelf; label: (l: "es" | "en" | "gl") => string }[
 export const MePage = ({ onToast }: MePageProps) => {
   const { language } = useI18n();
   const navigate = useNavigate();
-  const confirm = useConfirm();
   const [books, setBooks] = useState<PersonalBook[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const communityName = getSelectedCommunity()?.name;
 
-  const load = () => {
+  const load = useCallback(() => {
     void listPersonalLibrary()
       .then((r) => setBooks(r.books))
       .catch(() => undefined)
       .finally(() => setLoading(false));
-  };
-  useEffect(load, []);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  // El detalle de un libro personal avisa al cambiar estantería/capítulos/quitar.
+  useEffect(() => {
+    const onRefresh = () => load();
+    window.addEventListener("wee:personal-refresh", onRefresh);
+    return () => window.removeEventListener("wee:personal-refresh", onRefresh);
+  }, [load]);
 
   const handleAddBook = async (draft: BookDraft): Promise<void> => {
     const { book } = await addToPersonalLibrary({
@@ -64,63 +63,6 @@ export const MePage = ({ onToast }: MePageProps) => {
     onToast(pick(language, "Añadido a tu biblioteca.", "Added to your library.", "Engadido á túa biblioteca."));
   };
 
-  const handleSetShelf = async (bookId: string, shelf: PersonalShelf): Promise<void> => {
-    setBusyId(bookId);
-    setBooks((prev) => prev.map((b) => (b.id === bookId ? { ...b, shelf } : b)));
-    try {
-      await setPersonalShelf(bookId, shelf);
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const handleRemove = async (bookId: string): Promise<void> => {
-    const ok = await confirm({
-      title: pick(language, "¿Quitar de tu biblioteca?", "Remove from your library?", "Quitar da túa biblioteca?"),
-      confirmLabel: pick(language, "Quitar", "Remove", "Quitar"),
-      danger: true
-    });
-    if (!ok) return;
-    setBusyId(bookId);
-    const prev = books;
-    setBooks((cur) => cur.filter((b) => b.id !== bookId));
-    try {
-      await removeFromPersonalLibrary(bookId);
-    } catch {
-      setBooks(prev);
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const handlePropose = async (bookId: string): Promise<void> => {
-    if (!communityName) {
-      onToast(pick(language, "Entra en un club para proponer un libro.", "Join a club to propose a book.", "Entra nun club para propoñer un libro."));
-      return;
-    }
-    const book = books.find((b) => b.id === bookId);
-    const ok = await confirm({
-      title: pick(language, `¿Proponer «${book?.title ?? ""}» a ${communityName}?`, `Propose "${book?.title ?? ""}" to ${communityName}?`, `Propoñer «${book?.title ?? ""}» a ${communityName}?`),
-      message: book?.shelf === "read"
-        ? pick(language, "Ya lo tienes como leído: el club lo verá marcado como «leído por ti» desde el principio.", "You already marked it read: the club will see it tagged \"read by you\" from the start.", "Xa o tes como lido: o club veráo marcado como «lido por ti» dende o principio.")
-        : undefined,
-      confirmLabel: pick(language, "Proponer", "Propose", "Propoñer")
-    });
-    if (!ok) return;
-    setBusyId(bookId);
-    try {
-      const { book: created } = await proposeToClubFromLibrary(bookId);
-      onToast(pick(language, "Propuesto al club.", "Proposed to the club.", "Proposto ao club."));
-      navigate(`/book/${created.id}`);
-    } catch (err) {
-      onToast((err as Error).message?.includes("BOOK_ALREADY_IN_CLUB")
-        ? pick(language, "Ese libro ya está en el club.", "That book is already in the club.", "Ese libro xa está no club.")
-        : pick(language, "No se pudo proponer.", "Couldn't propose it.", "Non se puido propoñer."));
-    } finally {
-      setBusyId(null);
-    }
-  };
-
   return (
     <main>
       <div className="me-page">
@@ -131,7 +73,7 @@ export const MePage = ({ onToast }: MePageProps) => {
             <Icon name="plus" size={14} /> {pick(language, "Añadir libro", "Add book", "Engadir libro")}
           </button>
         </div>
-        <p className="hint">{pick(language, "Tus lecturas a título individual, aparte del club. Puedes proponer al club cualquiera de estos libros.", "Your reading, aside from the club. You can propose any of these books to your club.", "As túas lecturas a título individual, á parte do club. Podes propoñer calquera destes libros ao club.")}</p>
+        <p className="hint">{pick(language, "Tus lecturas a título individual, aparte del club. Toca un libro para seguir sus capítulos o proponerlo al club.", "Your reading, aside from the club. Tap a book to track chapters or propose it to your club.", "As túas lecturas a título individual. Toca un libro para seguir os seus capítulos ou propoñelo ao club.")}</p>
 
         {loading ? (
           <p className="hint">{pick(language, "Cargando…", "Loading…", "Cargando…")}</p>
@@ -148,14 +90,7 @@ export const MePage = ({ onToast }: MePageProps) => {
                 <h4 className="personal-shelf-title">{s.label(language)}</h4>
                 <div className="personal-book-list">
                   {list.map((b) => (
-                    <PersonalBookCard
-                      key={b.id}
-                      book={b}
-                      busy={busyId === b.id}
-                      onSetShelf={(id, shelf) => void handleSetShelf(id, shelf)}
-                      onPropose={(id) => void handlePropose(id)}
-                      onRemove={(id) => void handleRemove(id)}
-                    />
+                    <PersonalBookCard key={b.id} book={b} onOpen={(id) => navigate(`/me/book/${id}`)} />
                   ))}
                 </div>
               </div>

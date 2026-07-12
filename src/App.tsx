@@ -29,6 +29,7 @@ const BookDetailPage = lazy(async () => ({ default: (await import("./pages/BookD
 const ProfilePage = lazy(async () => ({ default: (await import("./pages/ProfilePage")).ProfilePage }));
 const FeedPage = lazy(async () => ({ default: (await import("./pages/FeedPage")).FeedPage }));
 const MePage = lazy(async () => ({ default: (await import("./pages/MePage")).MePage }));
+const PersonalBookDetailPage = lazy(async () => ({ default: (await import("./pages/PersonalBookDetailPage")).PersonalBookDetailPage }));
 const SettingsPage = lazy(async () => ({ default: (await import("./pages/SettingsPage")).SettingsPage }));
 const CommunityPage = lazy(async () => ({ default: (await import("./pages/CommunityPage")).CommunityPage }));
 const CommunitiesPickerPage = lazy(async () => ({ default: (await import("./pages/CommunitiesPickerPage")).CommunitiesPickerPage }));
@@ -729,6 +730,17 @@ const AppRoutes = () => {
             <RequireAuth activeUser={activeUser} redirectPath={globalSession ? "/communities" : "/login"}>
               <PageTransition>
                 <MePage onToast={showToast} />
+              </PageTransition>
+            </RequireAuth>
+          }
+        />
+
+        <Route
+          path="/me/book/:bookId"
+          element={
+            <RequireAuth activeUser={activeUser} redirectPath={globalSession ? "/communities" : "/login"}>
+              <PageTransition>
+                <PersonalBookDetailPage onToast={showToast} />
               </PageTransition>
             </RequireAuth>
           }

@@ -5854,26 +5854,73 @@ html[data-reduce-motion="on"] *::after {
 .personal-shelf { margin-top: 16px; }
 .personal-shelf-title { margin: 0 0 8px; font-size: 0.86rem; color: var(--ink-1); text-transform: uppercase; letter-spacing: 0.03em; }
 .personal-book-list { display: grid; gap: 10px; }
+/* Card personal: tappable → detalle (como la del club). */
 .personal-book-card {
   display: flex;
+  align-items: center;
   gap: 10px;
+  width: 100%;
   padding: 10px;
+  text-align: left;
   background: var(--panel-0);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-standard);
 }
+.personal-book-card:active { background: color-mix(in srgb, var(--brand) 5%, var(--panel-0)); }
 .personal-book-cover {
-  width: 56px;
+  width: 52px;
   aspect-ratio: 2 / 3;
   flex: 0 0 auto;
   object-fit: cover;
   border-radius: var(--radius-sm);
   background: var(--panel-1);
 }
-.personal-book-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 auto; }
-.personal-book-title { font-size: 0.92rem; }
-.personal-book-author { color: var(--ink-1); font-size: 0.8rem; }
-.personal-book-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.personal-book-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 auto; }
+.personal-book-title { font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.personal-book-author { color: var(--ink-1); font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.personal-book-progress { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.personal-book-progress-bar { flex: 1 1 auto; height: 5px; border-radius: var(--radius-pill); background: var(--panel-1); overflow: hidden; }
+.personal-book-progress-fill { display: block; height: 100%; background: var(--status-reading); border-radius: var(--radius-pill); }
+.personal-book-progress-label { flex: 0 0 auto; font-size: 0.72rem; color: var(--ink-1); font-variant-numeric: tabular-nums; }
+.personal-book-go { flex: 0 0 auto; color: var(--ink-1); font-size: 1.1rem; }
+
+/* Detalle personal: cabecera portada + datos (sin nada social). */
+.personal-shelf-chip { background: var(--panel-1); color: var(--ink-1); }
+.personal-detail-head { display: flex; gap: 14px; align-items: flex-start; }
+.personal-detail-cover { flex: 0 0 auto; width: min(120px, 32vw); }
+.personal-detail-cover img, .personal-detail-cover .gen-cover { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; border-radius: var(--radius-md); background: var(--panel-1); }
+.personal-detail-info { min-width: 0; }
+.personal-detail-info h1 { font-size: 1.25rem; margin: 0 0 2px; }
+.personal-detail-synopsis { margin: 8px 0 0; font-size: 0.86rem; line-height: 1.5; color: var(--ink-1); }
+.personal-shelf-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Editor + checklist de capítulos. */
+.personal-chapters-editor { display: grid; gap: 10px; }
+.personal-chapters-editor-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.personal-chapters-or { color: var(--ink-1); font-size: 0.82rem; }
+.personal-chapters-numbered { display: inline-flex; align-items: center; gap: 6px; }
+.personal-chapters-numbered input { width: 64px; }
+.personal-chapters-progress { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.personal-chapters-progress .personal-book-progress-bar { height: 8px; }
+.personal-chapter-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.personal-chapter-row {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; min-height: 44px; padding: 8px 4px;
+  text-align: left; background: transparent; border: none;
+  border-bottom: 1px dashed var(--line); color: var(--ink-0); cursor: pointer;
+}
+.personal-chapter-row:last-child { border-bottom: 0; }
+.personal-chapter-check {
+  flex: 0 0 auto; display: grid; place-items: center;
+  width: 22px; height: 22px; border-radius: 6px;
+  border: 1.5px solid var(--line); color: var(--status-finished);
+}
+.personal-chapter-row.is-done .personal-chapter-check { background: color-mix(in srgb, var(--status-finished) 16%, var(--panel-0)); border-color: var(--status-finished); }
+.personal-chapter-row.is-done .personal-chapter-title { color: var(--ink-1); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--status-finished) 60%, transparent); }
+.personal-chapter-title { flex: 1 1 auto; min-width: 0; }
+.personal-detail-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 /* Etiqueta "leído por X" en una propuesta ya leída por quien la trajo. */
 .book-already-read-tag {
