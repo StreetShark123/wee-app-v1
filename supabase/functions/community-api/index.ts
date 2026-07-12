@@ -627,8 +627,12 @@ const sendPushForNotifications = async (
 
 const notify = async (
   communityId: string,
-  rows: Array<{ user_id: string; kind: string; actor_id?: string | null; book_id?: string | null; text?: string | null }>
+  rowsIn: Array<{ user_id: string; kind: string; actor_id?: string | null; book_id?: string | null; text?: string | null }>
 ): Promise<void> => {
+  // Red de seguridad: nunca notifiques a alguien de su PROPIA acción. Si el
+  // destinatario es el actor, se cae (los usuarios reportaban recibir avisos de
+  // su propio uso). Cada llamador debería filtrar igual, pero esto lo garantiza.
+  const rows = rowsIn.filter((r) => !(r.actor_id && r.user_id === r.actor_id));
   if (!rows.length) return;
   try {
     await db.from("notifications").insert(
@@ -664,7 +668,7 @@ const announceMemberJoined = async (communityId: string, joinerId: string): Prom
   }
 };
 
-const recomputeBookStatus = async (communityId: string, bookId: string): Promise<string> => {
+const recomputeBookStatus = async (communityId: string, bookId: string, actorId?: string): Promise<string> => {
   const [bookRes, memberRes, active] = await Promise.all([
     db.from("books").select("status").eq("community_id", communityId).eq("id", bookId).maybeSingle(),
     db
@@ -686,8 +690,9 @@ const recomputeBookStatus = async (communityId: string, bookId: string): Promise
   const status = allFinished ? "finished" : "reading";
   await db.from("books").update({ status }).eq("community_id", communityId).eq("id", bookId);
   if (current !== "finished" && status === "finished") {
-    // El club entero terminó el libro: avisa a todos los activos.
-    await notify(communityId, [...active].map((uid) => ({ user_id: uid, kind: "book_finished", book_id: bookId })));
+    // El club entero terminó el libro: avisa a todos los activos MENOS a quien
+    // lo disparó (marcó el último capítulo) — si no, se auto-notifica.
+    await notify(communityId, [...active].filter((uid) => uid !== actorId).map((uid) => ({ user_id: uid, kind: "book_finished", actor_id: actorId ?? null, book_id: bookId })));
   }
   return status;
 };
@@ -3182,9 +3187,12 @@ const handlers = {
         notified.add(noteAuthorId);
         recipients.push({ user_id: noteAuthorId, kind: "note_comment" });
       }
-      if (recipients.length > 0) {
+      // Nunca a uno mismo: responder a tu propio comentario o auto-mencionarte
+      // no debe notificarte (parentAuthorId/mención no lo comprobaban).
+      const finalRecipients = recipients.filter((r) => r.user_id !== auth.user.id);
+      if (finalRecipients.length > 0) {
         await db.from("notifications").insert(
-          recipients.map((r) => ({
+          finalRecipients.map((r) => ({
             community_id: auth.community.id,
             user_id: r.user_id,
             actor_id: auth.user.id,
@@ -3589,7 +3597,7 @@ const handlers = {
       .single();
     if (upsert.error) return dbFail(400, upsert.error);
 
-    const status = await recomputeBookStatus(auth.community.id, bookId);
+    const status = await recomputeBookStatus(auth.community.id, bookId, auth.user.id);
     return json(200, { myMember: rowToMemberBook(upsert.data as Record<string, any>), bookStatus: status });
   },
 
@@ -3634,7 +3642,7 @@ const handlers = {
       .single();
     if (upsert.error) return dbFail(400, upsert.error);
 
-    const status = await recomputeBookStatus(auth.community.id, bookId);
+    const status = await recomputeBookStatus(auth.community.id, bookId, auth.user.id);
     return json(200, { myMember: rowToMemberBook(upsert.data as Record<string, any>), bookStatus: status });
   },
 
@@ -3710,7 +3718,7 @@ const handlers = {
       .update({ chapters_done: 0, shelf: "want", finished_at: null, updated_at: nowIso() })
       .eq("community_id", auth.community.id)
       .eq("book_id", bookId);
-    const status = await recomputeBookStatus(auth.community.id, bookId);
+    const status = await recomputeBookStatus(auth.community.id, bookId, auth.user.id);
 
     return json(200, {
       chapters: (ins.data ?? []).map((row: Record<string, any>) => ({
@@ -3765,7 +3773,7 @@ const handlers = {
     }
 
     const member = await recomputeMemberFromChapters(auth.community.id, bookId, auth.user.id);
-    const status = await recomputeBookStatus(auth.community.id, bookId);
+    const status = await recomputeBookStatus(auth.community.id, bookId, auth.user.id);
     return json(200, {
       chapterId,
       done,
@@ -4182,7 +4190,7 @@ const handlers = {
     }
 
     const member = await recomputeMemberFromChapters(auth.community.id, bookId, auth.user.id);
-    const status = await recomputeBookStatus(auth.community.id, bookId);
+    const status = await recomputeBookStatus(auth.community.id, bookId, auth.user.id);
     return json(200, { myMember: rowToMemberBook(member), bookStatus: status });
   },
 
