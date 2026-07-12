@@ -169,7 +169,7 @@ export const MePage = ({ onToast }: MePageProps) => {
           relativo a ese contenedor (queda cortado por el dock). Mismo patrón
           que el modal de onboarding de HomePage. */}
       {createPortal(
-        <AddBookModal open={modalOpen} onClose={() => setModalOpen(false)} onAddBook={handleAddBook} onToast={onToast} />,
+        <AddBookModal open={modalOpen} onClose={() => setModalOpen(false)} onAddBook={handleAddBook} onToast={onToast} context="personal" />,
         document.body
       )}
     </main>

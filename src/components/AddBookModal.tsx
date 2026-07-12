@@ -16,11 +16,18 @@ interface AddBookModalProps {
   onClose: () => void;
   onAddBook: (book: BookDraft) => Promise<void>;
   onToast: (message: string) => void;
+  // "club": propuesta al club → sinopsis y "por qué lo recomiendas" OBLIGATORIOS
+  // (evita el "pego y ya"). "personal": biblioteca personal → sin motivo.
+  context?: "club" | "personal";
 }
 
 type Phase = "search" | "review";
 
-export const AddBookModal = ({ open, onClose, onAddBook, onToast }: AddBookModalProps) => {
+// Un motivo mínimamente escrito (no "asd"): convence al club y da contexto.
+const MIN_REASON = 10;
+
+export const AddBookModal = ({ open, onClose, onAddBook, onToast, context = "club" }: AddBookModalProps) => {
+  const isClub = context === "club";
   const { language } = useI18n();
   const [phase, setPhase] = useState<Phase>("search");
   const [query, setQuery] = useState("");
@@ -114,6 +121,14 @@ export const AddBookModal = ({ open, onClose, onAddBook, onToast }: AddBookModal
     if (!draft || submitting) return;
     if (!draft.title.trim()) {
       onToast(pick(language, "El título es obligatorio.", "Title is required.", "O título é obrigatorio."));
+      return;
+    }
+    if (isClub && !(draft.description ?? "").trim()) {
+      onToast(pick(language, "Añade una sinopsis del libro.", "Add a synopsis of the book.", "Engade unha sinopse do libro."));
+      return;
+    }
+    if (isClub && draft.proposalNote.trim().length < MIN_REASON) {
+      onToast(pick(language, "Cuenta en una frase por qué lo recomiendas.", "Say in a sentence why you recommend it.", "Conta nunha frase por que o recomendas."));
       return;
     }
     setSubmitting(true);
@@ -314,11 +329,17 @@ export const AddBookModal = ({ open, onClose, onAddBook, onToast }: AddBookModal
 
                 <label>
                   {pick(language, "Sinopsis", "Description", "Sinopse")}
+                  {isClub ? <span className="field-req"> *</span> : null}
                   <textarea
                     rows={4}
                     value={draft.description ?? ""}
                     onChange={(event) => editField("description", event.target.value || null)}
-                    placeholder={pick(
+                    placeholder={isClub ? pick(
+                      language,
+                      "De qué va el libro (una idea, sin spoilers).",
+                      "What the book is about (a gist, no spoilers).",
+                      "De que vai o libro (unha idea, sen spoilers)."
+                    ) : pick(
                       language,
                       "Opcional — añade una sinopsis si quieres.",
                       "Optional — add a synopsis if you like.",
@@ -327,27 +348,34 @@ export const AddBookModal = ({ open, onClose, onAddBook, onToast }: AddBookModal
                   />
                 </label>
 
-                <label>
-                  {pick(language, "¿Por qué lo recomiendas?", "Why do you recommend it?", "Por que o recomendas?")}
-                  <span className="field-hint">{pick(language, "Un buen motivo convence al club.", "A good reason convinces the club and helps it get picked.", "Un bo motivo convence ao club e axuda a que saia adiante.")}</span>
-                  <textarea
-                    rows={2}
-                    value={draft.proposalNote}
-                    onChange={(event) => editField("proposalNote", event.target.value)}
-                    placeholder={pick(
-                      language,
-                      "Ej.: «Me marcó por cómo trata la memoria y el duelo, y se lee del tirón.»",
-                      "E.g.: “It stuck with me for how it handles memory and grief, and it's a page-turner.”",
-                      "Ex.: «Marcoume por como trata a memoria e o dó, e lese do tirón.»"
-                    )}
-                  />
-                </label>
+                {isClub ? (
+                  <label>
+                    {pick(language, "¿Por qué lo recomiendas?", "Why do you recommend it?", "Por que o recomendas?")}
+                    <span className="field-req"> *</span>
+                    <span className="field-hint">{pick(language, "Un buen motivo convence al club.", "A good reason convinces the club and helps it get picked.", "Un bo motivo convence ao club e axuda a que saia adiante.")}</span>
+                    <textarea
+                      rows={2}
+                      value={draft.proposalNote}
+                      onChange={(event) => editField("proposalNote", event.target.value)}
+                      placeholder={pick(
+                        language,
+                        "Ej.: «Me marcó por cómo trata la memoria y el duelo, y se lee del tirón.»",
+                        "E.g.: “It stuck with me for how it handles memory and grief, and it's a page-turner.”",
+                        "Ex.: «Marcoume por como trata a memoria e o dó, e lese do tirón.»"
+                      )}
+                    />
+                  </label>
+                ) : null}
 
                 <div className="book-review-actions">
                   <button type="button" className="btn" onClick={() => setPhase("search")} disabled={submitting}>
                     <Icon name="arrowLeft" /> {pick(language, "Volver", "Back", "Volver")}
                   </button>
-                  <button type="submit" className="btn btn-primary" disabled={submitting}>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={submitting || (isClub && (!(draft.description ?? "").trim() || draft.proposalNote.trim().length < MIN_REASON))}
+                  >
                     <Icon name="plus" />{" "}
                     {submitting ? (
                       <>

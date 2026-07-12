@@ -2507,6 +2507,8 @@ textarea::placeholder {
   color: var(--ink-1);
   margin: 2px 0 4px;
 }
+/* Asterisco de campo obligatorio. */
+.field-req { color: var(--danger); font-weight: 700; }
 
 /* Marca Wee (W en cuadrado de papel) */
 .wee-mark { flex: 0 0 auto; vertical-align: middle; }
