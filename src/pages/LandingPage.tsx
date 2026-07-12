@@ -10,7 +10,7 @@ import { pick, useI18n } from "../lib/i18n";
 // de login, que parecía "solo para invitados".
 export const LandingPage = () => {
   const { language } = useI18n();
-  const appVersion = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? "v0.4.0-alpha";
+  const appVersion = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? "v0.5.0-beta";
   const [claim, setClaim] = useState(0);
   const claims = [
     pick(language, "Tu club, tus libros, todo en orden", "Your club, your books, all in one place", "O teu club, os teus libros, todo en orde"),

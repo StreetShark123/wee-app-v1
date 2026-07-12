@@ -21,8 +21,8 @@ export const AuthPage = ({ mode, onLogin, onRegister }: AuthPageProps) => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [claimIndex, setClaimIndex] = useState(0);
-  const appVersion = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? "v0.4.0-alpha";
-  const lastUpdated = (import.meta.env.VITE_LAST_UPDATED as string | undefined) ?? "27 jun 2026";
+  const appVersion = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? "v0.5.0-beta";
+  const lastUpdated = (import.meta.env.VITE_LAST_UPDATED as string | undefined) ?? "12 jul 2026";
   const heroClaims = [
     pick(language, "Tu club, tus libros, todo en orden", "Your club, your books, all in one place", "O teu club, os teus libros, todo en orde"),
     pick(language, "Comparte lo que lees y el hilo no se pierde", "Share what you read and the thread stays clear", "Comparte o que les e o fío non se perde"),
@@ -158,20 +158,22 @@ export const AuthPage = ({ mode, onLogin, onRegister }: AuthPageProps) => {
           </p>
         </form>
 
-        <p className="auth-switch-inline">
-          {mode === "login"
-            ? pick(language, "¿Primera vez por aquí?", "First time here?", "Primeira vez por aquí?")
-            : pick(language, "¿Ya tienes cuenta?", "Already got an account?", "Xa tes conta?")}{" "}
+        <div className="auth-switch">
+          <span className="auth-switch-sep">
+            {mode === "login"
+              ? pick(language, "¿Todavía no tienes cuenta?", "Don't have an account yet?", "Aínda non tes conta?")
+              : pick(language, "¿Ya tienes cuenta?", "Already got an account?", "Xa tes conta?")}
+          </span>
           <button
             type="button"
-            className="auth-link-btn"
+            className="btn auth-switch-btn"
             onClick={() => navigate(mode === "login" ? `/signup${location.search}` : `/login${location.search}`)}
           >
             {mode === "login"
-              ? pick(language, "Crear cuenta", "Create account", "Crear conta")
-              : pick(language, "Entrar", "Log in", "Entrar")}
+              ? <><Icon name="user" size={14} /> {pick(language, "Crear una cuenta nueva", "Create a new account", "Crear unha conta nova")}</>
+              : <><Icon name="check" size={14} /> {pick(language, "Entrar con mi cuenta", "Log in with my account", "Entrar coa miña conta")}</>}
           </button>
-        </p>
+        </div>
       </section>
 
       <footer className="auth-soft-footer">

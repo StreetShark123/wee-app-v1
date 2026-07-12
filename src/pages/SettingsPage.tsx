@@ -28,8 +28,8 @@ const activeAgo = (ms: number, language: AppLanguage): string => {
   return pick(language, `hace ${months} mes`, `${months}mo ago`, `hai ${months} mes`);
 };
 
-const ALPHA_VERSION = "v0.4.0-alpha";
-const ALPHA_UPDATED_AT = "2026-06-27";
+const APP_VERSION = "v0.5.0-beta";
+const APP_UPDATED_AT = "2026-07-12";
 
 // Ajustes: índice tipo "Ajustes del sistema" — filas con icono que abren su
 // propia sub-sección, en vez de una página larga con todo desplegado. Orden:
@@ -363,9 +363,9 @@ export const SettingsPage = ({ activeUser, communityName, communityId, community
             <p className="hint">
               {pick(
                 language,
-                `Estado: Alpha · Versión ${ALPHA_VERSION} · Última actualización ${ALPHA_UPDATED_AT}`,
-                `Status: Alpha · Version ${ALPHA_VERSION} · Last update ${ALPHA_UPDATED_AT}`,
-                `Estado: Alpha · Versión ${ALPHA_VERSION} · Última actualización ${ALPHA_UPDATED_AT}`
+                `Estado: Beta · Versión ${APP_VERSION} · Última actualización ${APP_UPDATED_AT}`,
+                `Status: Beta · Version ${APP_VERSION} · Last update ${APP_UPDATED_AT}`,
+                `Estado: Beta · Versión ${APP_VERSION} · Última actualización ${APP_UPDATED_AT}`
               )}
             </p>
             <div className="about-grid">

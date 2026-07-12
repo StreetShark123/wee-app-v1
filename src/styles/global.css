@@ -2115,6 +2115,28 @@ textarea::placeholder {
   text-decoration: underline;
 }
 
+/* Alternar login/registro: el registro pasa de enlace diminuto a botón claro
+   (separado del submit por un hilo), para que "crear cuenta" no se pierda. */
+.auth-switch {
+  display: grid;
+  gap: 8px;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--line);
+}
+.auth-switch-sep {
+  text-align: center;
+  font-size: 0.84rem;
+  color: var(--ink-1);
+}
+.auth-switch-btn {
+  width: 100%;
+  justify-content: center;
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--line));
+  color: var(--brand-strong);
+  font-weight: 700;
+}
+
 .auth-upload-side h3 {
   margin: 0 0 0.25rem;
   font-size: 0.96rem;
