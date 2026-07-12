@@ -3,6 +3,7 @@ import { pick, useI18n } from "../lib/i18n";
 import type { AppLanguage } from "../lib/types";
 import type { ClubBook, MeetingRsvp } from "../lib/communityApi";
 import { Icon } from "./Icon";
+import { UserDot } from "./UserBadge";
 
 // ── .ics: el calendario del móvil recuerda la cita aunque no abras la app ──
 const icsStamp = (ms: number): string => new Date(ms).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
@@ -38,9 +39,19 @@ const toLocalInput = (ms?: number): string => {
 const formatWhen = (ms: number, language: AppLanguage): string =>
   new Date(ms).toLocaleString(language === "en" ? "en-GB" : "es-ES", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
 
+// Diferencia en DÍAS DE CALENDARIO (no ventanas de 24h): un evento hoy a las
+// 22:22 visto a mediodía son ~10h → antes Math.ceil lo redondeaba a 1 y decía
+// "es mañana". Comparando medianoche local sale 0 = hoy.
+const meetingDayInfo = (ms: number): { passed: boolean; days: number } => {
+  const passed = ms < Date.now();
+  const a = new Date(ms); a.setHours(0, 0, 0, 0);
+  const b = new Date(); b.setHours(0, 0, 0, 0);
+  const days = Math.round((a.getTime() - b.getTime()) / 86400000);
+  return { passed, days };
+};
 const countdown = (ms: number, language: AppLanguage): string => {
-  const days = Math.ceil((ms - Date.now()) / 86400000);
-  if (ms < Date.now()) return pick(language, "ya pasó", "already passed", "xa pasou");
+  const { passed, days } = meetingDayInfo(ms);
+  if (passed) return pick(language, "ya pasó", "already passed", "xa pasou");
   if (days <= 0) return pick(language, "es hoy", "it's today", "é hoxe");
   if (days === 1) return pick(language, "es mañana", "it's tomorrow", "é mañá");
   return pick(language, `faltan ${days} días`, `${days} days to go`, `faltan ${days} días`);
@@ -95,10 +106,17 @@ export const MeetingCard = ({ book, rsvp, canManage, onSetMeeting, onRsvp, busy 
     </div>
   );
 
+  const info = has ? meetingDayInfo(book.meetingAt as number) : null;
+  const isToday = !!info && !info.passed && info.days === 0;
+  const isGoing = rsvp?.mine === "yes";
+
   return (
-    <section className="page-section meeting-card">
+    <section className={`page-section meeting-card${isToday ? " meeting-today" : ""}`}>
       <div className="section-head">
-        <h3><Icon name="users" /> {pick(language, "La cita del club", "The club's meet-up", "A cita do club")}</h3>
+        <h3>
+          <Icon name="users" /> {pick(language, "La cita del club", "The club's meet-up", "A cita do club")}
+          {isToday ? <span className="meeting-today-badge">{pick(language, "HOY", "TODAY", "HOXE")}</span> : null}
+        </h3>
         {has && canManage && !editing ? (
           <button type="button" className="btn btn-tiny" onClick={() => setEditing(true)}>{pick(language, "Editar", "Edit", "Editar")}</button>
         ) : null}
@@ -108,30 +126,46 @@ export const MeetingCard = ({ book, rsvp, canManage, onSetMeeting, onRsvp, busy 
         form
       ) : has ? (
         <>
-          <p className="meeting-when">
-            <strong>{formatWhen(book.meetingAt as number, language)}</strong>
-            <span className="meeting-countdown"> · {countdown(book.meetingAt as number, language)}</span>
-          </p>
-          {book.meetingPlace ? <p className="meeting-place"><Icon name="target" size={13} /> {book.meetingPlace}</p> : null}
-          <div className="meeting-actions">
-            {book.meetingUrl ? (
-              <a className="btn btn-primary" href={book.meetingUrl} target="_blank" rel="noopener noreferrer nofollow"><Icon name="link" size={13} /> {pick(language, "Entrar a la videollamada", "Join the video call", "Entrar á videochamada")}</a>
+          <div className="meeting-when-row">
+            <p className="meeting-when">
+              <strong>{formatWhen(book.meetingAt as number, language)}</strong>
+              <span className={`meeting-countdown${isToday ? " is-today" : ""}`}> · {countdown(book.meetingAt as number, language)}</span>
+            </p>
+            {/* Campana de calendario: inline con la fecha y SOLO si vas. */}
+            {isGoing ? (
+              <button
+                type="button"
+                className="meeting-cal-btn"
+                onClick={() => downloadIcs(`${pick(language, "Club:", "Club:", "Club:")} ${book.title}`, book.meetingAt as number, book.meetingPlace, book.meetingUrl)}
+                aria-label={pick(language, "Añadir a mi calendario", "Add to my calendar", "Engadir ao meu calendario")}
+                title={pick(language, "Añadir a mi calendario", "Add to my calendar", "Engadir ao meu calendario")}
+              >
+                <Icon name="bell" size={15} />
+              </button>
             ) : null}
-            <button type="button" className="btn" onClick={() => downloadIcs(`${pick(language, "Club:", "Club:", "Club:")} ${book.title}`, book.meetingAt as number, book.meetingPlace, book.meetingUrl)}>
-              <Icon name="bell" size={13} /> {pick(language, "Añadir a mi calendario", "Add to my calendar", "Engadir ao meu calendario")}
-            </button>
           </div>
+          {book.meetingPlace ? <p className="meeting-place"><Icon name="target" size={13} /> {book.meetingPlace}</p> : null}
+          {book.meetingUrl ? (
+            <a className="btn btn-primary meeting-join-btn" href={book.meetingUrl} target="_blank" rel="noopener noreferrer nofollow"><Icon name="link" size={13} /> {pick(language, "Entrar a la videollamada", "Join the video call", "Entrar á videochamada")}</a>
+          ) : null}
           <div className="meeting-rsvp">
-            <button type="button" className={`btn${rsvp?.mine === "yes" ? " btn-primary" : ""}`} disabled={busy} onClick={() => onRsvp(rsvp?.mine === "yes" ? null : "yes")}>
+            <button type="button" className={`btn${isGoing ? " btn-primary" : ""}`} disabled={busy} onClick={() => onRsvp(isGoing ? null : "yes")}>
               <Icon name="check" size={13} /> {pick(language, "Voy", "I'm in", "Vou")}
             </button>
             <button type="button" className={`btn${rsvp?.mine === "no" ? " is-on" : ""}`} disabled={busy} onClick={() => onRsvp(rsvp?.mine === "no" ? null : "no")}>
               {pick(language, "No puedo", "Can't make it", "Non podo")}
             </button>
-            {rsvp && rsvp.going > 0 ? (
-              <span className="meeting-going hint">{pick(language, `Van ${rsvp.going}`, `${rsvp.going} going`, `Van ${rsvp.going}`)}: {rsvp.goingAliases.join(", ")}</span>
-            ) : null}
           </div>
+          {rsvp && rsvp.going > 0 ? (
+            <div className="meeting-going">
+              <span className="meeting-going-stack">
+                {rsvp.goingAliases.slice(0, 7).map((alias, i) => (
+                  <UserDot key={`${alias}-${i}`} alias={alias} colorIndex={i} title={alias} />
+                ))}
+              </span>
+              <span className="hint">{pick(language, `Van ${rsvp.going}`, `${rsvp.going} going`, `Van ${rsvp.going}`)}</span>
+            </div>
+          ) : null}
         </>
       ) : canManage ? (
         <>

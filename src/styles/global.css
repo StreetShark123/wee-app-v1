@@ -2593,14 +2593,46 @@ textarea::placeholder {
 
 /* La cita del club: tarjeta con acento (es el momento social del libro). */
 .meeting-card { border-left: 3px solid var(--brand); background: color-mix(in srgb, var(--brand) 5%, var(--panel-0)); }
-.meeting-when { margin: 4px 0; font-size: 1rem; color: var(--ink-0); }
+/* Fila fecha + campana de calendario (inline, solo si vas). */
+.meeting-when-row { display: flex; align-items: center; gap: 8px; }
+.meeting-when { margin: 2px 0; font-size: 1rem; color: var(--ink-0); flex: 1 1 auto; }
 .meeting-when strong { text-transform: capitalize; }
 .meeting-countdown { color: var(--brand-strong); font-weight: 700; }
+.meeting-cal-btn {
+  flex: 0 0 auto; display: grid; place-items: center;
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--panel-0);
+  color: var(--brand-strong); cursor: pointer;
+}
+.meeting-cal-btn:active { background: color-mix(in srgb, var(--brand) 10%, var(--panel-0)); }
 .meeting-place { display: inline-flex; align-items: center; gap: 5px; margin: 2px 0 8px; color: var(--ink-1); font-size: 0.9rem; }
-.meeting-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.meeting-join-btn { margin-bottom: 8px; }
 .meeting-rsvp { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .meeting-rsvp .is-on { background: var(--panel-1); border-color: var(--ink-1); }
-.meeting-going { flex: 1 1 100%; margin-top: 2px; }
+.meeting-going { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.meeting-going-stack { display: inline-flex; align-items: center; }
+.meeting-going-stack .user-dot { width: 22px; height: 22px; margin-left: -7px; box-shadow: 0 0 0 1.5px var(--panel-0); }
+.meeting-going-stack .user-dot:first-child { margin-left: 0; }
+
+/* Día del evento: la tarjeta grita "HOY" (acento + badge) para que no se pase. */
+.meeting-today {
+  border-left-color: var(--ink-scarlet);
+  background: color-mix(in srgb, var(--ink-scarlet) 7%, var(--panel-0));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink-scarlet) 30%, transparent);
+}
+.meeting-today-badge {
+  margin-left: 8px; padding: 1px 8px; border-radius: var(--radius-pill);
+  background: var(--ink-scarlet); color: #fff;
+  font-family: var(--font-type); font-size: 0.64rem; letter-spacing: 0.08em;
+  vertical-align: middle;
+  animation: meeting-today-pulse 1.8s ease-in-out infinite;
+}
+.meeting-countdown.is-today { color: var(--ink-scarlet); }
+@keyframes meeting-today-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.62; }
+}
+@media (prefers-reduced-motion: reduce) { .meeting-today-badge { animation: none; } }
 .meeting-form { display: grid; gap: 8px; }
 .meeting-form label { display: grid; gap: 4px; font-size: 0.82rem; color: var(--ink-1); }
 .meeting-form input { width: 100%; }
