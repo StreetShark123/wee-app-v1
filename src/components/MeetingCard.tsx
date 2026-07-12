@@ -117,22 +117,14 @@ export const MeetingCard = ({ book, rsvp, canManage, onSetMeeting, onRsvp, busy 
           <Icon name="users" /> {pick(language, "La cita del club", "The club's meet-up", "A cita do club")}
           {isToday ? <span className="meeting-today-badge">{pick(language, "HOY", "TODAY", "HOXE")}</span> : null}
         </h3>
-        {has && canManage && !editing ? (
-          <button type="button" className="btn btn-tiny" onClick={() => setEditing(true)}>{pick(language, "Editar", "Edit", "Editar")}</button>
-        ) : null}
-      </div>
-
-      {editing ? (
-        form
-      ) : has ? (
-        <>
-          <div className="meeting-when-row">
-            <p className="meeting-when">
-              <strong>{formatWhen(book.meetingAt as number, language)}</strong>
-              <span className={`meeting-countdown${isToday ? " is-today" : ""}`}> · {countdown(book.meetingAt as number, language)}</span>
-            </p>
-            {/* Campana de calendario: inline con la fecha y SOLO si vas. */}
-            {isGoing ? (
+        {/* Acciones del header: Editar (solo el creador) + campana de calendario
+            (solo si vas), en línea a la derecha. */}
+        {(has && canManage && !editing) || (has && !editing && isGoing) ? (
+          <div className="meeting-head-actions">
+            {has && canManage && !editing ? (
+              <button type="button" className="btn btn-tiny" onClick={() => setEditing(true)}>{pick(language, "Editar", "Edit", "Editar")}</button>
+            ) : null}
+            {has && !editing && isGoing ? (
               <button
                 type="button"
                 className="meeting-cal-btn"
@@ -144,6 +136,18 @@ export const MeetingCard = ({ book, rsvp, canManage, onSetMeeting, onRsvp, busy 
               </button>
             ) : null}
           </div>
+        ) : null}
+      </div>
+
+      {editing ? (
+        form
+      ) : has ? (
+        <>
+          <p className="meeting-when">
+            <strong>{formatWhen(book.meetingAt as number, language)}</strong>
+            {/* Si es hoy, el badge "HOY" del título ya lo dice → no repitas. */}
+            {!isToday ? <span className="meeting-countdown"> · {countdown(book.meetingAt as number, language)}</span> : null}
+          </p>
           {book.meetingPlace ? <p className="meeting-place"><Icon name="target" size={13} /> {book.meetingPlace}</p> : null}
           {book.meetingUrl ? (
             <a className="btn btn-primary meeting-join-btn" href={book.meetingUrl} target="_blank" rel="noopener noreferrer nofollow"><Icon name="link" size={13} /> {pick(language, "Entrar a la videollamada", "Join the video call", "Entrar á videochamada")}</a>
