@@ -2640,12 +2640,19 @@ textarea::placeholder {
 
 /* Ritmo de lectura: barra con la media del club + marca de la meta. */
 .reading-pace { margin: 8px 0 4px; display: grid; gap: 6px; }
-.reading-pace-bar { position: relative; height: 8px; border-radius: var(--radius-pill); background: var(--panel-1); overflow: hidden; }
+/* Todo en una línea: lead · barra flexible · nota. */
+.reading-pace-row { display: flex; align-items: center; gap: 8px; }
+.reading-pace-lead { flex: 0 0 auto; font-size: 0.82rem; font-weight: 700; color: var(--ink-0); white-space: nowrap; }
+.reading-pace-bar { position: relative; flex: 1 1 auto; min-width: 40px; height: 8px; border-radius: var(--radius-pill); background: var(--panel-1); overflow: hidden; }
 .reading-pace-fill { position: absolute; inset: 0 auto 0 0; background: var(--status-reading); border-radius: var(--radius-pill); }
 .reading-pace-goal { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink-0); transform: translateX(-1px); }
-.reading-pace-label { margin: 0; font-size: 0.84rem; color: var(--ink-1); }
+.reading-pace-note { flex: 0 0 auto; font-size: 0.82rem; white-space: nowrap; }
 .reading-pace-ok { color: var(--success); font-weight: 700; }
 .reading-pace-behind { color: var(--warning); font-weight: 700; }
+.reading-pace-remind { align-self: flex-start; }
+/* Recta final: barra + lead en verde de "leído". */
+.reading-pace.is-done .reading-pace-fill { background: var(--status-finished); }
+.reading-pace.is-done .reading-pace-lead { color: var(--status-finished); }
 
 /* Banner "hoy toca hablar": aparece cuando la cita ya llegó. */
 .discuss-banner {
