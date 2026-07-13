@@ -28,6 +28,7 @@ import {
   confirmJoinCommunity,
   createInvite,
   createCommunity,
+  deleteCommunity,
   leaveCommunity,
   loadCommunityMeta,
   loginCommunityUser,
@@ -387,6 +388,19 @@ export const useAppData = () => {
 
   const leaveCurrentCommunity = useCallback(async (): Promise<void> => {
     await leaveCommunity();
+    clearCommunitySession();
+    setSelectedCommunity(null);
+    setSelectedCommunityState(null);
+    setActiveUserId(null);
+    setActiveUserIdState(null);
+    setUsers([]);
+    setPosts([]);
+    setPreferences(null);
+  }, []);
+
+  // Igual que salir, pero elimina el club entero (solo el fundador).
+  const deleteCurrentCommunity = useCallback(async (): Promise<void> => {
+    await deleteCommunity();
     clearCommunitySession();
     setSelectedCommunity(null);
     setSelectedCommunityState(null);
@@ -780,6 +794,7 @@ export const useAppData = () => {
     previewCommunityInvite,
     confirmCommunityInvite,
     leaveCurrentCommunity,
+    deleteCurrentCommunity,
     loadCommunityOverview,
     updateCommunityDetails,
     createCommunityInvite,

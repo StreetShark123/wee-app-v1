@@ -1998,6 +1998,23 @@ const handlers = {
     return json(200, { ok: true });
   },
 
+  // Eliminar el club POR COMPLETO. Solo el FUNDADOR (owner). Borra la fila de
+  // communities; todo lo demás (libros, votos, comentarios, miembros, perfiles,
+  // invitaciones, notificaciones…) cae por FK ON DELETE CASCADE. Irreversible;
+  // el front pide doble confirmación.
+  "/community/delete": async (req: Request) => {
+    const auth = await requireSession(req);
+    if (auth instanceof Response) return auth;
+    const denied = ensureAdmin(auth.role);
+    if (denied) return denied;
+    if ((await ownerOf(auth.community.id)) !== auth.user.id) {
+      return json(403, { message: "Solo el fundador del club puede eliminarlo" });
+    }
+    const del = await db.from("communities").delete().eq("id", auth.community.id);
+    if (del.error) return dbFail(500, del.error);
+    return json(200, { ok: true });
+  },
+
   "/community/admin/promote": async (req: Request) => {
     const auth = await requireSession(req);
     if (auth instanceof Response) return auth;

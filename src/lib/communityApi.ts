@@ -545,6 +545,11 @@ export const removeMember = async (targetUserId: string): Promise<void> => {
   await request<{ ok: true }>("/community/admin/remove", { target_user_id: targetUserId });
 };
 
+// Elimina el club por completo (solo el fundador). Backend borra en cascada.
+export const deleteCommunity = async (): Promise<void> => {
+  await request<{ ok: true }>("/community/delete", {});
+};
+
 export const leaveCommunity = async (): Promise<void> => {
   await request<{ ok: true }>("/community/leave", {});
   setCommunitySession(null);

@@ -6061,6 +6061,17 @@ html[data-reduce-motion="on"] *::after {
 .club-switch-go { flex: 0 0 auto; color: var(--ink-1); font-size: 1.1rem; }
 .club-create-btn { align-self: flex-start; }
 
+/* Zona peligrosa (eliminar club): marco rojo tenue + confirmación por nombre. */
+.club-danger { border: 1px solid color-mix(in srgb, var(--danger) 35%, var(--line)); background: color-mix(in srgb, var(--danger) 5%, var(--panel-0)); }
+.club-danger-title { color: var(--danger); }
+.club-danger-btn { align-self: flex-start; }
+.club-danger-confirm { display: grid; gap: 10px; }
+.club-danger-confirm-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.club-danger-final {
+  color: #fff; background: var(--danger); border-color: var(--danger);
+}
+.club-danger-final:disabled { opacity: 0.5; }
+
 /* Lista de miembros del club (clicable → perfil). */
 .member-list { display: grid; gap: 2px; }
 .member-row {

@@ -70,6 +70,7 @@ const AppRoutes = () => {
     previewCommunityInvite,
     confirmCommunityInvite,
     leaveCurrentCommunity,
+    deleteCurrentCommunity,
     loadCommunityOverview,
     updateCommunityDetails,
     createCommunityInvite,
@@ -700,9 +701,16 @@ const AppRoutes = () => {
                   communityName={selectedCommunity?.name}
                   communityId={selectedCommunity?.id}
                   communityMembers={communityMembers}
+                  communityOwnerId={communityOwnerId}
                   myCommunities={myCommunities}
                   onSwitchCommunity={setCommunityAsActive}
                   onCreateCommunity={createCommunityFlow}
+                  onDeleteCommunity={async () => {
+                    await deleteCurrentCommunity();
+                    await reloadMyCommunities();
+                    showToast(pick(language, "Club eliminado.", "Club deleted.", "Club eliminado."));
+                    navigate("/communities");
+                  }}
                   onUpdateAvatar={updateUserAvatar}
                   onUpdateAlias={updateUserAlias}
                   onExport={onExport}

@@ -7,6 +7,7 @@ import { PushSettings } from "../components/PushSettings";
 import { ReadingSettings } from "../components/ReadingSettings";
 import { UserDot } from "../components/UserBadge";
 import { communityHealth } from "../lib/communityApi";
+import { useConfirm } from "../lib/confirm";
 import { pick, useI18n } from "../lib/i18n";
 import { AVATAR_MAX_PX, imageFileToDataUrl } from "../lib/imageCompress";
 import { isAnalyticsOptedOut, setAnalyticsOptOut } from "../lib/usageAnalytics";
@@ -40,9 +41,11 @@ interface SettingsPageProps {
   communityName?: string;
   communityId?: string;
   communityMembers: Array<{ id: string; alias: string; role: "admin" | "member" }>;
+  communityOwnerId?: string | null;
   myCommunities: ClubListItem[];
   onSwitchCommunity: (communityId: string) => Promise<unknown>;
   onCreateCommunity: (input: CreateClubInput) => Promise<{ id: string }>;
+  onDeleteCommunity: () => Promise<void>;
   onUpdateAvatar: (userId: string, avatarDataUrl: string | undefined) => Promise<void>;
   onUpdateAlias: (userId: string, alias: string) => Promise<void>;
   onExport: () => Promise<void>;
@@ -62,13 +65,20 @@ const SECTIONS: { key: SectionKey; icon: IconName; label: (l: AppLanguage) => st
   { key: "session", icon: "logout", label: (l) => pick(l, "Sesión", "Session", "Sesión"), hint: (l) => pick(l, "Cerrar sesión", "Log out", "Pechar sesión") }
 ];
 
-export const SettingsPage = ({ activeUser, communityName, communityId, communityMembers, myCommunities, onSwitchCommunity, onCreateCommunity, onUpdateAvatar, onUpdateAlias, onExport, onLogout, onToast }: SettingsPageProps) => {
+export const SettingsPage = ({ activeUser, communityName, communityId, communityMembers, communityOwnerId, myCommunities, onSwitchCommunity, onCreateCommunity, onDeleteCommunity, onUpdateAvatar, onUpdateAlias, onExport, onLogout, onToast }: SettingsPageProps) => {
   const { language } = useI18n();
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [section, setSection] = useState<SectionKey | null>(null);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
   const [optedOut, setOptedOut] = useState(isAnalyticsOptedOut());
   const isClubAdmin = activeUser.role === "admin";
+  // Solo el FUNDADOR ve/puede eliminar el club (el backend también lo exige).
+  const isOwner = !!communityOwnerId && communityOwnerId === activeUser.id;
+  // Borrado con DOBLE confirmación: (1) diálogo de aviso, (2) teclear el nombre.
+  const [deleteArmed, setDeleteArmed] = useState(false);
+  const [deleteText, setDeleteText] = useState("");
+  const [deleting, setDeleting] = useState(false);
   // Última actividad por miembro (solo admin: viene de /community/health). Se
   // carga al abrir la sección del club; si falla o no eres admin, no se muestra.
   const [lastActiveById, setLastActiveById] = useState<Record<string, number>>({});
@@ -117,6 +127,29 @@ export const SettingsPage = ({ activeUser, communityName, communityId, community
       setSwitchingId(null);
     }
   };
+
+  // Doble confirmación (1/2): diálogo de aviso; si acepta, arma el paso 2 (teclear el nombre).
+  const startDelete = async (): Promise<void> => {
+    const ok = await confirm({
+      title: pick(language, `¿Eliminar «${communityName ?? "el club"}»?`, `Delete "${communityName ?? "the club"}"?`, `Eliminar «${communityName ?? "o club"}»?`),
+      message: pick(language, "Se borran TODOS sus libros, comentarios, votos y miembros. Es irreversible.", "This erases ALL its books, comments, votes and members. It can't be undone.", "Bórranse TODOS os seus libros, comentarios, votos e membros. É irreversible."),
+      confirmLabel: pick(language, "Sí, continuar", "Yes, continue", "Si, continuar"),
+      danger: true
+    });
+    if (ok) setDeleteArmed(true);
+  };
+  // (2/2): solo se activa si el texto coincide con el nombre del club.
+  const confirmDelete = async (): Promise<void> => {
+    if (deleting || deleteText.trim() !== (communityName ?? "").trim()) return;
+    setDeleting(true);
+    try {
+      await onDeleteCommunity(); // navega fuera al terminar
+    } catch {
+      onToast(pick(language, "No se pudo eliminar el club.", "Couldn't delete the club.", "Non se puido eliminar o club."));
+      setDeleting(false);
+    }
+  };
+
   const [alias, setAlias] = useState(activeUser.alias);
   const [savingAlias, setSavingAlias] = useState(false);
   const { canInstall, promptInstall } = useInstallPrompt();
@@ -323,6 +356,39 @@ export const SettingsPage = ({ activeUser, communityName, communityId, community
               </button>
               <p className="hint">{pick(language, "Empieza un club nuevo e invita a tu gente.", "Start a new club and invite your people.", "Comeza un club novo e convida á túa xente.")}</p>
             </section>
+
+            {/* Zona peligrosa: eliminar el club (solo el fundador). Doble
+                confirmación: diálogo + teclear el nombre del club. */}
+            {isOwner ? (
+              <section className="page-section club-danger">
+                <div className="section-head section-head-sub">
+                  <h3 className="club-danger-title"><Icon name="trash" size={14} /> {pick(language, "Zona peligrosa", "Danger zone", "Zona perigosa")}</h3>
+                </div>
+                {!deleteArmed ? (
+                  <>
+                    <p className="hint">{pick(language, "Eliminar el club borra todos sus libros, comentarios, votos y miembros. No se puede deshacer.", "Deleting the club erases all its books, comments, votes and members. It can't be undone.", "Eliminar o club borra todos os seus libros, comentarios, votos e membros. Non se pode desfacer.")}</p>
+                    <button type="button" className="btn me-logout club-danger-btn" onClick={() => void startDelete()}>
+                      <Icon name="trash" size={14} /> {pick(language, "Eliminar club", "Delete club", "Eliminar club")}
+                    </button>
+                  </>
+                ) : (
+                  <div className="club-danger-confirm">
+                    <label className="form-field">
+                      {pick(language, `Escribe «${communityName ?? ""}» para confirmar`, `Type "${communityName ?? ""}" to confirm`, `Escribe «${communityName ?? ""}» para confirmar`)}
+                      <input value={deleteText} onChange={(e) => setDeleteText(e.target.value)} autoFocus placeholder={communityName ?? ""} />
+                    </label>
+                    <div className="club-danger-confirm-actions">
+                      <button type="button" className="btn" disabled={deleting} onClick={() => { setDeleteArmed(false); setDeleteText(""); }}>
+                        {pick(language, "Cancelar", "Cancel", "Cancelar")}
+                      </button>
+                      <button type="button" className="btn club-danger-final" disabled={deleting || deleteText.trim() !== (communityName ?? "").trim()} onClick={() => void confirmDelete()}>
+                        <Icon name="trash" size={14} /> {deleting ? pick(language, "Eliminando…", "Deleting…", "Eliminando…") : pick(language, "Eliminar definitivamente", "Delete permanently", "Eliminar definitivamente")}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </section>
+            ) : null}
           </>
         ) : null}
 
