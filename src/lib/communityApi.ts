@@ -55,8 +55,9 @@ const attempt = async <T>(path: string, body: Record<string, unknown>): Promise<
   const data = (await response.json()) as T | ApiError;
   if (!response.ok) {
     const message = (data as ApiError)?.message ?? "Community API error";
-    const error = new Error(message) as Error & { status?: number };
+    const error = new Error(message) as Error & { status?: number; body?: unknown };
     error.status = response.status;
+    error.body = data; // p.ej. { message, book } en un 409 BOOK_ALREADY_IN_CLUB
     throw error;
   }
   return data as T;

@@ -1,5 +1,5 @@
 import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { HashRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { HashRouter, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { CommunityLoadingScreen } from "./components/CommunityLoadingScreen";
 import { DockNav } from "./components/DockNav";
@@ -10,7 +10,7 @@ import { PunctuationLoader } from "./components/PunctuationLoader";
 import { PullToRefresh } from "./components/PullToRefresh";
 import { AddBookModal } from "./components/AddBookModal";
 import type { BookDraft } from "./lib/bookSearch";
-import { createClubBook, demoteMember, exportMyData, joinPublicCommunity, listClubBooks, listNotifications, markNotificationsRead, previewCommunityBySlug, promoteMember, removeMember, requestJoinCommunity, type ClubBook, type MemberBook } from "./lib/communityApi";
+import { createClubBook, demoteMember, exportMyData, joinPublicCommunity, listClubBooks, listNotifications, markNotificationsRead, previewCommunityBySlug, promoteMember, removeMember, requestJoinCommunity, setBookStatus, type ClubBook, type MemberBook } from "./lib/communityApi";
 import { getCommunitySession } from "./lib/communitySession";
 import { clearBooksCache, getCachedList, setCachedList } from "./lib/booksCache";
 import { isFresh, markFetched } from "./lib/freshness";
@@ -47,6 +47,7 @@ const SPLASH_FADE_MS = 440;
 
 const AppRoutes = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const {
     users,
     activeUser,
@@ -797,6 +798,14 @@ const AppRoutes = () => {
           onClose={() => setBookModalOpen(false)}
           onAddBook={onAddBook}
           onToast={showToast}
+          isAdmin={activeUser?.role === "admin"}
+          onOpenBook={(id) => { setBookModalOpen(false); navigate(`/book/${id}`); }}
+          onRepropose={async (id) => {
+            await setBookStatus(id, "proposed");
+            await reloadBooks();
+            showToast(pick(language, "Propuesta reabierta.", "Proposal reopened.", "Proposta reaberta."));
+            navigate(`/book/${id}`);
+          }}
         />
         {showLoadingOverlay ? (
           bootSplashDoneRef.current

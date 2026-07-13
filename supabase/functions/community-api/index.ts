@@ -2876,7 +2876,13 @@ const handlers = {
     const ins = await db.from("books").insert(row).select("*").single();
     if (ins.error) {
       if (ins.error.message.toLowerCase().includes("duplicate")) {
-        return json(409, { message: "BOOK_ALREADY_IN_CLUB" });
+        // Devuelve el libro ya existente (id+estado) para que el front pueda
+        // ofrecer "ver el libro" o (admin) "volver a proponer".
+        let dupQ = db.from("books").select("id,status").eq("community_id", auth.community.id).limit(1);
+        dupQ = row.isbn ? dupQ.eq("isbn", row.isbn) : dupQ.ilike("title", title);
+        const found = await dupQ;
+        const existing = found.data && found.data[0] ? { id: found.data[0].id, status: found.data[0].status } : undefined;
+        return json(409, { message: "BOOK_ALREADY_IN_CLUB", book: existing });
       }
       return dbFail(400, ins.error);
     }

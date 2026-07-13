@@ -16,17 +16,21 @@ interface AddBookModalProps {
   onClose: () => void;
   onAddBook: (book: BookDraft) => Promise<void>;
   onToast: (message: string) => void;
-  // "club": propuesta al club → sinopsis y "por qué lo recomiendas" OBLIGATORIOS
-  // (evita el "pego y ya"). "personal": biblioteca personal → sin motivo.
+  // "club": propuesta al club → "por qué lo recomiendas" OBLIGATORIO (evita el
+  // "pego y ya"). "personal": biblioteca personal → sin motivo.
   context?: "club" | "personal";
+  isAdmin?: boolean;
+  onOpenBook?: (bookId: string) => void;
+  onRepropose?: (bookId: string) => Promise<void>;
 }
 
 type Phase = "search" | "review";
+type AlreadyAdded = { id?: string; status?: string };
 
 // Un motivo mínimamente escrito (no "asd"): convence al club y da contexto.
-const MIN_REASON = 10;
+const MIN_REASON = 30;
 
-export const AddBookModal = ({ open, onClose, onAddBook, onToast, context = "club" }: AddBookModalProps) => {
+export const AddBookModal = ({ open, onClose, onAddBook, onToast, context = "club", isAdmin = false, onOpenBook, onRepropose }: AddBookModalProps) => {
   const isClub = context === "club";
   const { language } = useI18n();
   const [phase, setPhase] = useState<Phase>("search");
@@ -35,6 +39,8 @@ export const AddBookModal = ({ open, onClose, onAddBook, onToast, context = "clu
   const [searching, setSearching] = useState(false);
   const [draft, setDraft] = useState<BookDraft | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [shakeReason, setShakeReason] = useState(false);
+  const [alreadyAdded, setAlreadyAdded] = useState<AlreadyAdded | null>(null);
   const dialogRef = useRef<HTMLElement | null>(null);
   // onToast vía ref: NO puede ser dep reactiva del efecto de búsqueda. Si la
   // prop cambiara de identidad por render, un fallo de búsqueda (toast →
@@ -114,6 +120,7 @@ export const AddBookModal = ({ open, onClose, onAddBook, onToast, context = "clu
 
   const editField = <K extends keyof BookDraft>(key: K, value: BookDraft[K]) => {
     setDraft((prev) => (prev ? { ...prev, [key]: value, manuallyEdited: true } : prev));
+    if (alreadyAdded) setAlreadyAdded(null); // cambiaron algo: reintento limpio
   };
 
   const confirm = async (event: FormEvent) => {
@@ -123,12 +130,12 @@ export const AddBookModal = ({ open, onClose, onAddBook, onToast, context = "clu
       onToast(pick(language, "El título es obligatorio.", "Title is required.", "O título é obrigatorio."));
       return;
     }
-    if (isClub && !(draft.description ?? "").trim()) {
-      onToast(pick(language, "Añade una sinopsis del libro.", "Add a synopsis of the book.", "Engade unha sinopse do libro."));
-      return;
-    }
+    // Solo el motivo es obligatorio (≥30 chars). Si falta, feedback visual:
+    // sacude el campo + vibra + texto rojo (no un toast que se pierde).
     if (isClub && draft.proposalNote.trim().length < MIN_REASON) {
-      onToast(pick(language, "Cuenta en una frase por qué lo recomiendas.", "Say in a sentence why you recommend it.", "Conta nunha frase por que o recomendas."));
+      setShakeReason(true);
+      window.setTimeout(() => setShakeReason(false), 500);
+      if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") navigator.vibrate(120);
       return;
     }
     setSubmitting(true);
@@ -136,11 +143,28 @@ export const AddBookModal = ({ open, onClose, onAddBook, onToast, context = "clu
       await onAddBook({ ...draft, title: draft.title.trim() });
       onClose();
     } catch (err) {
-      onToast(
-        err instanceof Error
-          ? err.message
-          : pick(language, "No se pudo añadir el libro.", "Couldn't add the book.", "Non se puido engadir o libro.")
-      );
+      // Libro ya en el club: NO cerramos; mensaje inline + acciones (ver / admin
+      // re-proponer). El resto de errores, toast normal.
+      const body = (err as { body?: { message?: string; book?: AlreadyAdded } }).body;
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("BOOK_ALREADY_IN_CLUB") || body?.message === "BOOK_ALREADY_IN_CLUB") {
+        setAlreadyAdded(body?.book ?? {});
+      } else {
+        onToast(msg || pick(language, "No se pudo añadir el libro.", "Couldn't add the book.", "Non se puido engadir o libro."));
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const repropose = async (): Promise<void> => {
+    if (!alreadyAdded?.id || !onRepropose || submitting) return;
+    setSubmitting(true);
+    try {
+      await onRepropose(alreadyAdded.id);
+      onClose();
+    } catch {
+      onToast(pick(language, "No se pudo reabrir la propuesta.", "Couldn't reopen the proposal.", "Non se puido reabrir a proposta."));
     } finally {
       setSubmitting(false);
     }
@@ -329,42 +353,68 @@ export const AddBookModal = ({ open, onClose, onAddBook, onToast, context = "clu
 
                 <label>
                   {pick(language, "Sinopsis", "Description", "Sinopse")}
-                  {isClub ? <span className="field-req"> *</span> : null}
                   <textarea
                     rows={4}
                     value={draft.description ?? ""}
                     onChange={(event) => editField("description", event.target.value || null)}
-                    placeholder={isClub ? pick(
+                    placeholder={pick(
                       language,
-                      "De qué va el libro (una idea, sin spoilers).",
-                      "What the book is about (a gist, no spoilers).",
-                      "De que vai o libro (unha idea, sen spoilers)."
-                    ) : pick(
-                      language,
-                      "Opcional — añade una sinopsis si quieres.",
-                      "Optional — add a synopsis if you like.",
-                      "Opcional — engade unha sinopse se queres."
+                      "Opcional — de qué va el libro, sin spoilers.",
+                      "Optional — what the book is about, no spoilers.",
+                      "Opcional — de que vai o libro, sen spoilers."
                     )}
                   />
                 </label>
 
                 {isClub ? (
-                  <label>
-                    {pick(language, "¿Por qué lo recomiendas?", "Why do you recommend it?", "Por que o recomendas?")}
-                    <span className="field-req"> *</span>
-                    <span className="field-hint">{pick(language, "Un buen motivo convence al club.", "A good reason convinces the club and helps it get picked.", "Un bo motivo convence ao club e axuda a que saia adiante.")}</span>
-                    <textarea
-                      rows={2}
-                      value={draft.proposalNote}
-                      onChange={(event) => editField("proposalNote", event.target.value)}
-                      placeholder={pick(
-                        language,
-                        "Ej.: «Me marcó por cómo trata la memoria y el duelo, y se lee del tirón.»",
-                        "E.g.: “It stuck with me for how it handles memory and grief, and it's a page-turner.”",
-                        "Ex.: «Marcoume por como trata a memoria e o dó, e lese do tirón.»"
-                      )}
-                    />
-                  </label>
+                  (() => {
+                    const reasonLen = draft.proposalNote.trim().length;
+                    const short = reasonLen < MIN_REASON;
+                    return (
+                      <label className={`add-reason${shakeReason ? " is-shake" : ""}`}>
+                        {pick(language, "¿Por qué lo recomiendas?", "Why do you recommend it?", "Por que o recomendas?")}
+                        <span className="field-req"> *</span>
+                        <span className="field-hint">{pick(language, "Un buen motivo convence al club (obligatorio).", "A good reason convinces the club (required).", "Un bo motivo convence ao club (obrigatorio).")}</span>
+                        <textarea
+                          rows={2}
+                          value={draft.proposalNote}
+                          onChange={(event) => editField("proposalNote", event.target.value)}
+                          className={shakeReason ? "is-error" : ""}
+                          placeholder={pick(
+                            language,
+                            "Ej.: «Me marcó por cómo trata la memoria y el duelo, y se lee del tirón.»",
+                            "E.g.: “It stuck with me for how it handles memory and grief, and it's a page-turner.”",
+                            "Ex.: «Marcoume por como trata a memoria e o dó, e lese do tirón.»"
+                          )}
+                        />
+                        <span className={`add-reason-counter${short ? " is-short" : " is-ok"}`}>
+                          {short
+                            ? pick(language, `Mínimo 30 caracteres — faltan ${MIN_REASON - reasonLen}`, `At least 30 characters — ${MIN_REASON - reasonLen} to go`, `Mínimo 30 caracteres — faltan ${MIN_REASON - reasonLen}`)
+                            : pick(language, "¡Listo!", "Looks good!", "Listo!")}
+                        </span>
+                      </label>
+                    );
+                  })()
+                ) : null}
+
+                {alreadyAdded ? (
+                  <div className="add-already" role="alert">
+                    <p className="add-already-msg">
+                      <Icon name="check" size={14} /> {pick(language, "Este libro ya está en el club.", "This book is already in the club.", "Este libro xa está no club.")}
+                    </p>
+                    <div className="add-already-actions">
+                      {alreadyAdded.id && onOpenBook ? (
+                        <button type="button" className="btn btn-tiny" disabled={submitting} onClick={() => { onOpenBook(alreadyAdded.id as string); onClose(); }}>
+                          <Icon name="eye" size={13} /> {pick(language, "Ver el libro", "See the book", "Ver o libro")}
+                        </button>
+                      ) : null}
+                      {isAdmin && alreadyAdded.id && alreadyAdded.status === "rejected" && onRepropose ? (
+                        <button type="button" className="btn btn-tiny btn-primary" disabled={submitting} onClick={() => void repropose()}>
+                          <Icon name="refresh" size={13} /> {pick(language, "Volver a proponer", "Re-propose", "Volver a propoñer")}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
                 ) : null}
 
                 <div className="book-review-actions">
@@ -374,7 +424,7 @@ export const AddBookModal = ({ open, onClose, onAddBook, onToast, context = "clu
                   <button
                     type="submit"
                     className="btn btn-primary"
-                    disabled={submitting || (isClub && (!(draft.description ?? "").trim() || draft.proposalNote.trim().length < MIN_REASON))}
+                    disabled={submitting}
                   >
                     <Icon name="plus" />{" "}
                     {submitting ? (

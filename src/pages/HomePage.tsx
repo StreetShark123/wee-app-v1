@@ -39,6 +39,7 @@ export const HomePage = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showRejected, setShowRejected] = useState(false);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebouncedSearchQuery(searchQuery.trim().toLowerCase()), 180);
@@ -73,14 +74,14 @@ export const HomePage = ({
   };
 
   const reading = visibleBooks.filter((book) => book.status === "reading").sort((a, b) => featuredRank(a) - featuredRank(b));
-  // Propuestas (pendientes de voto) primero, luego rechazadas; cada grupo cronológico
-  // (más recientes arriba). Es la "columna" de propuestas de la librería.
-  const proposals = visibleBooks
-    .filter((book) => book.status === "proposed" || book.status === "rejected")
-    .sort((a, b) => {
-      const rank = (s: string) => (s === "proposed" ? 0 : 1);
-      return rank(a.status) - rank(b.status) || b.createdAt - a.createdAt;
-    });
+  // Propuestas ACTIVAS (pendientes de voto). Las descartadas no se muestran de
+  // entrada: viven detrás de un "Ver descartados" para no ensuciar la columna.
+  const proposed = visibleBooks
+    .filter((book) => book.status === "proposed")
+    .sort((a, b) => featuredRank(a) - featuredRank(b) || b.createdAt - a.createdAt);
+  const rejected = visibleBooks
+    .filter((book) => book.status === "rejected")
+    .sort((a, b) => b.createdAt - a.createdAt);
   const finished = visibleBooks.filter((book) => book.status === "finished");
 
   const renderShelf = (title: string, list: typeof books, emptyHint: string, variant = "") =>
@@ -194,11 +195,38 @@ export const HomePage = ({
               pick(language, "Aún nada en lectura. Aprobad una propuesta para empezar.", "Nothing being read yet. Approve a proposal to start.", "Aínda nada en lectura. Aprobade unha proposta."),
               "reading"
             )}
-            {renderShelf(
-              pick(language, "Propuestas", "Proposals", "Propostas"),
-              proposals,
-              pick(language, "Sin propuestas. Añade un libro y votad.", "No proposals. Add a book and vote.", "Sen propostas. Engade un libro e votade."),
-              "proposed"
+            {proposed.length === 0 && rejected.length === 0 ? (
+              <div className="shelf-empty-row shelf-proposed">
+                <span className="shelf-empty-title">{pick(language, "Propuestas", "Proposals", "Propostas")}</span>
+                <span className="shelf-empty-hint">{pick(language, "Sin propuestas. Añade un libro y votad.", "No proposals. Add a book and vote.", "Sen propostas. Engade un libro e votade.")}</span>
+              </div>
+            ) : (
+              <section className="page-section shelf-section shelf-proposed">
+                <div className="shelf-head">
+                  <h3 className="shelf-title">{pick(language, "Propuestas", "Proposals", "Propostas")}</h3>
+                  <span className="shelf-count">{proposed.length}</span>
+                </div>
+                <div className="book-grid">
+                  {proposed.map((book) => (
+                    <BookCard key={book.id} book={book} member={memberByBookId.get(book.id)} onOpen={openBook} />
+                  ))}
+                  {/* Descartados: no de entrada. Un tile tamaño libro los carga. */}
+                  {rejected.length > 0 && !showRejected ? (
+                    <button type="button" className="shelf-toggle-tile" onClick={() => setShowRejected(true)}>
+                      <Icon name="eye" size={20} />
+                      <span>{pick(language, `Ver descartados (${rejected.length})`, `See declined (${rejected.length})`, `Ver descartados (${rejected.length})`)}</span>
+                    </button>
+                  ) : null}
+                  {showRejected ? rejected.map((book) => (
+                    <BookCard key={book.id} book={book} member={memberByBookId.get(book.id)} onOpen={openBook} />
+                  )) : null}
+                </div>
+                {showRejected ? (
+                  <button type="button" className="btn btn-tiny shelf-toggle-hide" onClick={() => setShowRejected(false)}>
+                    {pick(language, "Ocultar descartados", "Hide declined", "Agochar descartados")}
+                  </button>
+                ) : null}
+              </section>
             )}
             {renderShelf(
               pick(language, "Leídos", "Read", "Lidos"),

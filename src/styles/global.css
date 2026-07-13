@@ -2510,6 +2510,30 @@ textarea::placeholder {
 /* Asterisco de campo obligatorio. */
 .field-req { color: var(--danger); font-weight: 700; }
 
+/* Motivo de propuesta (obligatorio ≥30): contador + shake al intentar sin él. */
+.add-reason-counter { display: block; font-size: 0.74rem; margin-top: 4px; }
+.add-reason-counter.is-short { color: var(--danger); font-weight: 600; }
+.add-reason-counter.is-ok { color: var(--success); }
+.add-reason textarea.is-error { border-color: var(--danger); box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 25%, transparent); }
+.add-reason.is-shake { animation: add-shake 0.45s var(--ease-standard, ease); }
+@keyframes add-shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-7px); }
+  40%, 60% { transform: translateX(7px); }
+}
+@media (prefers-reduced-motion: reduce) { .add-reason.is-shake { animation: none; } }
+
+/* Aviso "este libro ya está en el club" (no cierra el formulario). */
+.add-already {
+  display: grid; gap: 8px;
+  padding: 10px 12px; border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--status-proposed) 12%, var(--panel-0));
+  border: 1px solid color-mix(in srgb, var(--status-proposed) 40%, var(--line));
+}
+.add-already-msg { margin: 0; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ink-0); }
+.add-already-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
 /* Marca Wee (W en cuadrado de papel) */
 .wee-mark { flex: 0 0 auto; vertical-align: middle; }
 .wee-mark-square { fill: var(--panel-1); }
@@ -3260,6 +3284,18 @@ textarea:focus-visible {
   gap: 16px;
   margin-top: 16px;
 }
+
+/* Tile tamaño-libro para cargar los descartados (mantiene la columna limpia). */
+.shelf-toggle-tile {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  aspect-ratio: 2 / 3;
+  padding: 12px; text-align: center;
+  border: 1.5px dashed var(--line); border-radius: var(--radius-lg);
+  background: transparent; color: var(--ink-1); cursor: pointer;
+  font-size: 0.82rem; line-height: 1.3;
+}
+.shelf-toggle-tile:active { background: color-mix(in srgb, var(--ink-0) 4%, transparent); }
+.shelf-toggle-hide { margin-top: 12px; }
 
 /* ── Portada + overlay (compartido: tarjeta de biblioteca y cara A del héroe) ──
    Portada a bleed completo con barra de progreso + avatares de lectores encima.
