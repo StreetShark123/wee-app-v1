@@ -5,6 +5,7 @@ import { AddBookModal } from "../components/AddBookModal";
 import { Icon } from "../components/Icon";
 import { PersonalBookCard } from "../components/PersonalBookCard";
 import { BookGridSkeleton } from "../components/Skeletons";
+import { getCachedPersonal, setCachedPersonal } from "../lib/booksCache";
 import { pick, useI18n } from "../lib/i18n";
 import type { BookDraft } from "../lib/bookSearch";
 import {
@@ -36,15 +37,17 @@ const matches = (book: PersonalBook, query: string): boolean => {
 export const MePage = ({ onToast }: MePageProps) => {
   const { language } = useI18n();
   const navigate = useNavigate();
-  const [books, setBooks] = useState<PersonalBook[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Stale-while-revalidate: pinta lo cacheado al instante (sin skeleton) y
+  // revalida detrás — como la estantería del club.
+  const [books, setBooks] = useState<PersonalBook[]>(() => getCachedPersonal() ?? []);
+  const [loading, setLoading] = useState(() => !getCachedPersonal());
   const [modalOpen, setModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
   const load = useCallback(() => {
     void listPersonalLibrary()
-      .then((r) => setBooks(r.books))
+      .then((r) => { setCachedPersonal(r.books); setBooks(r.books); })
       .catch(() => undefined)
       .finally(() => setLoading(false));
   }, []);
@@ -76,7 +79,7 @@ export const MePage = ({ onToast }: MePageProps) => {
       source: draft.source,
       manuallyEdited: draft.manuallyEdited
     });
-    setBooks((prev) => [book, ...prev]);
+    setBooks((prev) => { const next = [book, ...prev]; setCachedPersonal(next); return next; });
     onToast(pick(language, "Añadido a tu biblioteca.", "Added to your library.", "Engadido á túa biblioteca."));
   };
 

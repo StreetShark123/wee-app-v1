@@ -10,9 +10,9 @@ import { PunctuationLoader } from "./components/PunctuationLoader";
 import { PullToRefresh } from "./components/PullToRefresh";
 import { AddBookModal } from "./components/AddBookModal";
 import type { BookDraft } from "./lib/bookSearch";
-import { createClubBook, demoteMember, exportMyData, joinPublicCommunity, listClubBooks, listNotifications, markNotificationsRead, previewCommunityBySlug, promoteMember, removeMember, requestJoinCommunity, setBookStatus, type ClubBook, type MemberBook } from "./lib/communityApi";
+import { createClubBook, demoteMember, exportMyData, joinPublicCommunity, listClubBooks, listNotifications, listPersonalLibrary, markNotificationsRead, previewCommunityBySlug, promoteMember, removeMember, requestJoinCommunity, setBookStatus, type ClubBook, type MemberBook } from "./lib/communityApi";
 import { getCommunitySession } from "./lib/communitySession";
-import { clearBooksCache, getCachedList, setCachedList } from "./lib/booksCache";
+import { clearBooksCache, getCachedList, setCachedList, setCachedPersonal } from "./lib/booksCache";
 import { isFresh, markFetched } from "./lib/freshness";
 import { Toast } from "./components/Toast";
 import { useAppData } from "./lib/appData";
@@ -170,6 +170,13 @@ const AppRoutes = () => {
   useEffect(() => {
     void reloadBooks();
   }, [reloadBooks]);
+
+  // Precarga la biblioteca personal al arranque (como la del club) para que "Tú"
+  // pinte al instante en la primera visita, no con skeleton. Fire-and-forget.
+  useEffect(() => {
+    if (!globalSession) return;
+    void listPersonalLibrary().then((r) => setCachedPersonal(r.books)).catch(() => undefined);
+  }, [globalSession]);
 
   const reloadMyCommunities = useCallback(async () => {
     if (!globalSession) {
