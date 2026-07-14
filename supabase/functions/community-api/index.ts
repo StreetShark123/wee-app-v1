@@ -4398,6 +4398,37 @@ const handlers = {
     return json(200, { book: rowToPersonalBook(upd.data as Record<string, any>) });
   },
 
+  // Edita los datos de un libro personal (título, autor, sinopsis, portada, año,
+  // páginas). Solo campos presentes en el body.
+  "/me/library/update": async (req: Request) => {
+    const auth = await requireGlobalSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    if (!bookId) return bad("book_id required");
+    const patch: Record<string, any> = { updated_at: nowIso() };
+    if (typeof body.title === "string") {
+      const t = body.title.trim().slice(0, 300);
+      if (!t) return bad("title cannot be empty");
+      patch.title = t;
+    }
+    if (body.author !== undefined) patch.author = body.author ? String(body.author).trim().slice(0, 200) : null;
+    if (body.description !== undefined) patch.description = body.description ? String(body.description).trim().slice(0, 4000) : null;
+    if (body.coverUrl !== undefined) patch.cover_url = body.coverUrl ? String(body.coverUrl).trim() : null;
+    if (body.publishedYear !== undefined) patch.published_year = Number.isFinite(Number(body.publishedYear)) ? Number(body.publishedYear) : null;
+    if (body.pageCount !== undefined) patch.page_count = Number.isFinite(Number(body.pageCount)) ? Number(body.pageCount) : null;
+    const upd = await db
+      .from("personal_books")
+      .update(patch)
+      .eq("id", bookId)
+      .eq("global_user_id", auth.user.id)
+      .select("*")
+      .maybeSingle();
+    if (upd.error) return dbFail(400, upd.error);
+    if (!upd.data) return json(404, { message: "Book not found" });
+    return json(200, { book: rowToPersonalBook(upd.data as Record<string, any>) });
+  },
+
   // Define/reemplaza la lista de capítulos de un libro personal (títulos → ids).
   // Al cambiar la lista se reinicia el progreso (ids nuevos). Sube shelf a
   // "reading" si estaba en "want".

@@ -463,6 +463,13 @@ export const setPersonalChapters = async (bookId: string, titles: string[]): Pro
 export const togglePersonalChapter = async (bookId: string, chapterId: string): Promise<{ book: PersonalBook }> =>
   request<{ book: PersonalBook }>("/me/library/toggle_chapter", { book_id: bookId, chapter_id: chapterId });
 
+// Edita datos de un libro personal (título, autor, sinopsis, portada, año, págs).
+export const updatePersonalBook = async (
+  bookId: string,
+  fields: { title?: string; author?: string | null; description?: string | null; coverUrl?: string | null; publishedYear?: number | null; pageCount?: number | null }
+): Promise<{ book: PersonalBook }> =>
+  request<{ book: PersonalBook }>("/me/library/update", { book_id: bookId, ...fields });
+
 export const addToPersonalLibrary = async (book: NewBookPayload & { shelf?: PersonalShelf }): Promise<{ book: PersonalBook }> =>
   request<{ book: PersonalBook }>("/me/library/add", {
     book: {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { GeneratedCover } from "../components/GeneratedCover";
+import { BookCoverFace } from "../components/BookCoverFace";
 import { Icon } from "../components/Icon";
 import { PunctuationLoader } from "../components/PunctuationLoader";
 import { pick, useI18n } from "../lib/i18n";
@@ -14,6 +14,7 @@ import {
   setPersonalChapters,
   setPersonalShelf,
   togglePersonalChapter,
+  updatePersonalBook,
   type PersonalBook,
   type PersonalShelf
 } from "../lib/communityApi";
@@ -42,6 +43,11 @@ export const PersonalBookDetailPage = ({ onToast }: PersonalBookDetailPageProps)
   const [editingChapters, setEditingChapters] = useState(false);
   const [chaptersText, setChaptersText] = useState("");
   const [numbered, setNumbered] = useState(10);
+  // Header con flip (mismo componente que el club): portada delante, datos +
+  // "editar libro" detrás.
+  const [heroFlipped, setHeroFlipped] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [edit, setEdit] = useState({ title: "", author: "", description: "", coverUrl: "" });
 
   useEffect(() => {
     let active = true;
@@ -77,6 +83,30 @@ export const PersonalBookDetailPage = ({ onToast }: PersonalBookDetailPageProps)
       apply(updated);
       setEditingChapters(false);
       setChaptersText("");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openEdit = (): void => {
+    if (!book) return;
+    setEdit({ title: book.title, author: book.author ?? "", description: book.description ?? "", coverUrl: book.coverUrl ?? "" });
+    setHeroFlipped(false);
+    setEditOpen(true);
+    window.setTimeout(() => document.getElementById("personal-edit-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  };
+  const saveDetails = async (): Promise<void> => {
+    if (!book || busy || !edit.title.trim()) return;
+    setBusy(true);
+    try {
+      const { book: updated } = await updatePersonalBook(book.id, {
+        title: edit.title.trim(),
+        author: edit.author.trim() || null,
+        description: edit.description.trim() || null,
+        coverUrl: edit.coverUrl.trim() || null
+      });
+      apply(updated);
+      setEditOpen(false);
     } finally {
       setBusy(false);
     }
@@ -192,18 +222,61 @@ export const PersonalBookDetailPage = ({ onToast }: PersonalBookDetailPageProps)
           <span className="book-shelf-chip personal-shelf-chip">{SHELVES.find((s) => s.key === book.shelf)?.label(language)}</span>
         </div>
 
-        {/* Cabecera: portada + datos (sin nada social). */}
-        <section className="page-section personal-detail-head">
-          <div className="personal-detail-cover">
-            {book.coverUrl ? <img src={book.coverUrl} alt="" /> : <GeneratedCover title={book.title} author={book.author} />}
-          </div>
-          <div className="personal-detail-info">
-            <h1>{book.title}</h1>
-            <p className="book-detail-author">{book.author ?? pick(language, "Autor desconocido", "Unknown author", "Autor descoñecido")}</p>
-            {metaLine ? <p className="book-detail-metaline">{metaLine}</p> : null}
-            {book.description ? <p className="personal-detail-synopsis">{book.description}</p> : null}
+        {/* Cabecera = MISMO flip que el club (ajustado): portada delante,
+            datos + "editar libro" detrás. Sin nada social. */}
+        <section className="page-section personal-hero-wrap">
+          <div className={`book-hero-flip${heroFlipped ? " is-flipped" : ""}`}>
+            <div className="book-hero-flip-inner">
+              <div className="book-hero-face book-hero-face-front">
+                <BookCoverFace coverUrl={book.coverUrl} title={book.title} author={book.author} progressPct={total > 0 ? pct : null} readers={[]} />
+                <button type="button" className="book-hero-flip-btn" onClick={() => setHeroFlipped(true)} aria-label={pick(language, "Más información", "More information", "Máis información")} title={pick(language, "Más información", "More information", "Máis información")}>
+                  <Icon name="info" size={16} />
+                </button>
+              </div>
+              <div className="book-hero-face book-hero-face-back">
+                <button type="button" className="book-hero-flip-btn" onClick={() => setHeroFlipped(false)} aria-label={pick(language, "Volver a la portada", "Back to the cover", "Volver á portada")} title={pick(language, "Volver", "Back", "Volver")}>
+                  <Icon name="arrowLeft" size={16} />
+                </button>
+                <div className="book-hero-back-scroll">
+                  <h1>{book.title}</h1>
+                  <p className="book-detail-author">{book.author ?? pick(language, "Autor desconocido", "Unknown author", "Autor descoñecido")}</p>
+                  {metaLine ? <p className="book-detail-metaline">{metaLine}</p> : null}
+                  {book.description ? <p className="book-hero-synopsis">{book.description}</p> : null}
+                  {!editOpen ? (
+                    <button type="button" className="btn btn-tiny book-hero-edit" onClick={openEdit}>
+                      <Icon name="pencil" size={12} /> {pick(language, "Editar libro", "Edit book", "Editar libro")}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
           </div>
         </section>
+
+        {/* Editar datos del libro personal (título/autor/portada/sinopsis). */}
+        {editOpen ? (
+          <section id="personal-edit-form" className="page-section">
+            <div className="section-head"><h2><Icon name="pencil" /> {pick(language, "Editar libro", "Edit book", "Editar libro")}</h2></div>
+            <label className="form-field">{pick(language, "Título", "Title", "Título")}
+              <input value={edit.title} onChange={(e) => setEdit((p) => ({ ...p, title: e.target.value }))} maxLength={300} />
+            </label>
+            <label className="form-field">{pick(language, "Autor", "Author", "Autor")}
+              <input value={edit.author} onChange={(e) => setEdit((p) => ({ ...p, author: e.target.value }))} maxLength={200} />
+            </label>
+            <label className="form-field">{pick(language, "Portada (URL)", "Cover (URL)", "Portada (URL)")}
+              <input value={edit.coverUrl} onChange={(e) => setEdit((p) => ({ ...p, coverUrl: e.target.value }))} placeholder="https://…" />
+            </label>
+            <label className="form-field">{pick(language, "Sinopsis", "Description", "Sinopse")}
+              <textarea rows={4} value={edit.description} onChange={(e) => setEdit((p) => ({ ...p, description: e.target.value }))} maxLength={4000} />
+            </label>
+            <div className="personal-detail-actions">
+              <button type="button" className="btn" disabled={busy} onClick={() => setEditOpen(false)}>{pick(language, "Cancelar", "Cancel", "Cancelar")}</button>
+              <button type="button" className="btn btn-primary" disabled={busy || !edit.title.trim()} onClick={() => void saveDetails()}>
+                <Icon name="check" size={14} /> {pick(language, "Guardar", "Save", "Gardar")}
+              </button>
+            </div>
+          </section>
+        ) : null}
 
         {/* Estantería personal. */}
         <section className="page-section">
