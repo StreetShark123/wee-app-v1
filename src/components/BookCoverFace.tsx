@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { GeneratedCover } from "./GeneratedCover";
 import { UserDot } from "./UserBadge";
 
@@ -29,10 +30,14 @@ export const BookCoverFace = ({ coverUrl, title, author, progressPct = null, rea
   const visible = readers.slice(0, maxReaders);
   const extra = readers.length - visible.length;
   const showOverlay = progressPct != null || visible.length > 0;
+  // Si la portada remota falla (404/CORS/rate-limit), cae a la portada generada
+  // en vez de dejar un hueco en blanco.
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [coverUrl]);
   return (
     <>
-      {coverUrl ? (
-        <img className="book-cover-img" src={coverUrl} alt="" loading="lazy" />
+      {coverUrl && !failed ? (
+        <img className="book-cover-img" src={coverUrl} alt="" loading="lazy" onError={() => setFailed(true)} />
       ) : (
         <GeneratedCover className="book-cover-img" title={title} author={author} />
       )}
