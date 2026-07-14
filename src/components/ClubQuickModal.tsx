@@ -62,11 +62,20 @@ export const ClubQuickModal = ({ communityName, communityId, members, myCommunit
         </div>
 
         {members.length > 0 ? (
-          <div className="club-quick-avatars" aria-hidden="true">
-            {members.slice(0, 8).map((m, i) => (
-              <UserDot key={m.id} alias={m.alias} colorIndex={i} />
-            ))}
-            {members.length > 8 ? <span className="club-quick-more">+{members.length - 8}</span> : null}
+          <div className="club-quick-members">
+            <span className="club-quick-switch-label">{pick(language, "Miembros", "Members", "Membros")}</span>
+            <div className="member-list club-quick-member-list">
+              {members.map((m, i) => (
+                <button key={m.id} type="button" className="member-row" onClick={() => { onClose(); navigate(`/profile/${m.id}`); }}>
+                  <UserDot alias={m.alias} colorIndex={i} />
+                  <span className="member-row-main">
+                    <span className="member-name">{m.alias}</span>
+                  </span>
+                  <span className={`member-role member-role-${m.role}`}>{m.role === "admin" ? pick(language, "Admin", "Admin", "Admin") : pick(language, "Miembro", "Member", "Membro")}</span>
+                  <span className="member-go" aria-hidden="true">›</span>
+                </button>
+              ))}
+            </div>
           </div>
         ) : null}
 
