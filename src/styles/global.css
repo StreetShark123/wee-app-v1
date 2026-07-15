@@ -5647,9 +5647,12 @@ textarea:focus-visible {
   white-space: nowrap;
   font-family: var(--font-sans);
   font-weight: 700;
-  font-size: 1.18rem;
+  /* Más pequeño que el título de página (books-hero-title, ~1.2rem+) y con
+     color de marca: el club actual se lee como identidad, sin perderse ni
+     competir con el H2 de la pantalla. */
+  font-size: 1rem;
   letter-spacing: 0.01em;
-  color: var(--ink-0);
+  color: var(--brand-strong);
   text-decoration: none;
 }
 /* El título es un botón (abre el menú ligero de club): reset + caret discreto. */
@@ -5662,7 +5665,7 @@ textarea:focus-visible {
   cursor: pointer;
   padding: 2px 4px;
 }
-.masthead-title-btn svg { color: var(--ink-1); flex: 0 0 auto; }
+.masthead-title-btn svg { color: color-mix(in srgb, var(--brand-strong) 60%, var(--ink-1)); flex: 0 0 auto; }
 .masthead-settings {
   grid-column: 3;
   justify-self: end;
