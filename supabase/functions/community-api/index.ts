@@ -448,6 +448,7 @@ const rowToPersonalBook = (row: Record<string, any>): Record<string, any> => ({
   shelf: row.shelf ?? "want",
   chapters: Array.isArray(row.chapters) ? row.chapters : [],
   chaptersDone: Array.isArray(row.chapters_done) ? row.chapters_done : [],
+  notes: row.notes && typeof row.notes === "object" && !Array.isArray(row.notes) ? row.notes : {},
   addedAt: toMillis(row.added_at),
   updatedAt: toMillis(row.updated_at)
 });
@@ -4479,6 +4480,55 @@ const handlers = {
     const upd = await db
       .from("personal_books")
       .update({ chapters_done: doneArr, shelf, updated_at: nowIso() })
+      .eq("id", bookId)
+      .eq("global_user_id", auth.user.id)
+      .select("*")
+      .maybeSingle();
+    if (upd.error) return dbFail(400, upd.error);
+    if (!upd.data) return json(404, { message: "Book not found" });
+    return json(200, { book: rowToPersonalBook(upd.data as Record<string, any>) });
+  },
+
+  // Anotaciones personales por capítulo (SIN nada social). Read-modify-write del
+  // mapa notes { [chapterId]: [{id,text,createdAt,editedAt?}] }. add|edit|delete.
+  "/me/library/note": async (req: Request) => {
+    const auth = await requireGlobalSession(req);
+    if (auth instanceof Response) return auth;
+    const body = await parseBody(req);
+    const bookId = String(body.book_id ?? "").trim();
+    const chapterId = String(body.chapter_id ?? "").trim();
+    const action = String(body.action ?? "add");
+    if (!bookId || !chapterId) return bad("book_id and chapter_id required");
+    const cur = await db.from("personal_books").select("chapters,notes").eq("id", bookId).eq("global_user_id", auth.user.id).maybeSingle();
+    if (cur.error || !cur.data) return json(404, { message: "Book not found" });
+    const chapters = Array.isArray(cur.data.chapters) ? (cur.data.chapters as Array<{ id: string }>) : [];
+    if (!chapters.some((c) => c.id === chapterId)) return bad("unknown chapter");
+    const notes: Record<string, Array<{ id: string; text: string; createdAt: number; editedAt?: number }>> =
+      cur.data.notes && typeof cur.data.notes === "object" && !Array.isArray(cur.data.notes) ? cur.data.notes : {};
+    const list = Array.isArray(notes[chapterId]) ? notes[chapterId] : [];
+    if (action === "add") {
+      const text = String(body.text ?? "").trim().slice(0, 2000);
+      if (!text) return bad("text required");
+      if (list.length >= 100) return bad("too many notes");
+      list.push({ id: crypto.randomUUID(), text, createdAt: Date.now() });
+    } else if (action === "edit") {
+      const noteId = String(body.note_id ?? "");
+      const text = String(body.text ?? "").trim().slice(0, 2000);
+      if (!text) return bad("text required");
+      const n = list.find((x) => x.id === noteId);
+      if (!n) return json(404, { message: "Note not found" });
+      n.text = text;
+      n.editedAt = Date.now();
+    } else if (action === "delete") {
+      const noteId = String(body.note_id ?? "");
+      notes[chapterId] = list.filter((x) => x.id !== noteId);
+    } else {
+      return bad("invalid action");
+    }
+    if (action !== "delete") notes[chapterId] = list;
+    const upd = await db
+      .from("personal_books")
+      .update({ notes, updated_at: nowIso() })
       .eq("id", bookId)
       .eq("global_user_id", auth.user.id)
       .select("*")

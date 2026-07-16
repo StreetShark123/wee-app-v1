@@ -9,6 +9,7 @@ import { getSelectedCommunity } from "../lib/communitySession";
 import { parseChapterList } from "../lib/parseChapters";
 import {
   listPersonalLibrary,
+  personalNote,
   proposeToClubFromLibrary,
   removeFromPersonalLibrary,
   setPersonalChapters,
@@ -48,6 +49,10 @@ export const PersonalBookDetailPage = ({ onToast }: PersonalBookDetailPageProps)
   const [heroFlipped, setHeroFlipped] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [edit, setEdit] = useState({ title: "", author: "", description: "", coverUrl: "" });
+  // Anotaciones por capítulo (simplificado, sin nada social).
+  const [openNotesCh, setOpenNotesCh] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [editingNote, setEditingNote] = useState<{ id: string; text: string } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -107,6 +112,19 @@ export const PersonalBookDetailPage = ({ onToast }: PersonalBookDetailPageProps)
       });
       apply(updated);
       setEditOpen(false);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runNote = async (chapterId: string, action: "add" | "edit" | "delete", opts: { text?: string; noteId?: string }): Promise<void> => {
+    if (!book || busy) return;
+    setBusy(true);
+    try {
+      const { book: updated } = await personalNote(book.id, chapterId, action, opts);
+      apply(updated);
+      if (action === "add") setNoteDraft("");
+      if (action === "edit") setEditingNote(null);
     } finally {
       setBusy(false);
     }
@@ -275,6 +293,12 @@ export const PersonalBookDetailPage = ({ onToast }: PersonalBookDetailPageProps)
                 <Icon name="check" size={14} /> {pick(language, "Guardar", "Save", "Gardar")}
               </button>
             </div>
+            {/* Quitar de la biblioteca vive dentro de editar (acción del libro). */}
+            <div className="personal-edit-danger">
+              <button type="button" className="btn me-logout" disabled={busy} onClick={() => void remove()}>
+                <Icon name="trash" size={14} /> {pick(language, "Quitar de mi biblioteca", "Remove from my library", "Quitar da miña biblioteca")}
+              </button>
+            </div>
           </section>
         ) : null}
 
@@ -310,12 +334,57 @@ export const PersonalBookDetailPage = ({ onToast }: PersonalBookDetailPageProps)
               <ul className="personal-chapter-list">
                 {book.chapters.map((ch, i) => {
                   const isDone = doneSet.has(ch.id);
+                  const chNotes = book.notes[ch.id] ?? [];
+                  const open = openNotesCh === ch.id;
                   return (
                     <li key={ch.id}>
-                      <button type="button" className={`personal-chapter-row${isDone ? " is-done" : ""}`} disabled={busy} onClick={() => void toggle(ch.id)}>
-                        <span className="personal-chapter-check" aria-hidden="true">{isDone ? <Icon name="check" size={13} /> : null}</span>
-                        <span className="personal-chapter-title">{/^\s*\d+[.)\s]/.test(ch.title) ? ch.title : `${i + 1}. ${ch.title}`}</span>
-                      </button>
+                      <div className="personal-chapter-row-wrap">
+                        <button type="button" className={`personal-chapter-row${isDone ? " is-done" : ""}`} disabled={busy} onClick={() => void toggle(ch.id)}>
+                          <span className="personal-chapter-check" aria-hidden="true">{isDone ? <Icon name="check" size={13} /> : null}</span>
+                          <span className="personal-chapter-title">{/^\s*\d+[.)\s]/.test(ch.title) ? ch.title : `${i + 1}. ${ch.title}`}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`personal-chapter-notes-btn${chNotes.length > 0 ? " has-notes" : ""}${open ? " is-open" : ""}`}
+                          onClick={() => { setOpenNotesCh(open ? null : ch.id); setEditingNote(null); setNoteDraft(""); }}
+                          aria-label={pick(language, "Anotaciones", "Notes", "Anotacións")}
+                          title={pick(language, "Anotaciones", "Notes", "Anotacións")}
+                        >
+                          <Icon name="pencil" size={13} />{chNotes.length > 0 ? <span className="personal-chapter-notes-count">{chNotes.length}</span> : null}
+                        </button>
+                      </div>
+
+                      {open ? (
+                        <div className="personal-notes">
+                          {chNotes.map((n) => (
+                            <div key={n.id} className="personal-note">
+                              {editingNote?.id === n.id ? (
+                                <div className="personal-note-edit">
+                                  <textarea rows={2} value={editingNote.text} onChange={(e) => setEditingNote({ id: n.id, text: e.target.value })} />
+                                  <div className="personal-note-edit-actions">
+                                    <button type="button" className="btn btn-tiny" disabled={busy} onClick={() => setEditingNote(null)}>{pick(language, "Cancelar", "Cancel", "Cancelar")}</button>
+                                    <button type="button" className="btn btn-tiny btn-primary" disabled={busy || !editingNote.text.trim()} onClick={() => void runNote(ch.id, "edit", { noteId: n.id, text: editingNote.text.trim() })}>{pick(language, "Guardar", "Save", "Gardar")}</button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  <p className="personal-note-text">{n.text}</p>
+                                  <div className="personal-note-actions">
+                                    <button type="button" className="link-btn" disabled={busy} onClick={() => setEditingNote({ id: n.id, text: n.text })} aria-label={pick(language, "Editar", "Edit", "Editar")}><Icon name="pencil" size={12} /></button>
+                                    <button type="button" className="link-btn personal-note-del" disabled={busy} onClick={() => void runNote(ch.id, "delete", { noteId: n.id })} aria-label={pick(language, "Borrar", "Delete", "Borrar")}><Icon name="trash" size={12} /></button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          ))}
+                          <div className="personal-note-add">
+                            <textarea rows={2} value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)} placeholder={pick(language, "Tu anotación de este capítulo…", "Your note for this chapter…", "A túa anotación deste capítulo…")} />
+                            <button type="button" className="btn btn-tiny btn-primary personal-note-add-btn" disabled={busy || !noteDraft.trim()} onClick={() => void runNote(ch.id, "add", { text: noteDraft.trim() })}>
+                              <Icon name="plus" size={12} /> {pick(language, "Añadir", "Add", "Engadir")}
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
                     </li>
                   );
                 })}
@@ -324,14 +393,12 @@ export const PersonalBookDetailPage = ({ onToast }: PersonalBookDetailPageProps)
           )}
         </section>
 
-        {/* Acciones del libro (no social): proponer al club, quitar. */}
+        {/* Acción de puente con el club (no social): proponer al club. Quitar de
+            la biblioteca se movió al menú de editar. */}
         <section className="page-section">
           <div className="personal-detail-actions">
             <button type="button" className="btn" disabled={busy} onClick={() => void propose()}>
               <Icon name="users" size={14} /> {pick(language, "Proponer al club", "Propose to club", "Propoñer ao club")}
-            </button>
-            <button type="button" className="btn me-logout" disabled={busy} onClick={() => void remove()}>
-              <Icon name="trash" size={14} /> {pick(language, "Quitar de mi biblioteca", "Remove from my library", "Quitar da miña biblioteca")}
             </button>
           </div>
         </section>

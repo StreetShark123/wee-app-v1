@@ -433,6 +433,13 @@ export interface PersonalChapter {
   title: string;
 }
 
+export interface PersonalNote {
+  id: string;
+  text: string;
+  createdAt: number;
+  editedAt?: number;
+}
+
 export interface PersonalBook {
   id: string;
   isbn?: string;
@@ -448,6 +455,8 @@ export interface PersonalBook {
   /** Seguimiento de capítulos a título individual (sin nada social). */
   chapters: PersonalChapter[];
   chaptersDone: string[];
+  /** Anotaciones personales por capítulo: { [chapterId]: PersonalNote[] }. */
+  notes: Record<string, PersonalNote[]>;
   addedAt: number;
   updatedAt: number;
 }
@@ -462,6 +471,15 @@ export const setPersonalChapters = async (bookId: string, titles: string[]): Pro
 // Marca/desmarca un capítulo como leído (recalcula la estantería en el backend).
 export const togglePersonalChapter = async (bookId: string, chapterId: string): Promise<{ book: PersonalBook }> =>
   request<{ book: PersonalBook }>("/me/library/toggle_chapter", { book_id: bookId, chapter_id: chapterId });
+
+// Anotaciones personales por capítulo (add / edit / delete).
+export const personalNote = async (
+  bookId: string,
+  chapterId: string,
+  action: "add" | "edit" | "delete",
+  opts: { text?: string; noteId?: string }
+): Promise<{ book: PersonalBook }> =>
+  request<{ book: PersonalBook }>("/me/library/note", { book_id: bookId, chapter_id: chapterId, action, text: opts.text, note_id: opts.noteId });
 
 // Edita datos de un libro personal (título, autor, sinopsis, portada, año, págs).
 export const updatePersonalBook = async (
